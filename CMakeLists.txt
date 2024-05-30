@@ -19,11 +19,17 @@ add_library(show_cat
     src/show_cat.cpp
 )
 
+add_library(playing_field_localizer
+    include/playing_field_localizer.h
+    src/playing_field_localizer.cpp
+)
+
 add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
-    show_cat
     ${OpenCV_LIBS}
+    show_cat
+    playing_field_localizer
 )
