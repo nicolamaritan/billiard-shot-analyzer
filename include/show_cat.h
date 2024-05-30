@@ -1,3 +1,5 @@
+// Author: Nicola Maritan
+
 #ifndef SHOW_CAT
 #define SHOW_CAT
 
