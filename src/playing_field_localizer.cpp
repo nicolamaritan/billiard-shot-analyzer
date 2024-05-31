@@ -6,10 +6,12 @@
 using namespace cv;
 using namespace std;
 
-void playing_field_localizer::segmentation(const Mat src, Mat &dst)
+void playing_field_localizer::segmentation(const Mat& src, Mat &dst)
 {
     Mat src_hsv;
     cvtColor(src, src_hsv, COLOR_BGR2HSV);
+
+    cout << src_hsv.type() << endl;
 
     dst = src_hsv;
 
@@ -43,18 +45,37 @@ void playing_field_localizer::segmentation(const Mat src, Mat &dst)
         p[i] = centers.at<Vec3f>(center_id);
     }
 
-    // back to 2d, and uchar:
     dst = data.reshape(3, dst.rows);
     dst.convertTo(dst, CV_8U);
 
-    // -------
+    for (int row = 0; row < dst.rows; row++)
+    {
+        for (int col = 0; col < dst.cols; col++)
+        {
+            cout << dst.at<Vec3b>(row, col);
+        }
+    }
 }
 
-void playing_field_localizer::localize(const Mat src, Mat &dst)
+cv::Vec3b playing_field_localizer::get_board_color(const cv::Mat& src)
+{
+    return src.at<Vec3b>(src.rows / 2, src.cols / 2);
+}
+
+void playing_field_localizer::localize(const Mat& src, Mat &dst)
 {
     Mat segmented, labels;
     segmentation(src, segmented);
 
     imshow("", segmented);
+    waitKey(0);
+
+    Vec3b board_color = get_board_color(segmented);
+
+    Mat mask;
+    inRange(segmented, board_color, board_color, mask);
+    segmented.setTo(Scalar(0, 0, 0), mask);
+
+    imshow("", mask);
     waitKey(0);
 }

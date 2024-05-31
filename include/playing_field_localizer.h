@@ -7,10 +7,10 @@
 class playing_field_localizer
 {
 public:
-    void localize(cv::Mat src, cv::Mat &dst);
+    void localize(const cv::Mat& src, cv::Mat &dst);
 private:
-    void segmentation(const cv::Mat src, cv::Mat& dst);
-    cv::Vec3b board_color(const cv::Mat src);
+    void segmentation(const cv::Mat& src, cv::Mat& dst);
+    cv::Vec3b get_board_color(const cv::Mat& src);
 };
 
 #endif
