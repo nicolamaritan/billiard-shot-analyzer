@@ -59,7 +59,7 @@ void playing_field_localizer::find_lines(const cv::Mat &edges)
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
     // Standard Hough Line Transform
     vector<Vec2f> lines;                                 // will hold the results of the detection
-    HoughLines(edges, lines, 1, CV_PI / 180, 150, 0, 0); // runs the actual detection
+    HoughLines(edges, lines, 1.6, 1.8 * CV_PI / 180, 120, 0, 0); // runs the actual detection
     // Draw the lines
     for (size_t i = 0; i < lines.size(); i++)
     {
