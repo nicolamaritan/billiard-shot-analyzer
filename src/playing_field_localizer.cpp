@@ -10,9 +10,6 @@ void playing_field_localizer::segmentation(const Mat& src, Mat &dst)
 {
     Mat src_hsv;
     cvtColor(src, src_hsv, COLOR_BGR2HSV);
-
-    cout << src_hsv.type() << endl;
-
     dst = src_hsv;
 
     Mat data;
@@ -47,14 +44,6 @@ void playing_field_localizer::segmentation(const Mat& src, Mat &dst)
 
     dst = data.reshape(3, dst.rows);
     dst.convertTo(dst, CV_8U);
-
-    for (int row = 0; row < dst.rows; row++)
-    {
-        for (int col = 0; col < dst.cols; col++)
-        {
-            cout << dst.at<Vec3b>(row, col);
-        }
-    }
 }
 
 cv::Vec3b playing_field_localizer::get_board_color(const cv::Mat& src)
