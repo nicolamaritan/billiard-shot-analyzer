@@ -97,9 +97,15 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     imshow("", mask);
     waitKey(0);
 
-    Mat element = getStructuringElement(MORPH_RECT, Size(2, 20));
+    Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5));
+    morphologyEx(mask.clone(), mask, MORPH_OPEN, element);
+    imshow("", mask);
+    waitKey(0);
+
+    element = getStructuringElement(MORPH_RECT, Size(20, 20));
     morphologyEx(mask.clone(), mask, MORPH_CLOSE, element);
     imshow("", mask);
+    waitKey(0);
 
     Mat edges;
     Canny(mask, edges, 50, 150);
