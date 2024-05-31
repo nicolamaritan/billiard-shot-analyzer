@@ -11,6 +11,7 @@ public:
 private:
     void segmentation(const cv::Mat& src, cv::Mat& dst);
     cv::Vec3b get_board_color(const cv::Mat& src);
+    void find_lines(const cv::Mat& src);
 };
 
 #endif
