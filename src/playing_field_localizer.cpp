@@ -1,45 +1,60 @@
+#include <iostream>
+#include <cmath>
+#include <map>
 #include "playing_field_localizer.h"
 
 using namespace cv;
 using namespace std;
 
-void playing_field_localizer::hough_approach(cv::Mat src, cv::Mat &dst)
+void playing_field_localizer::segmentation(const Mat src, Mat &dst)
 {
-    Mat cdst, cdstP;
+    Mat src_hsv;
+    cvtColor(src, src_hsv, COLOR_BGR2HSV);
 
-    bilateralFilter(src.clone(), src, 9, 75, 75);
-    Canny(src, dst, 50, 200, 3);
+    dst = src_hsv;
 
-    imshow("", dst);
-    waitKey(0);
+    Mat data;
+    dst.convertTo(data, CV_32F);
+    data = data.reshape(1, data.total());
 
-    cvtColor(dst, cdst, COLOR_GRAY2BGR);
-    cdstP = cdst.clone();
+    // do kmeans
+    Mat labels, centers;
+    kmeans(data, 5, labels, TermCriteria(TermCriteria::MAX_ITER, 10, 1.0), 3,
+           KMEANS_PP_CENTERS, centers);
 
-    // Standard Hough Line Transform
-    vector<Vec2f> lines;
-    HoughLines(dst, lines, 1.7, CV_PI / 270, 250, 0, 0);
-    for (size_t i = 0; i < lines.size(); i++)
+    // reshape both to a single row of Vec3f pixels:
+    centers = centers.reshape(3, centers.rows);
+    data = data.reshape(3, data.rows);
+
+    // replace pixel values with their center value:
+    Vec3f *p = data.ptr<Vec3f>();
+    for (size_t i = 0; i < data.rows; i++)
     {
-        float rho = lines[i][0], theta = lines[i][1];
-        Point pt1, pt2;
-        double a = cos(theta), b = sin(theta);
-        double x0 = a * rho, y0 = b * rho;
-        pt1.x = cvRound(x0 + 1000 * (-b));
-        pt1.y = cvRound(y0 + 1000 * (a));
-        pt2.x = cvRound(x0 - 1000 * (-b));
-        pt2.y = cvRound(y0 - 1000 * (a));
-        line(src, pt1, pt2, Scalar(0, 0, 255), 3, LINE_AA);
+        int center_id = labels.at<int>(i);
+
+        if (center_id == 0)
+        {
+            p[i] = centers.at<Vec3f>(center_id);
+        }
+        else
+        {
+            p[i] = Vec3f(0, 0, 0);
+        }
+        p[i] = centers.at<Vec3f>(center_id);
     }
 
-    // Show results
-    imshow("", src);
-    // imshow("Detected Lines (in red) - Standard Hough Line Transform", cdst);
-    // imshow("Detected Lines (in red) - Probabilistic Line Transform", cdstP);
-    waitKey();
+    // back to 2d, and uchar:
+    dst = data.reshape(3, dst.rows);
+    dst.convertTo(dst, CV_8U);
+
+    // -------
 }
 
-void playing_field_localizer::localize(cv::Mat src, cv::Mat &dst)
+void playing_field_localizer::localize(const Mat src, Mat &dst)
 {
-    hough_approach(src, dst);
+    Mat segmented, labels;
+    segmentation(src, segmented);
+
+    imshow("", segmented);
+    waitKey(0);
 }
