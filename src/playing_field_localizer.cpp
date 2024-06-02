@@ -6,13 +6,26 @@
 using namespace cv;
 using namespace std;
 
-
+void playing_field_localizer::gamma_correction(const cv::Mat& src, cv::Mat& dst, double gamma)
+{
+    for(int c = 0; c < src.channels(); c++)
+    {
+        for(int i = 0; i < src.rows; i++)
+        {
+            for(int j = 0; j < src.cols; j++)
+            {
+                dst.at<Vec3b>(i, j)[c] = pow(src.at<Vec3b>(i,j)[c]/255, gamma) * 255;
+            }
+        }
+    }
+}
 void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
 {
-    Mat src_hsv;
+    Mat src_hsv1, src_hsv;
+    //cvtColor(src, src_hsv, COLOR_BGR2HSV);
     cvtColor(src, src_hsv, COLOR_BGR2HSV);
+    //gamma_correction(src_hsv1, src_hsv, 1);
     dst = src_hsv;
-
     Mat data;
     dst.convertTo(data, CV_32F);
     data = data.reshape(1, data.total());
@@ -79,7 +92,7 @@ bool playing_field_localizer::is_within_image(const Point &p, int rows, int cols
 
 // Finds the intersection of two lines.
 // The lines are defined by (o1, p1) and (o2, p2).
-bool playing_field_localizer::intersection(cv::Point o1, cv::Point p1, cv::Point o2, cv::Point p2, cv::Point &r)
+bool playing_field_localizer::intersection(cv::Point o1, cv::Point p1, cv::Point o2, cv::Point p2, cv::Point &r, int rows, int cols)
 {
     cv::Point x = o2 - o1;
     cv::Point d1 = p1 - o1;
@@ -91,19 +104,22 @@ bool playing_field_localizer::intersection(cv::Point o1, cv::Point p1, cv::Point
     
     double t1 = (x.x * d2.y - x.y * d2.x)/cross;
     r = o1 + d1 * t1;
+    if(!is_within_image(r, rows, cols))
+        return false;
+    
     return true;
 }
 
 // Finds the intersection of two lines.
 // The lines are defined by (o1, p1) and (o2, p2).
-void playing_field_localizer::intersections(const vector<vector<Point>> &points, vector<Point> &inters, int rows, int cols, Mat& img)
+void playing_field_localizer::intersections(const vector<vector<Point>> &points, vector<Point> &inters, int rows, int cols)
 {
     for(int i = 0; i < points.size()-1; i++)
     {
         for(int j = i+1; j <= points.size()-1; j++)
         {
             Point inte;
-            if(intersection(points[i][0], points[i][1], points[j][0], points[j][1], inte))
+            if(intersection(points[i][0], points[i][1], points[j][0], points[j][1], inte, rows, cols))
                 inters.push_back(inte);
         }
     }
@@ -112,7 +128,11 @@ void playing_field_localizer::intersections(const vector<vector<Point>> &points,
 
 double playing_field_localizer::angle_between_lines(double m1, double m2)
 {
-    return atan(abs((m1-m2)/(1+m1*m2)));
+    double angle = atan(abs((m1-m2)/(1+m1*m2)));
+    if(angle >= 0)
+        return angle;
+    else
+        return angle + CV_PI;
 }
 
 void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat& image)
@@ -125,6 +145,7 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat& image)
     cout << "x = " << inters[2].x << ", " << " y = " << inters[2].y << endl;
     cout << "x = " << inters[3].x << ", " << " y = " << inters[3].y << endl;
 
+    
     if(is_vertical_line(inters[0], inters[1]) ||
         is_vertical_line(inters[0], inters[2]) ||
         is_vertical_line(inters[0], inters[3]))
@@ -139,7 +160,7 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat& image)
 
         rectangle(image, Point(x1,y1), Point(x2,y2), Scalar(0, 0, 255), 3);
     }
-    
+
     else
     {
         double m1 = angular_coeff(inters[0], inters[1]); //line 1
@@ -182,7 +203,9 @@ void playing_field_localizer::find_lines(const cv::Mat &edges)
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
     // Standard Hough Line Transform
     vector<Vec2f> lines;                                 // will hold the results of the detection
-    HoughLines(edges, lines, 1.6, 1.8 * CV_PI / 180, 120, 0, 0); // runs the actual detection
+    //HoughLines(edges, lines, 1.6, 1.8 * CV_PI / 180, 120, 0, 0); // runs the actual detection
+    
+    cv::HoughLines(edges, lines, 1.6, 1.8*CV_PI/180, 120, 0, 0);
     // Draw the lines
     vector<vector<Point>> points;
     vector<Point> inters;
@@ -197,29 +220,28 @@ void playing_field_localizer::find_lines(const cv::Mat &edges)
         pt2.x = cvRound(x0 - 1000 * (-b));
         pt2.y = cvRound(y0 - 1000 * (a));
         points.push_back({pt1, pt2});
-        //line(cdst, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
+        //line(cdst, pt1, pt2, Scalar(0, 255, 0), 3, LINE_AA);
     }
-    //imshow("1", cdst);
+    //imshow("", cdst);
     
-    intersections(points, inters, cdst.rows, cdst.cols, cdst);
+    intersections(points, inters, cdst.rows, cdst.cols);
     draw_pool_table(inters, cdst);
-    imshow("POOL TABLE", cdst);
+    imshow("", cdst);
     
-    
-
     waitKey(0);
 }
 
 void playing_field_localizer::localize(const Mat &src, Mat &dst)
 {
     GaussianBlur(src.clone(), src, Size(3, 3), 12, 12);
+    
 
     Mat segmented, labels;
     segmentation(src, segmented);
 
     imshow("", segmented);
     waitKey(0);
-
+    //gamma_correction(segmented.clone(), segmented, 1.2);
     Vec3b board_color = get_board_color(segmented);
 
     Mat mask;
@@ -229,7 +251,7 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     imshow("", mask);
     waitKey(0);
 
-    Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5));
+    Mat element = getStructuringElement(MORPH_CROSS, Size(5, 25));
     morphologyEx(mask.clone(), mask, MORPH_OPEN, element);
     imshow("", mask);
     waitKey(0);
@@ -241,6 +263,7 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
 
     Mat edges;
     Canny(mask, edges, 50, 150);
+    //Canny(mask, edges, 230, 250);
     imshow("", edges);
     waitKey(0);
 
