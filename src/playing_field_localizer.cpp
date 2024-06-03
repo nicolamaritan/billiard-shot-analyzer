@@ -51,14 +51,14 @@ cv::Vec3b playing_field_localizer::get_board_color(const cv::Mat &src)
     return src.at<Vec3b>(src.rows / 2, src.cols / 2);
 }
 
-void playing_field_localizer::find_lines(const cv::Mat &edges)
+vector<Vec2f> playing_field_localizer::find_lines(const cv::Mat &edges)
 {
     Mat cdst;
 
     // Copy edges to the images that will display the results in BGR
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
     // Standard Hough Line Transform
-    vector<Vec2f> lines;                                 // will hold the results of the detection
+    vector<Vec2f> lines;                                         // will hold the results of the detection
     HoughLines(edges, lines, 1.6, 1.8 * CV_PI / 180, 120, 0, 0); // runs the actual detection
     // Draw the lines
     for (size_t i = 0; i < lines.size(); i++)
@@ -71,11 +71,13 @@ void playing_field_localizer::find_lines(const cv::Mat &edges)
         pt1.y = cvRound(y0 + 1000 * (a));
         pt2.x = cvRound(x0 - 1000 * (-b));
         pt2.y = cvRound(y0 - 1000 * (a));
-        line(cdst, pt1, pt2, Scalar(0, 0, 255), 3, LINE_AA);
+        line(cdst, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
     }
 
     imshow("", cdst);
     waitKey();
+
+    return lines;
 }
 
 void playing_field_localizer::localize(const Mat &src, Mat &dst)
@@ -112,5 +114,67 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     imshow("", edges);
     waitKey(0);
 
-    find_lines(edges);
+    vector<Vec2f> lines = find_lines(edges);
+    vector<Vec2f> refined_lines = refine_lines(lines);
+
+    draw_lines(edges, refined_lines);
+}
+
+vector<Vec2f> playing_field_localizer::refine_lines(vector<Vec2f> &lines)
+{
+    vector<Vec2f> refined_lines;
+    while (!lines.empty())
+    {
+        Vec2f reference_line = lines.back();
+        lines.pop_back();
+        vector<Vec2f> similar_lines{reference_line};
+
+        // Insert into similar_lines all the similar lines and removes them from lines.
+        int i = 0;
+        while (i < lines.size())
+        {
+            Vec2f line = lines.at(i);
+            if (abs(line[0] - reference_line[0]) < 25 && abs(line[1] - reference_line[1]) < 0.2)
+            {
+                similar_lines.push_back(line);
+                lines.erase(lines.begin() + i);
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        Vec2f mean_line;
+        for (auto similar_line : similar_lines)
+        {
+            mean_line += similar_line;
+        }
+        mean_line[0] /= similar_lines.size();
+        mean_line[1] /= similar_lines.size();
+        refined_lines.push_back(mean_line);
+    }
+    return refined_lines;
+}
+
+void playing_field_localizer::draw_lines(const Mat &src, const std::vector<cv::Vec2f> &lines)
+{
+    Mat src_bgr;
+    cvtColor(src, src_bgr, COLOR_GRAY2BGR);
+
+    for (size_t i = 0; i < lines.size(); i++)
+    {
+        float rho = lines[i][0], theta = lines[i][1];
+        Point pt1, pt2;
+        double a = cos(theta), b = sin(theta);
+        double x0 = a * rho, y0 = b * rho;
+        pt1.x = cvRound(x0 + 1000 * (-b));
+        pt1.y = cvRound(y0 + 1000 * (a));
+        pt2.x = cvRound(x0 - 1000 * (-b));
+        pt2.y = cvRound(y0 - 1000 * (a));
+        line(src_bgr, pt1, pt2, Scalar(0, 255, 0), 1, LINE_AA);
+    }
+
+    imshow("", src_bgr);
+    waitKey();
 }
