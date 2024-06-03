@@ -109,34 +109,7 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     imshow("", mask);
     waitKey(0);
 
-    Mat connected_components_labels, stats, centroids;
-    connectedComponentsWithStats(mask, connected_components_labels, stats, centroids);
-    cout << "type: " << connected_components_labels.type() << endl;
-
-    int max_label_component = 1;
-    int max_area = 0;
-    for (int i = 1; i < stats.rows; i++)
-    {
-        int component_area = stats.at<int>(i, 4);
-        if (component_area > max_area)
-        {
-            max_area = component_area;
-            max_label_component = i;
-        }
-    }
-    cout << "comps: " << max_label_component << " " << max_area << endl;
-
-    for (int row = 0; row < mask.rows; row++)
-    {
-        for (int col = 0; col < mask.cols; col++)
-        {
-            if (connected_components_labels.at<int>(row, col) != max_label_component)
-            {
-                mask.at<uchar>(row, col) = 0;
-            }
-        }
-    }
-
+    non_maxima_connected_component_suppression(mask.clone(), mask);
     imshow("", mask);
     waitKey(0);
 
@@ -218,5 +191,30 @@ void playing_field_localizer::dump_similar_lines(Vec2f reference_line, vector<cv
 
 void playing_field_localizer::non_maxima_connected_component_suppression(const cv::Mat &src, cv::Mat &dst)
 {
-    
+    src.copyTo(dst);
+    Mat connected_components_labels, stats, centroids;
+    connectedComponentsWithStats(src, connected_components_labels, stats, centroids);
+
+    int max_label_component = 1;
+    int max_area = 0;
+    for (int i = 1; i < stats.rows; i++)
+    {
+        int component_area = stats.at<int>(i, 4);
+        if (component_area > max_area)
+        {
+            max_area = component_area;
+            max_label_component = i;
+        }
+    }
+
+    for (int row = 0; row < src.rows; row++)
+    {
+        for (int col = 0; col < src.cols; col++)
+        {
+            if (connected_components_labels.at<int>(row, col) != max_label_component)
+            {
+                dst.at<uchar>(row, col) = 0;
+            }
+        }
+    }
 }
