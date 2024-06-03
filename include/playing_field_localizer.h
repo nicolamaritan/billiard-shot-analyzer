@@ -14,7 +14,7 @@ private:
     std::vector<cv::Vec2f> find_lines(const cv::Mat& src);
     std::vector<cv::Vec2f> refine_lines(std::vector<cv::Vec2f>& lines);
     void draw_lines(const cv::Mat &src, const std::vector<cv::Vec2f>& lines);
-    
+    void dump_similar_lines(cv::Vec2f reference_line, std::vector<cv::Vec2f>& lines, std::vector<cv::Vec2f>& similar_lines);
 };
 
 #endif

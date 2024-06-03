@@ -127,23 +127,9 @@ vector<Vec2f> playing_field_localizer::refine_lines(vector<Vec2f> &lines)
     {
         Vec2f reference_line = lines.back();
         lines.pop_back();
-        vector<Vec2f> similar_lines{reference_line};
+        vector<Vec2f> similar_lines;
 
-        // Insert into similar_lines all the similar lines and removes them from lines.
-        int i = 0;
-        while (i < lines.size())
-        {
-            Vec2f line = lines.at(i);
-            if (abs(line[0] - reference_line[0]) < 25 && abs(line[1] - reference_line[1]) < 0.2)
-            {
-                similar_lines.push_back(line);
-                lines.erase(lines.begin() + i);
-            }
-            else
-            {
-                i++;
-            }
-        }
+        dump_similar_lines(reference_line, lines, similar_lines);
 
         Vec2f mean_line;
         for (auto similar_line : similar_lines)
@@ -157,7 +143,7 @@ vector<Vec2f> playing_field_localizer::refine_lines(vector<Vec2f> &lines)
     return refined_lines;
 }
 
-void playing_field_localizer::draw_lines(const Mat &src, const std::vector<cv::Vec2f> &lines)
+void playing_field_localizer::draw_lines(const Mat &src, const vector<cv::Vec2f> &lines)
 {
     Mat src_bgr;
     cvtColor(src, src_bgr, COLOR_GRAY2BGR);
@@ -177,4 +163,24 @@ void playing_field_localizer::draw_lines(const Mat &src, const std::vector<cv::V
 
     imshow("", src_bgr);
     waitKey();
+}
+
+void playing_field_localizer::dump_similar_lines(Vec2f reference_line, vector<cv::Vec2f> &lines, vector<cv::Vec2f> &similar_lines)
+{
+    similar_lines.push_back(reference_line);
+    // Insert into similar_lines all the similar lines and removes them from lines.
+    int i = 0;
+    while (i < lines.size())
+    {
+        Vec2f line = lines.at(i);
+        if (abs(line[0] - reference_line[0]) < 25 && abs(line[1] - reference_line[1]) < 0.2)
+        {
+            similar_lines.push_back(line);
+            lines.erase(lines.begin() + i);
+        }
+        else
+        {
+            i++;
+        }
+    }
 }
