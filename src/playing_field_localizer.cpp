@@ -14,7 +14,7 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
 
     std::vector<cv::Mat> hsv_channels;
     cv::split(src_hsv, hsv_channels);
-    const int VALUE_UNIFORM = 128;  // Uniform Value (of HSV) for the whole image, to handle different brightnesses
+    const int VALUE_UNIFORM = 128; // Uniform Value (of HSV) for the whole image, to handle different brightnesses
     hsv_channels[2].setTo(VALUE_UNIFORM);
     cv::merge(hsv_channels, src_hsv);
 
@@ -44,19 +44,54 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
     dst.convertTo(dst, CV_8U);
 }
 
-cv::Vec3b playing_field_localizer::get_board_color(const cv::Mat &src)
+cv::Vec3b playing_field_localizer::get_board_color(const cv::Mat &src, float radius)
 {
-    return src.at<Vec3b>(src.rows / 2, src.cols / 2);
+    int center_cols = src.cols / 2;
+    int center_rows = src.rows / 2;
+    std::vector<cv::Vec3b> pixel_values;
+
+    for (int row = -radius; row <= radius; ++row)
+    {
+        for (int col = -radius; col <= radius; ++col)
+        {
+            if (col * col + row * row <= radius * radius)
+            {
+                int current_row = center_rows + row;
+                int current_col = center_cols + col;
+
+                if (current_row >= 0 && current_row < src.rows && current_col >= 0 && current_col < src.cols)
+                {
+                    pixel_values.push_back(src.at<cv::Vec3b>(current_row, current_col));
+                }
+            }
+        }
+    }
+
+    // Return black if no pixel_values are collected
+    if (pixel_values.empty())
+    {
+        return cv::Vec3b(0, 0, 0);
+    }
+
+    // Sort by norm. In a grayscale context, we would have just considered the pixel intensity.
+    // However, now we have 3 components. So we sort the pixel values triplets by their norm.
+    std::sort(pixel_values.begin(), pixel_values.end(), [](const cv::Vec3b &a, const cv::Vec3b &b)
+              { return cv::norm(a) < cv::norm(b); });
+
+    return pixel_values[pixel_values.size() / 2];
 }
 
 vector<Vec2f> playing_field_localizer::find_lines(const cv::Mat &edges)
 {
-    Mat cdst;
+    const float RHO_RESOLUTION = 1.6;   // In pixels.
+    const float THETA_RESOLUTION = 1.8; // In radians.
+    const int THRESHOLD = 110;
 
+    Mat cdst;
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
     vector<Vec2f> lines;
-    HoughLines(edges, lines, 1.6, 1.8 * CV_PI / 180, 110, 0, 0);
-    
+    HoughLines(edges, lines, RHO_RESOLUTION, THETA_RESOLUTION * CV_PI / 180, THRESHOLD, 0, 0);
+
     // Draw the lines
     for (size_t i = 0; i < lines.size(); i++)
     {
@@ -79,7 +114,9 @@ vector<Vec2f> playing_field_localizer::find_lines(const cv::Mat &edges)
 
 void playing_field_localizer::localize(const Mat &src, Mat &dst)
 {
-    GaussianBlur(src.clone(), src, Size(3, 3), 20, 20);
+    const int FILTER_SIZE = 3;
+    const int FILTER_SIGMA = 20;
+    GaussianBlur(src.clone(), src, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
 
     Mat segmented, labels;
     segmentation(src, segmented);
@@ -87,7 +124,8 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     imshow("", segmented);
     waitKey(0);
 
-    Vec3b board_color = get_board_color(segmented);
+    const int RADIUS = 30;
+    Vec3b board_color = get_board_color(segmented, RADIUS);
 
     Mat mask;
     inRange(segmented, board_color, board_color, mask);
@@ -100,8 +138,10 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     imshow("", mask);
     waitKey(0);
 
+    const int THRESHOLD_1_CANNY = 50;
+    const int THRESHOLD_2_CANNY = 150;
     Mat edges;
-    Canny(mask, edges, 50, 150);
+    Canny(mask, edges, THRESHOLD_1_CANNY, THRESHOLD_2_CANNY);
     imshow("", edges);
     waitKey(0);
 

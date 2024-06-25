@@ -10,7 +10,7 @@ public:
     void localize(const cv::Mat& src, cv::Mat &dst);
 private:
     void segmentation(const cv::Mat& src, cv::Mat& dst);
-    cv::Vec3b get_board_color(const cv::Mat& src);
+    cv::Vec3b get_board_color(const cv::Mat &src, float radius);
     std::vector<cv::Vec2f> find_lines(const cv::Mat& src);
     std::vector<cv::Vec2f> refine_lines(std::vector<cv::Vec2f>& lines);
     void draw_lines(const cv::Mat &src, const std::vector<cv::Vec2f>& lines);
