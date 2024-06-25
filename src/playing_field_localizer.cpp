@@ -14,41 +14,30 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
 
     std::vector<cv::Mat> hsv_channels;
     cv::split(src_hsv, hsv_channels);
-    int desiredValue = 128;
-    hsv_channels[2].setTo(desiredValue);
+    const int VALUE_UNIFORM = 128;  // Uniform Value (of HSV) for the whole image, to handle different brightnesses
+    hsv_channels[2].setTo(VALUE_UNIFORM);
     cv::merge(hsv_channels, src_hsv);
 
     imshow("", src_hsv);
     waitKey(0);
 
+    // data contains dst data (init with src data) used for kmeans clustering (therefore employs 32-bit float values)
     Mat data;
     dst.convertTo(data, CV_32F);
     data = data.reshape(1, data.total());
 
-    // do kmeans
     Mat labels, centers;
-    kmeans(data, 3, labels, TermCriteria(TermCriteria::MAX_ITER, 10, 1.0), 3,
-           KMEANS_PP_CENTERS, centers);
+    kmeans(data, 3, labels, TermCriteria(TermCriteria::MAX_ITER, 10, 1.0), 3, KMEANS_PP_CENTERS, centers);
 
-    // reshape both to a single row of Vec3f pixels:
+    // Reshape both to a single row of Vec3f pixels
     centers = centers.reshape(3, centers.rows);
     data = data.reshape(3, data.rows);
 
-    // replace pixel values with their center value:
-    Vec3f *p = data.ptr<Vec3f>();
-    for (size_t i = 0; i < data.rows; i++)
+    // Replace pixel values with their centroids value
+    for (int i = 0; i < data.rows; i++)
     {
         int center_id = labels.at<int>(i);
-
-        if (center_id == 0)
-        {
-            p[i] = centers.at<Vec3f>(center_id);
-        }
-        else
-        {
-            p[i] = Vec3f(0, 0, 0);
-        }
-        p[i] = centers.at<Vec3f>(center_id);
+        data.at<Vec3f>(i) = centers.at<Vec3f>(center_id);
     }
 
     dst = data.reshape(3, dst.rows);
@@ -64,11 +53,10 @@ vector<Vec2f> playing_field_localizer::find_lines(const cv::Mat &edges)
 {
     Mat cdst;
 
-    // Copy edges to the images that will display the results in BGR
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
-    // Standard Hough Line Transform
-    vector<Vec2f> lines;                                         // will hold the results of the detection
-    HoughLines(edges, lines, 1.6, 1.8 * CV_PI / 180, 110, 0, 0); // runs the actual detection
+    vector<Vec2f> lines;
+    HoughLines(edges, lines, 1.6, 1.8 * CV_PI / 180, 110, 0, 0);
+    
     // Draw the lines
     for (size_t i = 0; i < lines.size(); i++)
     {
@@ -134,6 +122,7 @@ vector<Vec2f> playing_field_localizer::refine_lines(vector<Vec2f> &lines)
 
         dump_similar_lines(reference_line, lines, similar_lines);
 
+        // Compute a new mean line with the dumped ones
         Vec2f mean_line;
         for (auto similar_line : similar_lines)
         {
@@ -170,13 +159,16 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<cv::Vec2f>
 
 void playing_field_localizer::dump_similar_lines(Vec2f reference_line, vector<cv::Vec2f> &lines, vector<cv::Vec2f> &similar_lines)
 {
+    const float RHO_THRESHOLD = 25;
+    const float THETA_THRESHOLD = 0.2;
     similar_lines.push_back(reference_line);
+
     // Insert into similar_lines all the similar lines and removes them from lines.
     int i = 0;
     while (i < lines.size())
     {
         Vec2f line = lines.at(i);
-        if (abs(line[0] - reference_line[0]) < 25 && abs(line[1] - reference_line[1]) < 0.2)
+        if (abs(line[0] - reference_line[0]) < RHO_THRESHOLD && abs(line[1] - reference_line[1]) < THETA_THRESHOLD)
         {
             similar_lines.push_back(line);
             lines.erase(lines.begin() + i);
@@ -194,11 +186,14 @@ void playing_field_localizer::non_maxima_connected_component_suppression(const c
     Mat connected_components_labels, stats, centroids;
     connectedComponentsWithStats(src, connected_components_labels, stats, centroids);
 
+    const int AREA_STAT_ID = 4;
     int max_label_component = 1;
     int max_area = 0;
+
+    // Find component with greatest area
     for (int i = 1; i < stats.rows; i++)
     {
-        int component_area = stats.at<int>(i, 4);
+        int component_area = stats.at<int>(i, AREA_STAT_ID);
         if (component_area > max_area)
         {
             max_area = component_area;
@@ -206,6 +201,7 @@ void playing_field_localizer::non_maxima_connected_component_suppression(const c
         }
     }
 
+    // Suppress (mask set to 0) all components with non greatest area
     for (int row = 0; row < src.rows; row++)
     {
         for (int col = 0; col < src.cols; col++)
