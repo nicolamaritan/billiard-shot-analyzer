@@ -91,8 +91,7 @@ vector<Vec2f> playing_field_localizer::find_lines(const cv::Mat &edges)
 
 void playing_field_localizer::localize(const Mat &src, Mat &dst)
 {
-    GaussianBlur(src.clone(), src, Size(5, 5), 5, 5);
-    //bilateralFilter(src.clone(), src, 5, 70, 70);
+    GaussianBlur(src.clone(), src, Size(3, 3), 20, 20);
 
     Mat segmented, labels;
     segmentation(src, segmented);
