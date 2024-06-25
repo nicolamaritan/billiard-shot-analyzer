@@ -14,7 +14,7 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
 
     std::vector<cv::Mat> hsv_channels;
     cv::split(src_hsv, hsv_channels);
-    int desiredValue = 255;
+    int desiredValue = 128;
     hsv_channels[2].setTo(desiredValue);
     cv::merge(hsv_channels, src_hsv);
 
@@ -68,7 +68,7 @@ vector<Vec2f> playing_field_localizer::find_lines(const cv::Mat &edges)
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
     // Standard Hough Line Transform
     vector<Vec2f> lines;                                         // will hold the results of the detection
-    HoughLines(edges, lines, 1.6, 1.8 * CV_PI / 180, 120, 0, 0); // runs the actual detection
+    HoughLines(edges, lines, 1.6, 1.8 * CV_PI / 180, 110, 0, 0); // runs the actual detection
     // Draw the lines
     for (size_t i = 0; i < lines.size(); i++)
     {
@@ -91,7 +91,8 @@ vector<Vec2f> playing_field_localizer::find_lines(const cv::Mat &edges)
 
 void playing_field_localizer::localize(const Mat &src, Mat &dst)
 {
-    GaussianBlur(src.clone(), src, Size(3, 3), 15, 15);
+    GaussianBlur(src.clone(), src, Size(5, 5), 5, 5);
+    //bilateralFilter(src.clone(), src, 5, 70, 70);
 
     Mat segmented, labels;
     segmentation(src, segmented);

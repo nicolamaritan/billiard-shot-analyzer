@@ -14,7 +14,7 @@ int main()
     glob("*.png", filenames, true);
     for (auto filename : filenames)
     {
-        if (filename.find("masks") == String::npos)
+        if (filename.find("masks") == String::npos && filename.find("first") != String::npos)
         {
             Mat img = imread(filename);
             Mat dst;
