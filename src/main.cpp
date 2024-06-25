@@ -14,10 +14,13 @@ int main()
     glob("*.png", filenames, true);
     for (auto filename : filenames)
     {
-        Mat img = imread(filename);
-        Mat dst;
-        playing_field_localizer localizer;
-        localizer.localize(img, dst);
+        if (filename.find("masks") == String::npos && filename.find("first") != String::npos)
+        {
+            Mat img = imread(filename);
+            Mat dst;
+            playing_field_localizer localizer;
+            localizer.localize(img, dst);
+        }
     }
 
     return 0;
