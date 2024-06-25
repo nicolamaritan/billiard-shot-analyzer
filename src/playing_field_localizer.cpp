@@ -12,13 +12,22 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
     cvtColor(src, src_hsv, COLOR_BGR2HSV);
     dst = src_hsv;
 
+    std::vector<cv::Mat> hsv_channels;
+    cv::split(src_hsv, hsv_channels);
+    int desiredValue = 255;
+    hsv_channels[2].setTo(desiredValue);
+    cv::merge(hsv_channels, src_hsv);
+
+    imshow("", src_hsv);
+    waitKey(0);
+
     Mat data;
     dst.convertTo(data, CV_32F);
     data = data.reshape(1, data.total());
 
     // do kmeans
     Mat labels, centers;
-    kmeans(data, 4, labels, TermCriteria(TermCriteria::MAX_ITER, 10, 1.0), 3,
+    kmeans(data, 3, labels, TermCriteria(TermCriteria::MAX_ITER, 10, 1.0), 3,
            KMEANS_PP_CENTERS, centers);
 
     // reshape both to a single row of Vec3f pixels:
@@ -82,7 +91,7 @@ vector<Vec2f> playing_field_localizer::find_lines(const cv::Mat &edges)
 
 void playing_field_localizer::localize(const Mat &src, Mat &dst)
 {
-    GaussianBlur(src.clone(), src, Size(3, 3), 12, 12);
+    GaussianBlur(src.clone(), src, Size(3, 3), 15, 15);
 
     Mat segmented, labels;
     segmentation(src, segmented);
@@ -96,16 +105,6 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     inRange(segmented, board_color, board_color, mask);
     segmented.setTo(Scalar(0, 0, 0), mask);
 
-    imshow("", mask);
-    waitKey(0);
-
-    Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5));
-    morphologyEx(mask.clone(), mask, MORPH_OPEN, element);
-    imshow("", mask);
-    waitKey(0);
-
-    element = getStructuringElement(MORPH_RECT, Size(20, 20));
-    morphologyEx(mask.clone(), mask, MORPH_CLOSE, element);
     imshow("", mask);
     waitKey(0);
 
