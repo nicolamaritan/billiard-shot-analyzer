@@ -10,7 +10,25 @@ public:
     void localize(const cv::Mat &src, cv::Mat &dst);
 
 private:
+    /**
+     * Perform segmentation of the image based on color. One of the clusters should
+     * contain the whole table, surrounded by different clusters.
+     *
+     * @param src The input image to segment.
+     * @param dst The segmented image.
+     */
     void segmentation(const cv::Mat &src, cv::Mat &dst);
+
+    /**
+     * Return the estimated board color.
+     *
+     * It computes the color of the board by considering a circle of a given radius around
+     * the center of the image and picking the median value.
+     *
+     * @param src Input image containing the board.
+     * @param radius Radius from the image center in which to compute the board color.
+     * @return the computed color of the board.
+     */
     cv::Vec3b get_board_color(const cv::Mat &src, float radius);
     std::vector<cv::Vec2f> find_lines(const cv::Mat &src);
     std::vector<cv::Vec2f> refine_lines(std::vector<cv::Vec2f> &lines);
@@ -26,8 +44,8 @@ private:
     void intersections(const std::vector<std::vector<cv::Point>> &points, std::vector<cv::Point> &inters, int rows, int cols);
     double angle_between_lines(double m1, double m2);
     void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
-    void get_pairs_points_per_line(const std::vector<cv::Vec2f>& lines, std::vector<std::vector<cv::Point>> &points);
-    void sort_points_clockwise(std::vector<cv::Point>& points);
+    void get_pairs_points_per_line(const std::vector<cv::Vec2f> &lines, std::vector<std::vector<cv::Point>> &points);
+    void sort_points_clockwise(std::vector<cv::Point> &points);
 };
 
 #endif

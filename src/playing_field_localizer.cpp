@@ -8,26 +8,29 @@ using namespace std;
 
 void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
 {
-    Mat src_hsv;
-    cvtColor(src, src_hsv, COLOR_BGR2HSV);
-    dst = src_hsv;
+    // HSV allows to separate brightness from other color characteristics, therefore
+    // it is employed for kmeans clustering.
+    cvtColor(src, dst, COLOR_BGR2HSV);
 
-    std::vector<cv::Mat> hsv_channels;
-    cv::split(src_hsv, hsv_channels);
-    const int VALUE_UNIFORM = 128; // Uniform Value (of HSV) for the whole image, to handle different brightnesses
+    // Apply uniform Value (of HSV) for the whole image, to handle different brightnesses    
+    const int VALUE_UNIFORM = 128; 
+    vector<Mat> hsv_channels;
+    split(dst, hsv_channels);
     hsv_channels[2].setTo(VALUE_UNIFORM);
-    cv::merge(hsv_channels, src_hsv);
-
-    imshow("", src_hsv);
-    waitKey(0);
+    merge(hsv_channels, dst);
 
     // data contains dst data (init with src data) used for kmeans clustering (therefore employs 32-bit float values)
     Mat data;
     dst.convertTo(data, CV_32F);
     data = data.reshape(1, data.total());
 
+    // Image segmentation is performed via kmeans on the hsv img
     Mat labels, centers;
-    kmeans(data, 3, labels, TermCriteria(TermCriteria::MAX_ITER, 10, 1.0), 3, KMEANS_PP_CENTERS, centers);
+    const int NUMBER_OF_CENTERS = 3;
+    const int KMEANS_MAX_COUNT = 10;
+    const int KMEANS_EPSILON = 1.0;
+    const int KMEANS_ATTEMPTS = 3;
+    kmeans(data, NUMBER_OF_CENTERS, labels, TermCriteria(TermCriteria::MAX_ITER, KMEANS_MAX_COUNT, KMEANS_EPSILON), KMEANS_ATTEMPTS, KMEANS_PP_CENTERS, centers);
 
     // Reshape both to a single row of Vec3f pixels
     centers = centers.reshape(3, centers.rows);
@@ -44,12 +47,13 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
     dst.convertTo(dst, CV_8U);
 }
 
-cv::Vec3b playing_field_localizer::get_board_color(const cv::Mat &src, float radius)
+Vec3b playing_field_localizer::get_board_color(const Mat &src, float radius)
 {
     int center_cols = src.cols / 2;
     int center_rows = src.rows / 2;
-    std::vector<cv::Vec3b> pixel_values;
+    vector<Vec3b> pixel_values;
 
+    // Collect all pixel values in a radius 'radius' around the image center.
     for (int row = -radius; row <= radius; ++row)
     {
         for (int col = -radius; col <= radius; ++col)
@@ -61,7 +65,7 @@ cv::Vec3b playing_field_localizer::get_board_color(const cv::Mat &src, float rad
 
                 if (current_row >= 0 && current_row < src.rows && current_col >= 0 && current_col < src.cols)
                 {
-                    pixel_values.push_back(src.at<cv::Vec3b>(current_row, current_col));
+                    pixel_values.push_back(src.at<Vec3b>(current_row, current_col));
                 }
             }
         }
@@ -70,18 +74,18 @@ cv::Vec3b playing_field_localizer::get_board_color(const cv::Mat &src, float rad
     // Return black if no pixel_values are collected
     if (pixel_values.empty())
     {
-        return cv::Vec3b(0, 0, 0);
+        return Vec3b(0, 0, 0);
     }
 
     // Sort by norm. In a grayscale context, we would have just considered the pixel intensity.
     // However, now we have 3 components. So we sort the pixel values triplets by their norm.
-    std::sort(pixel_values.begin(), pixel_values.end(), [](const cv::Vec3b &a, const cv::Vec3b &b)
-              { return cv::norm(a) < cv::norm(b); });
+    sort(pixel_values.begin(), pixel_values.end(), [](const Vec3b &a, const Vec3b &b)
+              { return norm(a) < norm(b); });
 
     return pixel_values[pixel_values.size() / 2];
 }
 
-vector<Vec2f> playing_field_localizer::find_lines(const cv::Mat &edges)
+vector<Vec2f> playing_field_localizer::find_lines(const Mat &edges)
 {
     const float RHO_RESOLUTION = 1.6;   // In pixels.
     const float THETA_RESOLUTION = 1.8; // In radians.
@@ -112,6 +116,12 @@ vector<Vec2f> playing_field_localizer::find_lines(const cv::Mat &edges)
     return lines;
 }
 
+/**
+ * Localize the pool table.
+ * 
+ * @param src The input image.
+ * @param dst The destination image containing the localized table.
+ */
 void playing_field_localizer::localize(const Mat &src, Mat &dst)
 {
     const int FILTER_SIZE = 3;
@@ -153,25 +163,27 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     vector<vector<Point>> points_refined_line;
     get_pairs_points_per_line(refined_lines, points_refined_line);
 
-    std::vector<cv::Point> refined_lines_intersections;
+    vector<Point> refined_lines_intersections;
     Mat table = src.clone();
     intersections(points_refined_line, refined_lines_intersections, table.rows, table.cols);
     draw_pool_table(refined_lines_intersections, table);
     imshow("", table);
     waitKey(0);
 
-    cout << "before" << refined_lines_intersections << endl;
     sort_points_clockwise(refined_lines_intersections);
-    cout << "after" << refined_lines_intersections << endl;
-    /*Point temp = refined_lines_intersections.at(0);
-    refined_lines_intersections.at(0) = refined_lines_intersections.at(1);
-    refined_lines_intersections.at(1) = temp;
-    cout << refined_lines_intersections << endl;*/
+
     fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
     imshow("", table);
     waitKey(0);
 }
 
+/**
+ * Compute a vector of refined line by eliminating similar lines. Similar lines are condensed
+ * to a single line by computing their mean values.
+ * 
+ * @param lines Vector of lines to be refined.
+ * @return a vector of refined lines. 
+ */
 vector<Vec2f> playing_field_localizer::refine_lines(vector<Vec2f> &lines)
 {
     vector<Vec2f> refined_lines;
@@ -196,7 +208,7 @@ vector<Vec2f> playing_field_localizer::refine_lines(vector<Vec2f> &lines)
     return refined_lines;
 }
 
-void playing_field_localizer::draw_lines(const Mat &src, const vector<cv::Vec2f> &lines)
+void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec2f> &lines)
 {
     Mat src_bgr;
     cvtColor(src, src_bgr, COLOR_GRAY2BGR);
@@ -218,7 +230,7 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<cv::Vec2f>
     waitKey();
 }
 
-void playing_field_localizer::dump_similar_lines(Vec2f reference_line, vector<cv::Vec2f> &lines, vector<cv::Vec2f> &similar_lines)
+void playing_field_localizer::dump_similar_lines(Vec2f reference_line, vector<Vec2f> &lines, vector<Vec2f> &similar_lines)
 {
     const float RHO_THRESHOLD = 25;
     const float THETA_THRESHOLD = 0.2;
@@ -241,7 +253,7 @@ void playing_field_localizer::dump_similar_lines(Vec2f reference_line, vector<cv
     }
 }
 
-void playing_field_localizer::non_maxima_connected_component_suppression(const cv::Mat &src, cv::Mat &dst)
+void playing_field_localizer::non_maxima_connected_component_suppression(const Mat &src, Mat &dst)
 {
     src.copyTo(dst);
     Mat connected_components_labels, stats, centroids;
@@ -303,11 +315,11 @@ bool playing_field_localizer::is_within_image(const Point &p, int rows, int cols
 
 // Finds the intersection of two lines.
 // The lines are defined by (o1, p1) and (o2, p2).
-bool playing_field_localizer::intersection(cv::Point o1, cv::Point p1, cv::Point o2, cv::Point p2, cv::Point &r, int rows, int cols)
+bool playing_field_localizer::intersection(Point o1, Point p1, Point o2, Point p2, Point &r, int rows, int cols)
 {
-    cv::Point x = o2 - o1;
-    cv::Point d1 = p1 - o1;
-    cv::Point d2 = p2 - o2;
+    Point x = o2 - o1;
+    Point d1 = p1 - o1;
+    Point d2 = p2 - o2;
 
     const float EPSILON = 1e-8;
     float cross = d1.x * d2.y - d1.y * d2.x;
@@ -395,7 +407,7 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
     }
 }
 
-void playing_field_localizer::get_pairs_points_per_line(const vector<Vec2f> &lines, std::vector<std::vector<cv::Point>> &points)
+void playing_field_localizer::get_pairs_points_per_line(const vector<Vec2f> &lines, vector<vector<Point>> &points)
 {
     // Arbitrary x coordinate to compute the 2 points in each line.
     const float POINT_X = 1000;
@@ -428,25 +440,18 @@ void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
     sort(points.begin(), points.end(), [center](const Point &pt1, const Point &pt2)
          {
         if (pt1.x - center.x >= 0 && pt2.x - center.x < 0)
-            return true;
-        if (pt1.x - center.x < 0 && pt2.x - center.x >= 0)
             return false;
-        if (pt1.x - center.x == 0 && pt2.x - center.x == 0) {
+        if (pt1.x - center.x < 0 && pt2.x - center.x >= 0)
+            return true;
+        if (pt1.x - center.x == 0 && pt2.x - center.x == 0) 
+        {
             if (pt1.y - center.y >= 0 || pt2.y - center.y >= 0)
-                return pt1.y > pt2.y;
+                return pt1.y < pt2.y;
             return pt2.y > pt1.y;
         }
 
-        // compute the cross product of vectors (center -> a) x (center -> b)
-        int det = (pt1.x - center.x) * (pt2.y - center.y) - (pt2.x - center.x) * (pt1.y - center.y);
-        if (det < 0)
-            return true;
-        if (det > 0)
-            return false;
-
-        // points a and b are on the same line from the center
-        // check which point is closer to the center
-        int d1 = (pt1.x - center.x) * (pt1.x - center.x) + (pt1.y - center.y) * (pt1.y - center.y);
-        int d2 = (pt2.x - center.x) * (pt2.x - center.x) + (pt2.y - center.y) * (pt2.y - center.y);
-        return d1 > d2; });
+        // Compute cross product between pt1-center and pt2-center. If it is < 0, then pt1 comes first in
+        // clockwise order. If it is > 0, then pt2 comes first.
+        int cross_product = (pt1.x - center.x) * (pt2.y - center.y) - (pt2.x - center.x) * (pt1.y - center.y);
+        return cross_product > 0; });
 }
