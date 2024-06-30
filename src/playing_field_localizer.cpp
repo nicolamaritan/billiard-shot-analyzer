@@ -12,8 +12,8 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
     // it is employed for kmeans clustering.
     cvtColor(src, dst, COLOR_BGR2HSV);
 
-    // Apply uniform Value (of HSV) for the whole image, to handle different brightnesses    
-    const int VALUE_UNIFORM = 128; 
+    // Apply uniform Value (of HSV) for the whole image, to handle different brightnesses
+    const int VALUE_UNIFORM = 128;
     vector<Mat> hsv_channels;
     split(dst, hsv_channels);
     hsv_channels[2].setTo(VALUE_UNIFORM);
@@ -80,12 +80,12 @@ Vec3b playing_field_localizer::get_board_color(const Mat &src, float radius)
     // Sort by norm. In a grayscale context, we would have just considered the pixel intensity.
     // However, now we have 3 components. So we sort the pixel values triplets by their norm.
     sort(pixel_values.begin(), pixel_values.end(), [](const Vec3b &a, const Vec3b &b)
-              { return norm(a) < norm(b); });
+         { return norm(a) < norm(b); });
 
     return pixel_values[pixel_values.size() / 2];
 }
 
-vector<Vec3f> playing_field_localizer::find_lines(const Mat &edges)
+void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
 {
     const float RHO_RESOLUTION = 1.5;   // In pixels.
     const float THETA_RESOLUTION = 1.8; // In radians.
@@ -93,7 +93,6 @@ vector<Vec3f> playing_field_localizer::find_lines(const Mat &edges)
 
     Mat cdst;
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
-    vector<Vec3f> lines;
     HoughLines(edges, lines, RHO_RESOLUTION, THETA_RESOLUTION * CV_PI / 180, THRESHOLD, 0, 0);
 
     // Draw the lines
@@ -112,13 +111,11 @@ vector<Vec3f> playing_field_localizer::find_lines(const Mat &edges)
 
     imshow("", cdst);
     waitKey();
-
-    return lines;
 }
 
 /**
  * Localize the pool table.
- * 
+ *
  * @param src The input image.
  * @param dst The destination image containing the localized table.
  */
@@ -155,8 +152,9 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     imshow("", edges);
     waitKey(0);
 
-    vector<Vec3f> lines = find_lines(edges);
-    vector<Vec3f> refined_lines = refine_lines(lines);
+    vector<Vec3f> lines, refined_lines;
+    find_lines(edges, lines);
+    refine_lines(lines, refined_lines);
 
     draw_lines(edges, refined_lines);
 
@@ -180,13 +178,9 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
 /**
  * Compute a vector of refined line by eliminating similar lines. Similar lines are condensed
  * to a single line by computing their mean values.
- * 
- * @param lines Vector of lines to be refined.
- * @return a vector of refined lines. 
  */
-vector<Vec3f> playing_field_localizer::refine_lines(vector<Vec3f> &lines)
+void playing_field_localizer::refine_lines(vector<Vec3f> &lines, vector<Vec3f> &refined_lines)
 {
-    vector<Vec3f> refined_lines;
     while (!lines.empty())
     {
         Vec3f reference_line = lines.back();
@@ -207,7 +201,6 @@ vector<Vec3f> playing_field_localizer::refine_lines(vector<Vec3f> &lines)
         mean_line[1] /= total_votes;
         refined_lines.push_back(mean_line);
     }
-    return refined_lines;
 }
 
 void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &lines)
