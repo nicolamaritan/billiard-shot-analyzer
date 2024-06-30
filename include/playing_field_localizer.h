@@ -41,7 +41,7 @@ private:
     bool are_parallel_lines(double m1, double m2);
     double intercept(const cv::Point &pt1, const cv::Point &pt2);
     bool is_within_image(const cv::Point &p, int rows, int cols);
-    bool intersection(cv::Point o1, cv::Point pt1, cv::Point o2, cv::Point pt2, cv::Point &r, int rows, int cols);
+    bool intersection(std::pair<cv::Point, cv::Point> pts_line_1, std::pair<cv::Point, cv::Point> pts_line_2, cv::Point &intersection_pt, int rows, int cols);
     void intersections(const std::vector<cv::Vec3f> &lines, std::vector<cv::Point> &inters, int rows, int cols);
     double angle_between_lines(double m1, double m2);
     void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);

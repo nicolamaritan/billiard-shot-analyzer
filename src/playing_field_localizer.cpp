@@ -286,54 +286,38 @@ void playing_field_localizer::non_maxima_connected_component_suppression(const M
     }
 }
 
-double playing_field_localizer::angular_coefficient(const Point &p1, const Point &p2)
-{
-    return (p2.y - p1.y) / (p2.x - p1.x);
-}
-
-bool playing_field_localizer::is_vertical_line(const Point &p1, const Point &p2)
-{
-    return p1.x == p2.x;
-}
-
-bool playing_field_localizer::are_parallel_lines(double m1, double m2)
-{
-    const float EPSILON = 0.001;
-    return abs(m1 - m2) <= EPSILON;
-}
-
-double playing_field_localizer::intercept(const Point &p1, const Point &p2)
-{
-    return p1.y - p1.x * angular_coefficient(p1, p2);
-}
-
 bool playing_field_localizer::is_within_image(const Point &p, int rows, int cols)
 {
     return p.x >= 0 && p.x < cols && p.y >= 0 && p.y < rows;
 }
 
 // Finds the intersection of two lines.
-// The lines are defined by (o1, p1) and (o2, p2).
-bool playing_field_localizer::intersection(Point o1, Point p1, Point o2, Point p2, Point &r, int rows, int cols)
+// The lines are defined by (o1, pt1) and (o2, pt2).
+bool playing_field_localizer::intersection(pair<Point, Point> pts_line_1, pair<Point, Point> pts_line_2, Point &intersection_pt, int rows, int cols)
 {
-    Point x = o2 - o1;
-    Point d1 = p1 - o1;
-    Point d2 = p2 - o2;
+    // pts_line_1 -> {(x1,y1), (x2,y2)}
+    // pts_line_2 -> {(x3,y3), (x4,y4)}
+    // We follow the formula in https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+    Point difference_12 = pts_line_1.first - pts_line_1.second;
+    Point difference_13 = pts_line_1.first - pts_line_2.first;
+    Point difference_34 = pts_line_2.first - pts_line_2.second;
 
     const float EPSILON = 1e-8;
-    float cross = d1.x * d2.y - d1.y * d2.x;
-    if (abs(cross) < EPSILON)
+    float cross_product = difference_12.x * difference_34.y - difference_12.y * difference_34.x;
+    if (abs(cross_product) < EPSILON)
         return false;
 
-    double t1 = (x.x * d2.y - x.y * d2.x) / cross;
-    r = o1 + d1 * t1;
+    // t is a real number in the formula computed as follows
+    double t = (difference_13.x * difference_34.y - difference_13.y * difference_34.x) / cross_product;
+    
+    intersection_pt = pts_line_1.first - difference_12 * t;
 
-    return is_within_image(r, rows, cols);
+    return is_within_image(intersection_pt, rows, cols);
 }
 
 // Finds the intersection of two lines.
-// The lines are defined by (o1, p1) and (o2, p2).
-void playing_field_localizer::intersections(const vector<Vec3f> &lines, vector<Point> &inters, int rows, int cols)
+// The lines are defined by (o1, pt1) and (o2, pt2).
+void playing_field_localizer::intersections(const vector<Vec3f> &lines, vector<Point> &out_intersections, int rows, int cols)
 {
     // It is easier to compute intersections by expressing one line as a pair (pt1, pt2),
     // distinct points in the line.
@@ -342,13 +326,62 @@ void playing_field_localizer::intersections(const vector<Vec3f> &lines, vector<P
 
     for (int i = 0; i < points.size() - 1; i++)
     {
-        for (int j = i + 1; j <= points.size() - 1; j++)
+        for (int j = i + 1; j < points.size(); j++)
         {
-            Point inte;
-            if (intersection(points[i].first, points[i].second, points[j].first, points[j].second, inte, rows, cols))
-                inters.push_back(inte);
+            Point intersection_ij;
+            if (intersection(points.at(i), points.at(j), intersection_ij, rows, cols))
+                out_intersections.push_back(intersection_ij);
         }
     }
+}
+
+void playing_field_localizer::get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Point>> &points)
+{
+    // Arbitrary x coordinate to compute the 2 points in each line.
+    const float POINT_X = 1000;
+
+    for (auto line : lines)
+    {
+        float rho = line[0];
+        float theta = line[1];
+        Point pt1, pt2;
+        double a = cos(theta), b = sin(theta);
+        double x0 = a * rho, y0 = b * rho;
+        pt1.x = cvRound(x0 + POINT_X * (-b));
+        pt1.y = cvRound(y0 + POINT_X * (a));
+        pt2.x = cvRound(x0 - POINT_X * (-b));
+        pt2.y = cvRound(y0 - POINT_X * (a));
+
+        points.push_back({pt1, pt2});
+    }
+}
+
+void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
+{
+    Point center;
+    for (auto point : points)
+        center += point;
+
+    center.x /= points.size();
+    center.y /= points.size();
+
+    sort(points.begin(), points.end(), [center](const Point &pt1, const Point &pt2)
+         {
+        if (pt1.x - center.x >= 0 && pt2.x - center.x < 0)
+            return false;
+        if (pt1.x - center.x < 0 && pt2.x - center.x >= 0)
+            return true;
+        if (pt1.x - center.x == 0 && pt2.x - center.x == 0) 
+        {
+            if (pt1.y - center.y >= 0 || pt2.y - center.y >= 0)
+                return pt1.y < pt2.y;
+            return pt2.y > pt1.y;
+        }
+
+        // Compute cross product between pt1-center and pt2-center. If it is < 0, then pt1 comes first in
+        // clockwise order. If it is > 0, then pt2 comes first.
+        int cross_product = (pt1.x - center.x) * (pt2.y - center.y) - (pt2.x - center.x) * (pt1.y - center.y);
+        return cross_product > 0; });
 }
 
 double playing_field_localizer::angle_between_lines(double m1, double m2)
@@ -411,51 +444,23 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
     }
 }
 
-void playing_field_localizer::get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Point>> &points)
+double playing_field_localizer::angular_coefficient(const Point &pt1, const Point &pt2)
 {
-    // Arbitrary x coordinate to compute the 2 points in each line.
-    const float POINT_X = 1000;
-
-    for (auto line : lines)
-    {
-        float rho = line[0];
-        float theta = line[1];
-        Point pt1, pt2;
-        double a = cos(theta), b = sin(theta);
-        double x0 = a * rho, y0 = b * rho;
-        pt1.x = cvRound(x0 + POINT_X * (-b));
-        pt1.y = cvRound(y0 + POINT_X * (a));
-        pt2.x = cvRound(x0 - POINT_X * (-b));
-        pt2.y = cvRound(y0 - POINT_X * (a));
-
-        points.push_back({pt1, pt2});
-    }
+    return (pt2.y - pt1.y) / (pt2.x - pt1.x);
 }
 
-void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
+bool playing_field_localizer::is_vertical_line(const Point &pt1, const Point &pt2)
 {
-    Point center;
-    for (auto point : points)
-        center += point;
+    return pt1.x == pt2.x;
+}
 
-    center.x /= points.size();
-    center.y /= points.size();
+bool playing_field_localizer::are_parallel_lines(double m1, double m2)
+{
+    const float EPSILON = 0.001;
+    return abs(m1 - m2) <= EPSILON;
+}
 
-    sort(points.begin(), points.end(), [center](const Point &pt1, const Point &pt2)
-         {
-        if (pt1.x - center.x >= 0 && pt2.x - center.x < 0)
-            return false;
-        if (pt1.x - center.x < 0 && pt2.x - center.x >= 0)
-            return true;
-        if (pt1.x - center.x == 0 && pt2.x - center.x == 0) 
-        {
-            if (pt1.y - center.y >= 0 || pt2.y - center.y >= 0)
-                return pt1.y < pt2.y;
-            return pt2.y > pt1.y;
-        }
-
-        // Compute cross product between pt1-center and pt2-center. If it is < 0, then pt1 comes first in
-        // clockwise order. If it is > 0, then pt2 comes first.
-        int cross_product = (pt1.x - center.x) * (pt2.y - center.y) - (pt2.x - center.x) * (pt1.y - center.y);
-        return cross_product > 0; });
+double playing_field_localizer::intercept(const Point &pt1, const Point &pt2)
+{
+    return pt1.y - pt1.x * angular_coefficient(pt1, pt2);
 }
