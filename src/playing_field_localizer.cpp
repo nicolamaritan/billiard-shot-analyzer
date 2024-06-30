@@ -179,15 +179,17 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
  * Compute a vector of refined line by eliminating similar lines. Similar lines are condensed
  * to a single line by computing their mean values.
  */
-void playing_field_localizer::refine_lines(vector<Vec3f> &lines, vector<Vec3f> &refined_lines)
+void playing_field_localizer::refine_lines(const vector<Vec3f> &lines, vector<Vec3f> &refined_lines)
 {
-    while (!lines.empty())
+    vector<Vec3f> lines_copy = lines;
+
+    while (!lines_copy.empty())
     {
-        Vec3f reference_line = lines.back();
-        lines.pop_back();
+        Vec3f reference_line = lines_copy.back();
+        lines_copy.pop_back();
         vector<Vec3f> similar_lines;
 
-        dump_similar_lines(reference_line, lines, similar_lines);
+        dump_similar_lines(reference_line, lines_copy, similar_lines);
 
         // Compute a new mean line with the dumped ones
         Vec3f mean_line;
