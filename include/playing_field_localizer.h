@@ -30,10 +30,10 @@ private:
      * @return the computed color of the board.
      */
     cv::Vec3b get_board_color(const cv::Mat &src, float radius);
-    std::vector<cv::Vec2f> find_lines(const cv::Mat &src);
-    std::vector<cv::Vec2f> refine_lines(std::vector<cv::Vec2f> &lines);
-    void draw_lines(const cv::Mat &src, const std::vector<cv::Vec2f> &lines);
-    void dump_similar_lines(cv::Vec2f reference_line, std::vector<cv::Vec2f> &lines, std::vector<cv::Vec2f> &similar_lines);
+    std::vector<cv::Vec3f> find_lines(const cv::Mat &src);
+    std::vector<cv::Vec3f> refine_lines(std::vector<cv::Vec3f> &lines);
+    void draw_lines(const cv::Mat &src, const std::vector<cv::Vec3f> &lines);
+    void dump_similar_lines(cv::Vec3f reference_line, std::vector<cv::Vec3f> &lines, std::vector<cv::Vec3f> &similar_lines);
     void non_maxima_connected_component_suppression(const cv::Mat &src, cv::Mat &dst);
     double angular_coefficient(const cv::Point &p1, const cv::Point &p2);
     bool is_vertical_line(const cv::Point &p1, const cv::Point &p2);
@@ -44,7 +44,7 @@ private:
     void intersections(const std::vector<std::vector<cv::Point>> &points, std::vector<cv::Point> &inters, int rows, int cols);
     double angle_between_lines(double m1, double m2);
     void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
-    void get_pairs_points_per_line(const std::vector<cv::Vec2f> &lines, std::vector<std::vector<cv::Point>> &points);
+    void get_pairs_points_per_line(const std::vector<cv::Vec3f> &lines, std::vector<std::vector<cv::Point>> &points);
     void sort_points_clockwise(std::vector<cv::Point> &points);
 };
 

@@ -85,15 +85,15 @@ Vec3b playing_field_localizer::get_board_color(const Mat &src, float radius)
     return pixel_values[pixel_values.size() / 2];
 }
 
-vector<Vec2f> playing_field_localizer::find_lines(const Mat &edges)
+vector<Vec3f> playing_field_localizer::find_lines(const Mat &edges)
 {
-    const float RHO_RESOLUTION = 1.6;   // In pixels.
+    const float RHO_RESOLUTION = 1.5;   // In pixels.
     const float THETA_RESOLUTION = 1.8; // In radians.
-    const int THRESHOLD = 110;
+    const int THRESHOLD = 120;
 
     Mat cdst;
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
-    vector<Vec2f> lines;
+    vector<Vec3f> lines;
     HoughLines(edges, lines, RHO_RESOLUTION, THETA_RESOLUTION * CV_PI / 180, THRESHOLD, 0, 0);
 
     // Draw the lines
@@ -155,8 +155,8 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     imshow("", edges);
     waitKey(0);
 
-    vector<Vec2f> lines = find_lines(edges);
-    vector<Vec2f> refined_lines = refine_lines(lines);
+    vector<Vec3f> lines = find_lines(edges);
+    vector<Vec3f> refined_lines = refine_lines(lines);
 
     draw_lines(edges, refined_lines);
 
@@ -184,31 +184,33 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
  * @param lines Vector of lines to be refined.
  * @return a vector of refined lines. 
  */
-vector<Vec2f> playing_field_localizer::refine_lines(vector<Vec2f> &lines)
+vector<Vec3f> playing_field_localizer::refine_lines(vector<Vec3f> &lines)
 {
-    vector<Vec2f> refined_lines;
+    vector<Vec3f> refined_lines;
     while (!lines.empty())
     {
-        Vec2f reference_line = lines.back();
+        Vec3f reference_line = lines.back();
         lines.pop_back();
-        vector<Vec2f> similar_lines;
+        vector<Vec3f> similar_lines;
 
         dump_similar_lines(reference_line, lines, similar_lines);
 
         // Compute a new mean line with the dumped ones
-        Vec2f mean_line;
+        Vec3f mean_line;
+        int total_votes = 0;
         for (auto similar_line : similar_lines)
         {
-            mean_line += similar_line;
+            total_votes += similar_line[2];
+            mean_line += similar_line * similar_line[2];
         }
-        mean_line[0] /= similar_lines.size();
-        mean_line[1] /= similar_lines.size();
+        mean_line[0] /= total_votes;
+        mean_line[1] /= total_votes;
         refined_lines.push_back(mean_line);
     }
     return refined_lines;
 }
 
-void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec2f> &lines)
+void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &lines)
 {
     Mat src_bgr;
     cvtColor(src, src_bgr, COLOR_GRAY2BGR);
@@ -230,7 +232,7 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec2f> &li
     waitKey();
 }
 
-void playing_field_localizer::dump_similar_lines(Vec2f reference_line, vector<Vec2f> &lines, vector<Vec2f> &similar_lines)
+void playing_field_localizer::dump_similar_lines(Vec3f reference_line, vector<Vec3f> &lines, vector<Vec3f> &similar_lines)
 {
     const float RHO_THRESHOLD = 25;
     const float THETA_THRESHOLD = 0.2;
@@ -240,7 +242,7 @@ void playing_field_localizer::dump_similar_lines(Vec2f reference_line, vector<Ve
     int i = 0;
     while (i < lines.size())
     {
-        Vec2f line = lines.at(i);
+        Vec3f line = lines.at(i);
         if (abs(line[0] - reference_line[0]) < RHO_THRESHOLD && abs(line[1] - reference_line[1]) < THETA_THRESHOLD)
         {
             similar_lines.push_back(line);
@@ -370,7 +372,7 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
         int y1 = *min_element(y_coord.begin(), y_coord.end()); // top-left pt. is the uppermost of the 4 points
         int y2 = *max_element(y_coord.begin(), y_coord.end()); // bottom-right pt. is the lowermost of the 4 points
 
-        rectangle(image, Point(x1, y1), Point(x2, y2), Scalar(0, 0, 255), 3);
+        rectangle(image, Point(x1, y1), Point(x2, y2), Scalar(0, 0, 255), 1);
     }
 
     else
@@ -385,29 +387,29 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
 
         if (theta1 >= theta2 && theta1 >= theta3)
         {
-            line(image, inters[0], inters[1], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[0], inters[2], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[3], inters[1], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[3], inters[2], Scalar(0, 0, 255), 3, LINE_AA);
+            line(image, inters[0], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[0], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[3], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[3], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
         }
         else if (theta2 >= theta1 && theta2 >= theta3)
         {
-            line(image, inters[0], inters[1], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[0], inters[3], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[2], inters[1], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[2], inters[3], Scalar(0, 0, 255), 3, LINE_AA);
+            line(image, inters[0], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[0], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[2], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[2], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
         }
         else
         {
-            line(image, inters[0], inters[2], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[0], inters[3], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[1], inters[2], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[1], inters[3], Scalar(0, 0, 255), 3, LINE_AA);
+            line(image, inters[0], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[0], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[1], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[1], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
         }
     }
 }
 
-void playing_field_localizer::get_pairs_points_per_line(const vector<Vec2f> &lines, vector<vector<Point>> &points)
+void playing_field_localizer::get_pairs_points_per_line(const vector<Vec3f> &lines, vector<vector<Point>> &points)
 {
     // Arbitrary x coordinate to compute the 2 points in each line.
     const float POINT_X = 1000;
