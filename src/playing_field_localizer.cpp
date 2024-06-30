@@ -6,6 +6,73 @@
 using namespace cv;
 using namespace std;
 
+/**
+ * Localize the pool table.
+ *
+ * @param src The input image.
+ * @param dst The destination image containing the localized table.
+ */
+void playing_field_localizer::localize(const Mat &src)
+{
+    const int FILTER_SIZE = 3;
+    const int FILTER_SIGMA = 20;
+    GaussianBlur(src.clone(), src, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
+
+    Mat segmented, labels;
+    segmentation(src, segmented);
+
+    imshow("", segmented);
+    waitKey(0);
+
+    const int RADIUS = 30;
+    Vec3b board_color = get_board_color(segmented, RADIUS);
+
+    Mat mask;
+    inRange(segmented, board_color, board_color, mask);
+    segmented.setTo(Scalar(0, 0, 0), mask);
+
+    imshow("", mask);
+    waitKey(0);
+
+    non_maxima_connected_component_suppression(mask.clone(), mask);
+    imshow("", mask);
+    waitKey(0);
+
+    const int THRESHOLD_1_CANNY = 50;
+    const int THRESHOLD_2_CANNY = 150;
+    Mat edges;
+    Canny(mask, edges, THRESHOLD_1_CANNY, THRESHOLD_2_CANNY);
+    imshow("", edges);
+    waitKey(0);
+
+    vector<Vec3f> lines, refined_lines;
+    find_lines(edges, lines);
+    refine_lines(lines, refined_lines);
+
+    draw_lines(edges, refined_lines);
+
+    vector<vector<Point>> points_refined_line;
+    get_pairs_points_per_line(refined_lines, points_refined_line);
+
+    vector<Point> refined_lines_intersections;
+    Mat table = src.clone();
+    intersections(points_refined_line, refined_lines_intersections, table.rows, table.cols);
+    draw_pool_table(refined_lines_intersections, table);
+    imshow("", table);
+    waitKey(0);
+
+    sort_points_clockwise(refined_lines_intersections);
+
+    fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
+    imshow("", table);
+    waitKey(0);
+}
+
+inline std::vector<cv::Point> playing_field_localizer::get_playing_field_corners()
+{
+    return playing_field_corners;
+}
+
 void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
 {
     // HSV allows to separate brightness from other color characteristics, therefore
@@ -114,73 +181,13 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
 }
 
 /**
- * Localize the pool table.
- *
- * @param src The input image.
- * @param dst The destination image containing the localized table.
- */
-void playing_field_localizer::localize(const Mat &src, Mat &dst)
-{
-    const int FILTER_SIZE = 3;
-    const int FILTER_SIGMA = 20;
-    GaussianBlur(src.clone(), src, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
-
-    Mat segmented, labels;
-    segmentation(src, segmented);
-
-    imshow("", segmented);
-    waitKey(0);
-
-    const int RADIUS = 30;
-    Vec3b board_color = get_board_color(segmented, RADIUS);
-
-    Mat mask;
-    inRange(segmented, board_color, board_color, mask);
-    segmented.setTo(Scalar(0, 0, 0), mask);
-
-    imshow("", mask);
-    waitKey(0);
-
-    non_maxima_connected_component_suppression(mask.clone(), mask);
-    imshow("", mask);
-    waitKey(0);
-
-    const int THRESHOLD_1_CANNY = 50;
-    const int THRESHOLD_2_CANNY = 150;
-    Mat edges;
-    Canny(mask, edges, THRESHOLD_1_CANNY, THRESHOLD_2_CANNY);
-    imshow("", edges);
-    waitKey(0);
-
-    vector<Vec3f> lines, refined_lines;
-    find_lines(edges, lines);
-    refine_lines(lines, refined_lines);
-
-    draw_lines(edges, refined_lines);
-
-    vector<vector<Point>> points_refined_line;
-    get_pairs_points_per_line(refined_lines, points_refined_line);
-
-    vector<Point> refined_lines_intersections;
-    Mat table = src.clone();
-    intersections(points_refined_line, refined_lines_intersections, table.rows, table.cols);
-    draw_pool_table(refined_lines_intersections, table);
-    imshow("", table);
-    waitKey(0);
-
-    sort_points_clockwise(refined_lines_intersections);
-
-    fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
-    imshow("", table);
-    waitKey(0);
-}
-
-/**
  * Compute a vector of refined line by eliminating similar lines. Similar lines are condensed
  * to a single line by computing their mean values.
  */
 void playing_field_localizer::refine_lines(const vector<Vec3f> &lines, vector<Vec3f> &refined_lines)
 {
+    const float RHO_THRESHOLD = 25;
+    const float THETA_THRESHOLD = 0.2;
     vector<Vec3f> lines_copy = lines;
 
     while (!lines_copy.empty())
@@ -189,7 +196,7 @@ void playing_field_localizer::refine_lines(const vector<Vec3f> &lines, vector<Ve
         lines_copy.pop_back();
         vector<Vec3f> similar_lines;
 
-        dump_similar_lines(reference_line, lines_copy, similar_lines);
+        dump_similar_lines(reference_line, lines_copy, similar_lines, RHO_THRESHOLD, THETA_THRESHOLD);
 
         // Compute a new mean line with the dumped ones
         Vec3f mean_line;
@@ -227,10 +234,8 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &li
     waitKey();
 }
 
-void playing_field_localizer::dump_similar_lines(const Vec3f& reference_line, vector<Vec3f> &lines, vector<Vec3f> &similar_lines)
+void playing_field_localizer::dump_similar_lines(const Vec3f &reference_line, vector<Vec3f> &lines, vector<Vec3f> &similar_lines, float rho_threshold, float theta_threshold)
 {
-    const float RHO_THRESHOLD = 25;
-    const float THETA_THRESHOLD = 0.2;
     similar_lines.push_back(reference_line);
 
     // Insert into similar_lines all the similar lines and removes them from lines.
@@ -238,7 +243,7 @@ void playing_field_localizer::dump_similar_lines(const Vec3f& reference_line, ve
     while (i < lines.size())
     {
         Vec3f line = lines.at(i);
-        if (abs(line[0] - reference_line[0]) < RHO_THRESHOLD && abs(line[1] - reference_line[1]) < THETA_THRESHOLD)
+        if (abs(line[0] - reference_line[0]) < rho_threshold && abs(line[1] - reference_line[1]) < theta_threshold)
         {
             similar_lines.push_back(line);
             lines.erase(lines.begin() + i);

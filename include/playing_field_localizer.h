@@ -7,7 +7,8 @@
 class playing_field_localizer
 {
 public:
-    void localize(const cv::Mat &src, cv::Mat &dst);
+    void localize(const cv::Mat &src);
+    inline std::vector<cv::Point> get_playing_field_corners();
 
 private:
     /**
@@ -33,7 +34,7 @@ private:
     void find_lines(const cv::Mat &src, std::vector<cv::Vec3f> &lines);
     void refine_lines(const std::vector<cv::Vec3f> &lines, std::vector<cv::Vec3f> &refined_lines);
     void draw_lines(const cv::Mat &src, const std::vector<cv::Vec3f> &lines);
-    void dump_similar_lines(const cv::Vec3f &reference_line, std::vector<cv::Vec3f> &lines, std::vector<cv::Vec3f> &similar_lines);
+    void dump_similar_lines(const cv::Vec3f &reference_line, std::vector<cv::Vec3f> &lines, std::vector<cv::Vec3f> &similar_lines, float rho_threshold, float theta_threshold);
     void non_maxima_connected_component_suppression(const cv::Mat &src, cv::Mat &dst);
     double angular_coefficient(const cv::Point &p1, const cv::Point &p2);
     bool is_vertical_line(const cv::Point &p1, const cv::Point &p2);
@@ -46,6 +47,8 @@ private:
     void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
     void get_pairs_points_per_line(const std::vector<cv::Vec3f> &lines, std::vector<std::vector<cv::Point>> &points);
     void sort_points_clockwise(std::vector<cv::Point> &points);
+
+    std::vector<cv::Point> playing_field_corners;
 };
 
 #endif
