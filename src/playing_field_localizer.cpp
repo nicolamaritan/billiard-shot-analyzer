@@ -51,12 +51,9 @@ void playing_field_localizer::localize(const Mat &src)
 
     draw_lines(edges, refined_lines);
 
-    vector<vector<Point>> points_refined_line;
-    get_pairs_points_per_line(refined_lines, points_refined_line);
-
     vector<Point> refined_lines_intersections;
     Mat table = src.clone();
-    intersections(points_refined_line, refined_lines_intersections, table.rows, table.cols);
+    intersections(refined_lines, refined_lines_intersections, table.rows, table.cols);
     draw_pool_table(refined_lines_intersections, table);
     imshow("", table);
     waitKey(0);
@@ -336,14 +333,19 @@ bool playing_field_localizer::intersection(Point o1, Point p1, Point o2, Point p
 
 // Finds the intersection of two lines.
 // The lines are defined by (o1, p1) and (o2, p2).
-void playing_field_localizer::intersections(const vector<vector<Point>> &points, vector<Point> &inters, int rows, int cols)
+void playing_field_localizer::intersections(const vector<Vec3f> &lines, vector<Point> &inters, int rows, int cols)
 {
+    // It is easier to compute intersections by expressing one line as a pair (pt1, pt2),
+    // distinct points in the line.
+    vector<pair<Point, Point>> points;
+    get_pairs_points_per_line(lines, points);
+
     for (int i = 0; i < points.size() - 1; i++)
     {
         for (int j = i + 1; j <= points.size() - 1; j++)
         {
             Point inte;
-            if (intersection(points[i][0], points[i][1], points[j][0], points[j][1], inte, rows, cols))
+            if (intersection(points[i].first, points[i].second, points[j].first, points[j].second, inte, rows, cols))
                 inters.push_back(inte);
         }
     }
@@ -409,7 +411,7 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
     }
 }
 
-void playing_field_localizer::get_pairs_points_per_line(const vector<Vec3f> &lines, vector<vector<Point>> &points)
+void playing_field_localizer::get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Point>> &points)
 {
     // Arbitrary x coordinate to compute the 2 points in each line.
     const float POINT_X = 1000;
