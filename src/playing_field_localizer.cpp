@@ -6,12 +6,6 @@
 using namespace cv;
 using namespace std;
 
-/**
- * Localize the pool table.
- *
- * @param src The input image.
- * @param dst The destination image containing the localized table.
- */
 void playing_field_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
@@ -65,7 +59,7 @@ void playing_field_localizer::localize(const Mat &src)
     waitKey(0);
 }
 
-inline std::vector<cv::Point> playing_field_localizer::get_playing_field_corners()
+inline vector<Point> playing_field_localizer::get_playing_field_corners()
 {
     return playing_field_corners;
 }
@@ -335,7 +329,7 @@ void playing_field_localizer::intersections(const vector<Vec3f> &lines, vector<P
     }
 }
 
-void playing_field_localizer::get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Point>> &points)
+void playing_field_localizer::get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Point>> &pts)
 {
     // Arbitrary x coordinate to compute the 2 points in each line.
     const float POINT_X = 1000;
@@ -352,7 +346,7 @@ void playing_field_localizer::get_pairs_points_per_line(const vector<Vec3f> &lin
         pt2.x = cvRound(x0 - POINT_X * (-b));
         pt2.y = cvRound(y0 - POINT_X * (a));
 
-        points.push_back({pt1, pt2});
+        pts.push_back({pt1, pt2});
     }
 }
 
