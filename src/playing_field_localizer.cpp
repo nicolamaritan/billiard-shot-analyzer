@@ -227,7 +227,7 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &li
     waitKey();
 }
 
-void playing_field_localizer::dump_similar_lines(Vec3f reference_line, vector<Vec3f> &lines, vector<Vec3f> &similar_lines)
+void playing_field_localizer::dump_similar_lines(const Vec3f& reference_line, vector<Vec3f> &lines, vector<Vec3f> &similar_lines)
 {
     const float RHO_THRESHOLD = 25;
     const float THETA_THRESHOLD = 0.2;
