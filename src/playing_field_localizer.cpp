@@ -6,14 +6,72 @@
 using namespace cv;
 using namespace std;
 
+void playing_field_localizer::localize(const Mat &src)
+{
+    const int FILTER_SIZE = 3;
+    const int FILTER_SIGMA = 20;
+    GaussianBlur(src.clone(), src, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
+
+    Mat segmented, labels;
+    segmentation(src, segmented);
+
+    imshow("", segmented);
+    waitKey(0);
+
+    const int RADIUS = 30;
+    Vec3b board_color = get_board_color(segmented, RADIUS);
+
+    Mat mask;
+    inRange(segmented, board_color, board_color, mask);
+    segmented.setTo(Scalar(0, 0, 0), mask);
+
+    imshow("", mask);
+    waitKey(0);
+
+    non_maxima_connected_component_suppression(mask.clone(), mask);
+    imshow("", mask);
+    waitKey(0);
+
+    const int THRESHOLD_1_CANNY = 50;
+    const int THRESHOLD_2_CANNY = 150;
+    Mat edges;
+    Canny(mask, edges, THRESHOLD_1_CANNY, THRESHOLD_2_CANNY);
+    imshow("", edges);
+    waitKey(0);
+
+    vector<Vec3f> lines, refined_lines;
+    find_lines(edges, lines);
+    refine_lines(lines, refined_lines);
+
+    draw_lines(edges, refined_lines);
+
+    vector<Point> refined_lines_intersections;
+    Mat table = src.clone();
+    intersections(refined_lines, refined_lines_intersections, table.rows, table.cols);
+    draw_pool_table(refined_lines_intersections, table);
+    imshow("", table);
+    waitKey(0);
+
+    sort_points_clockwise(refined_lines_intersections);
+
+    fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
+    imshow("", table);
+    waitKey(0);
+}
+
+inline vector<Point> playing_field_localizer::get_playing_field_corners()
+{
+    return playing_field_corners;
+}
+
 void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
 {
     // HSV allows to separate brightness from other color characteristics, therefore
     // it is employed for kmeans clustering.
     cvtColor(src, dst, COLOR_BGR2HSV);
 
-    // Apply uniform Value (of HSV) for the whole image, to handle different brightnesses    
-    const int VALUE_UNIFORM = 128; 
+    // Apply uniform Value (of HSV) for the whole image, to handle different brightnesses
+    const int VALUE_UNIFORM = 128;
     vector<Mat> hsv_channels;
     split(dst, hsv_channels);
     hsv_channels[2].setTo(VALUE_UNIFORM);
@@ -80,20 +138,19 @@ Vec3b playing_field_localizer::get_board_color(const Mat &src, float radius)
     // Sort by norm. In a grayscale context, we would have just considered the pixel intensity.
     // However, now we have 3 components. So we sort the pixel values triplets by their norm.
     sort(pixel_values.begin(), pixel_values.end(), [](const Vec3b &a, const Vec3b &b)
-              { return norm(a) < norm(b); });
+         { return norm(a) < norm(b); });
 
     return pixel_values[pixel_values.size() / 2];
 }
 
-vector<Vec2f> playing_field_localizer::find_lines(const Mat &edges)
+void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
 {
-    const float RHO_RESOLUTION = 1.6;   // In pixels.
+    const float RHO_RESOLUTION = 1.5;   // In pixels.
     const float THETA_RESOLUTION = 1.8; // In radians.
-    const int THRESHOLD = 110;
+    const int THRESHOLD = 120;
 
     Mat cdst;
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
-    vector<Vec2f> lines;
     HoughLines(edges, lines, RHO_RESOLUTION, THETA_RESOLUTION * CV_PI / 180, THRESHOLD, 0, 0);
 
     // Draw the lines
@@ -112,103 +169,41 @@ vector<Vec2f> playing_field_localizer::find_lines(const Mat &edges)
 
     imshow("", cdst);
     waitKey();
-
-    return lines;
-}
-
-/**
- * Localize the pool table.
- * 
- * @param src The input image.
- * @param dst The destination image containing the localized table.
- */
-void playing_field_localizer::localize(const Mat &src, Mat &dst)
-{
-    const int FILTER_SIZE = 3;
-    const int FILTER_SIGMA = 20;
-    GaussianBlur(src.clone(), src, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
-
-    Mat segmented, labels;
-    segmentation(src, segmented);
-
-    imshow("", segmented);
-    waitKey(0);
-
-    const int RADIUS = 30;
-    Vec3b board_color = get_board_color(segmented, RADIUS);
-
-    Mat mask;
-    inRange(segmented, board_color, board_color, mask);
-    segmented.setTo(Scalar(0, 0, 0), mask);
-
-    imshow("", mask);
-    waitKey(0);
-
-    non_maxima_connected_component_suppression(mask.clone(), mask);
-    imshow("", mask);
-    waitKey(0);
-
-    const int THRESHOLD_1_CANNY = 50;
-    const int THRESHOLD_2_CANNY = 150;
-    Mat edges;
-    Canny(mask, edges, THRESHOLD_1_CANNY, THRESHOLD_2_CANNY);
-    imshow("", edges);
-    waitKey(0);
-
-    vector<Vec2f> lines = find_lines(edges);
-    vector<Vec2f> refined_lines = refine_lines(lines);
-
-    draw_lines(edges, refined_lines);
-
-    vector<vector<Point>> points_refined_line;
-    get_pairs_points_per_line(refined_lines, points_refined_line);
-
-    vector<Point> refined_lines_intersections;
-    Mat table = src.clone();
-    intersections(points_refined_line, refined_lines_intersections, table.rows, table.cols);
-    draw_pool_table(refined_lines_intersections, table);
-    imshow("", table);
-    waitKey(0);
-
-    sort_points_clockwise(refined_lines_intersections);
-
-    fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
-    imshow("", table);
-    waitKey(0);
 }
 
 /**
  * Compute a vector of refined line by eliminating similar lines. Similar lines are condensed
  * to a single line by computing their mean values.
- * 
- * @param lines Vector of lines to be refined.
- * @return a vector of refined lines. 
  */
-vector<Vec2f> playing_field_localizer::refine_lines(vector<Vec2f> &lines)
+void playing_field_localizer::refine_lines(const vector<Vec3f> &lines, vector<Vec3f> &refined_lines)
 {
-    vector<Vec2f> refined_lines;
-    while (!lines.empty())
-    {
-        Vec2f reference_line = lines.back();
-        lines.pop_back();
-        vector<Vec2f> similar_lines;
+    const float RHO_THRESHOLD = 25;
+    const float THETA_THRESHOLD = 0.2;
+    vector<Vec3f> lines_copy = lines;
 
-        dump_similar_lines(reference_line, lines, similar_lines);
+    while (!lines_copy.empty())
+    {
+        Vec3f reference_line = lines_copy.back();
+        lines_copy.pop_back();
+        vector<Vec3f> similar_lines;
+
+        dump_similar_lines(reference_line, lines_copy, similar_lines, RHO_THRESHOLD, THETA_THRESHOLD);
 
         // Compute a new mean line with the dumped ones
-        Vec2f mean_line;
+        Vec3f mean_line;
+        int total_votes = 0;
         for (auto similar_line : similar_lines)
         {
-            mean_line += similar_line;
+            total_votes += similar_line[2];
+            mean_line += similar_line * similar_line[2];
         }
-        mean_line[0] /= similar_lines.size();
-        mean_line[1] /= similar_lines.size();
+        mean_line[0] /= total_votes;
+        mean_line[1] /= total_votes;
         refined_lines.push_back(mean_line);
     }
-    return refined_lines;
 }
 
-void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec2f> &lines)
+void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &lines)
 {
     Mat src_bgr;
     cvtColor(src, src_bgr, COLOR_GRAY2BGR);
@@ -230,18 +225,16 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec2f> &li
     waitKey();
 }
 
-void playing_field_localizer::dump_similar_lines(Vec2f reference_line, vector<Vec2f> &lines, vector<Vec2f> &similar_lines)
+void playing_field_localizer::dump_similar_lines(const Vec3f &reference_line, vector<Vec3f> &lines, vector<Vec3f> &similar_lines, float rho_threshold, float theta_threshold)
 {
-    const float RHO_THRESHOLD = 25;
-    const float THETA_THRESHOLD = 0.2;
     similar_lines.push_back(reference_line);
 
     // Insert into similar_lines all the similar lines and removes them from lines.
     int i = 0;
     while (i < lines.size())
     {
-        Vec2f line = lines.at(i);
-        if (abs(line[0] - reference_line[0]) < RHO_THRESHOLD && abs(line[1] - reference_line[1]) < THETA_THRESHOLD)
+        Vec3f line = lines.at(i);
+        if (abs(line[0] - reference_line[0]) < rho_threshold && abs(line[1] - reference_line[1]) < theta_threshold)
         {
             similar_lines.push_back(line);
             lines.erase(lines.begin() + i);
@@ -287,127 +280,56 @@ void playing_field_localizer::non_maxima_connected_component_suppression(const M
     }
 }
 
-double playing_field_localizer::angular_coefficient(const Point &p1, const Point &p2)
-{
-    return (p2.y - p1.y) / (p2.x - p1.x);
-}
-
-bool playing_field_localizer::is_vertical_line(const Point &p1, const Point &p2)
-{
-    return p1.x == p2.x;
-}
-
-bool playing_field_localizer::are_parallel_lines(double m1, double m2)
-{
-    const float EPSILON = 0.001;
-    return abs(m1 - m2) <= EPSILON;
-}
-
-double playing_field_localizer::intercept(const Point &p1, const Point &p2)
-{
-    return p1.y - p1.x * angular_coefficient(p1, p2);
-}
-
 bool playing_field_localizer::is_within_image(const Point &p, int rows, int cols)
 {
     return p.x >= 0 && p.x < cols && p.y >= 0 && p.y < rows;
 }
 
 // Finds the intersection of two lines.
-// The lines are defined by (o1, p1) and (o2, p2).
-bool playing_field_localizer::intersection(Point o1, Point p1, Point o2, Point p2, Point &r, int rows, int cols)
+// The lines are defined by (o1, pt1) and (o2, pt2).
+bool playing_field_localizer::intersection(pair<Point, Point> pts_line_1, pair<Point, Point> pts_line_2, Point &intersection_pt, int rows, int cols)
 {
-    Point x = o2 - o1;
-    Point d1 = p1 - o1;
-    Point d2 = p2 - o2;
+    // pts_line_1 -> {(x1,y1), (x2,y2)}
+    // pts_line_2 -> {(x3,y3), (x4,y4)}
+    // We follow the formula in https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+    Point difference_12 = pts_line_1.first - pts_line_1.second;
+    Point difference_13 = pts_line_1.first - pts_line_2.first;
+    Point difference_34 = pts_line_2.first - pts_line_2.second;
 
     const float EPSILON = 1e-8;
-    float cross = d1.x * d2.y - d1.y * d2.x;
-    if (abs(cross) < EPSILON)
+    float cross_product = difference_12.x * difference_34.y - difference_12.y * difference_34.x;
+    if (abs(cross_product) < EPSILON)
         return false;
 
-    double t1 = (x.x * d2.y - x.y * d2.x) / cross;
-    r = o1 + d1 * t1;
+    // t is a real number in the formula computed as follows
+    double t = (difference_13.x * difference_34.y - difference_13.y * difference_34.x) / cross_product;
+    
+    intersection_pt = pts_line_1.first - difference_12 * t;
 
-    return is_within_image(r, rows, cols);
+    return is_within_image(intersection_pt, rows, cols);
 }
 
 // Finds the intersection of two lines.
-// The lines are defined by (o1, p1) and (o2, p2).
-void playing_field_localizer::intersections(const vector<vector<Point>> &points, vector<Point> &inters, int rows, int cols)
+// The lines are defined by (o1, pt1) and (o2, pt2).
+void playing_field_localizer::intersections(const vector<Vec3f> &lines, vector<Point> &out_intersections, int rows, int cols)
 {
+    // It is easier to compute intersections by expressing one line as a pair (pt1, pt2),
+    // distinct points in the line.
+    vector<pair<Point, Point>> points;
+    get_pairs_points_per_line(lines, points);
+
     for (int i = 0; i < points.size() - 1; i++)
     {
-        for (int j = i + 1; j <= points.size() - 1; j++)
+        for (int j = i + 1; j < points.size(); j++)
         {
-            Point inte;
-            if (intersection(points[i][0], points[i][1], points[j][0], points[j][1], inte, rows, cols))
-                inters.push_back(inte);
+            Point intersection_ij;
+            if (intersection(points.at(i), points.at(j), intersection_ij, rows, cols))
+                out_intersections.push_back(intersection_ij);
         }
     }
 }
 
-double playing_field_localizer::angle_between_lines(double m1, double m2)
-{
-    double angle = atan(abs((m1 - m2) / (1 + m1 * m2)));
-    if (angle >= 0)
-        return angle;
-    else
-        return angle + CV_PI;
-}
-
-void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
-{
-    if (is_vertical_line(inters[0], inters[1]) ||
-        is_vertical_line(inters[0], inters[2]) ||
-        is_vertical_line(inters[0], inters[3]))
-    {
-        vector<int> x_coord = {inters[0].x, inters[1].x, inters[2].x, inters[3].x};
-        vector<int> y_coord = {inters[0].y, inters[1].y, inters[2].y, inters[3].y};
-
-        int x1 = *min_element(x_coord.begin(), x_coord.end()); // top-left pt. is the leftmost of the 4 points
-        int x2 = *max_element(x_coord.begin(), x_coord.end()); // bottom-right pt. is the rightmost of the 4 points
-        int y1 = *min_element(y_coord.begin(), y_coord.end()); // top-left pt. is the uppermost of the 4 points
-        int y2 = *max_element(y_coord.begin(), y_coord.end()); // bottom-right pt. is the lowermost of the 4 points
-
-        rectangle(image, Point(x1, y1), Point(x2, y2), Scalar(0, 0, 255), 3);
-    }
-
-    else
-    {
-        double m1 = angular_coefficient(inters[0], inters[1]); // line 1
-        double m2 = angular_coefficient(inters[0], inters[2]); // line 2
-        double m3 = angular_coefficient(inters[0], inters[3]); // line 3
-
-        double theta1 = angle_between_lines(m1, m2); // angle between line 1 and line 2
-        double theta2 = angle_between_lines(m1, m3); // angle between line 1 and line 3
-        double theta3 = angle_between_lines(m2, m3); // angle between line 2 and line 3
-
-        if (theta1 >= theta2 && theta1 >= theta3)
-        {
-            line(image, inters[0], inters[1], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[0], inters[2], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[3], inters[1], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[3], inters[2], Scalar(0, 0, 255), 3, LINE_AA);
-        }
-        else if (theta2 >= theta1 && theta2 >= theta3)
-        {
-            line(image, inters[0], inters[1], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[0], inters[3], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[2], inters[1], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[2], inters[3], Scalar(0, 0, 255), 3, LINE_AA);
-        }
-        else
-        {
-            line(image, inters[0], inters[2], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[0], inters[3], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[1], inters[2], Scalar(0, 0, 255), 3, LINE_AA);
-            line(image, inters[1], inters[3], Scalar(0, 0, 255), 3, LINE_AA);
-        }
-    }
-}
-
-void playing_field_localizer::get_pairs_points_per_line(const vector<Vec2f> &lines, vector<vector<Point>> &points)
+void playing_field_localizer::get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Point>> &pts)
 {
     // Arbitrary x coordinate to compute the 2 points in each line.
     const float POINT_X = 1000;
@@ -424,7 +346,7 @@ void playing_field_localizer::get_pairs_points_per_line(const vector<Vec2f> &lin
         pt2.x = cvRound(x0 - POINT_X * (-b));
         pt2.y = cvRound(y0 - POINT_X * (a));
 
-        points.push_back({pt1, pt2});
+        pts.push_back({pt1, pt2});
     }
 }
 
@@ -454,4 +376,85 @@ void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
         // clockwise order. If it is > 0, then pt2 comes first.
         int cross_product = (pt1.x - center.x) * (pt2.y - center.y) - (pt2.x - center.x) * (pt1.y - center.y);
         return cross_product > 0; });
+}
+
+double playing_field_localizer::angle_between_lines(double m1, double m2)
+{
+    double angle = atan(abs((m1 - m2) / (1 + m1 * m2)));
+    if (angle >= 0)
+        return angle;
+    else
+        return angle + CV_PI;
+}
+
+void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
+{
+    if (is_vertical_line(inters[0], inters[1]) ||
+        is_vertical_line(inters[0], inters[2]) ||
+        is_vertical_line(inters[0], inters[3]))
+    {
+        vector<int> x_coord = {inters[0].x, inters[1].x, inters[2].x, inters[3].x};
+        vector<int> y_coord = {inters[0].y, inters[1].y, inters[2].y, inters[3].y};
+
+        int x1 = *min_element(x_coord.begin(), x_coord.end()); // top-left pt. is the leftmost of the 4 points
+        int x2 = *max_element(x_coord.begin(), x_coord.end()); // bottom-right pt. is the rightmost of the 4 points
+        int y1 = *min_element(y_coord.begin(), y_coord.end()); // top-left pt. is the uppermost of the 4 points
+        int y2 = *max_element(y_coord.begin(), y_coord.end()); // bottom-right pt. is the lowermost of the 4 points
+
+        rectangle(image, Point(x1, y1), Point(x2, y2), Scalar(0, 0, 255), 1);
+    }
+
+    else
+    {
+        double m1 = angular_coefficient(inters[0], inters[1]); // line 1
+        double m2 = angular_coefficient(inters[0], inters[2]); // line 2
+        double m3 = angular_coefficient(inters[0], inters[3]); // line 3
+
+        double theta1 = angle_between_lines(m1, m2); // angle between line 1 and line 2
+        double theta2 = angle_between_lines(m1, m3); // angle between line 1 and line 3
+        double theta3 = angle_between_lines(m2, m3); // angle between line 2 and line 3
+
+        if (theta1 >= theta2 && theta1 >= theta3)
+        {
+            line(image, inters[0], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[0], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[3], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[3], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
+        }
+        else if (theta2 >= theta1 && theta2 >= theta3)
+        {
+            line(image, inters[0], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[0], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[2], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[2], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
+        }
+        else
+        {
+            line(image, inters[0], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[0], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[1], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
+            line(image, inters[1], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
+        }
+    }
+}
+
+double playing_field_localizer::angular_coefficient(const Point &pt1, const Point &pt2)
+{
+    return (pt2.y - pt1.y) / (pt2.x - pt1.x);
+}
+
+bool playing_field_localizer::is_vertical_line(const Point &pt1, const Point &pt2)
+{
+    return pt1.x == pt2.x;
+}
+
+bool playing_field_localizer::are_parallel_lines(double m1, double m2)
+{
+    const float EPSILON = 0.001;
+    return abs(m1 - m2) <= EPSILON;
+}
+
+double playing_field_localizer::intercept(const Point &pt1, const Point &pt2)
+{
+    return pt1.y - pt1.x * angular_coefficient(pt1, pt2);
 }

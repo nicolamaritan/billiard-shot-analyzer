@@ -19,7 +19,7 @@ int main()
             Mat img = imread(filename);
             Mat dst;
             playing_field_localizer localizer;
-            localizer.localize(img, dst);
+            localizer.localize(img);
         }
     }
 
