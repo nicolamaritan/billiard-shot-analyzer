@@ -24,6 +24,11 @@ add_library(playing_field_localizer
     src/playing_field_localizer.cpp
 )
 
+add_library(balls_localizer
+    include/balls_localizer.h
+    src/balls_localizer.cpp
+)
+
 add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
@@ -32,4 +37,5 @@ target_link_libraries(${PROJECT_NAME}
     ${OpenCV_LIBS}
     show_cat
     playing_field_localizer
+    balls_localizer
 )

@@ -10,10 +10,11 @@ void playing_field_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 20;
-    GaussianBlur(src.clone(), src, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
+    Mat blurred;
+    GaussianBlur(src.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
 
     Mat segmented, labels;
-    segmentation(src, segmented);
+    segmentation(blurred, segmented);
 
     imshow("", segmented);
     waitKey(0);
@@ -46,7 +47,7 @@ void playing_field_localizer::localize(const Mat &src)
     draw_lines(edges, refined_lines);
 
     vector<Point> refined_lines_intersections;
-    Mat table = src.clone();
+    Mat table = blurred.clone();
     intersections(refined_lines, refined_lines_intersections, table.rows, table.cols);
     draw_pool_table(refined_lines_intersections, table);
     imshow("", table);
@@ -54,8 +55,12 @@ void playing_field_localizer::localize(const Mat &src)
 
     sort_points_clockwise(refined_lines_intersections);
 
+    Mat table_mask(Size(table.cols, table.rows), CV_8U);
+    table_mask.setTo(0);
     fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
-    imshow("", table);
+    fillConvexPoly(table_mask, refined_lines_intersections, 255);
+    playing_field_mask = table_mask;
+    imshow("", table_mask);
     waitKey(0);
 }
 
@@ -87,7 +92,7 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
     const int NUMBER_OF_CENTERS = 3;
     const int KMEANS_MAX_COUNT = 10;
     const int KMEANS_EPSILON = 1.0;
-    const int KMEANS_ATTEMPTS = 3;
+    const int KMEANS_ATTEMPTS = 8;
     kmeans(data, NUMBER_OF_CENTERS, labels, TermCriteria(TermCriteria::MAX_ITER, KMEANS_MAX_COUNT, KMEANS_EPSILON), KMEANS_ATTEMPTS, KMEANS_PP_CENTERS, centers);
 
     // Reshape both to a single row of Vec3f pixels

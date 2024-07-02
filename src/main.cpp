@@ -3,6 +3,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include "playing_field_localizer.h"
+#include "balls_localizer.h"
 #include "show_cat.h"
 
 using namespace std;
@@ -14,12 +15,16 @@ int main()
     glob("*.png", filenames, true);
     for (auto filename : filenames)
     {
+        //if (filename.find("masks") == String::npos && filename.find("first") != String::npos && (filename.find("game1_clip3") != String::npos || String::npos && filename.find("game1_clip4") != String::npos))
         if (filename.find("masks") == String::npos && filename.find("first") != String::npos)
         {
             Mat img = imread(filename);
-            Mat dst;
-            playing_field_localizer localizer;
-            localizer.localize(img);
+            Mat another = imread(filename);
+
+            playing_field_localizer pl_field_loc;
+            pl_field_loc.localize(img);
+            balls_localizer balls_loc;
+            balls_loc.localize(another, pl_field_loc.playing_field_mask);
         }
     }
 

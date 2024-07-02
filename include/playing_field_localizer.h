@@ -14,6 +14,8 @@ public:
      */
     void localize(const cv::Mat &src);
     inline std::vector<cv::Point> get_playing_field_corners();
+    cv::Mat playing_field_mask;
+
 
 private:
     /**
