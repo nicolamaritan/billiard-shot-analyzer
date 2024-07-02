@@ -82,10 +82,9 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
                     break;
             }
         }
-        
+
         cv::circle(connected_components_pixels, innerPoint, 3, cv::Scalar(255, 0, 0), -1);
         seed_points.push_back(innerPoint);
-
     }
 
     imshow("", connected_components_pixels);
@@ -102,7 +101,7 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
     // waitKey();
     vector<Vec3f> circles;
 
-    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.2, 5, 23);
+    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.2, 5, 21);
     // HoughCircles(src_gray, circles, HOUGH_GRADIENT, 1, 18, 30, 1, 5, 17);
 
     Mat display = src.clone();
@@ -116,10 +115,57 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
         int radius = c[2];
         circle(display, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
     }
-
-    // Display the result
     imshow("", display);
     waitKey(0);
+
+    vector<Mat> hough_masks;
+    circles_masks(circles, hough_masks, src.size());
+
+    vector<Vec3f> filtered_circles;
+    vector<Mat> filtered_masks;
+    filter_empty_circles(circles, hough_masks, segmentation_mask, filtered_circles, filtered_masks, 0.75);
+    display = src.clone();
+    for (size_t i = 0; i < filtered_circles.size(); i++)
+    {
+        Vec3i c = filtered_circles[i];
+        Point center = Point(c[0], c[1]);
+        circle(display, center, 1, Scalar(0, 100, 100), 1, LINE_AA);
+        int radius = c[2];
+        circle(display, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
+    }
+    imshow("", display);
+    waitKey(0);
+}
+
+void balls_localizer::circles_masks(const std::vector<Vec3f> &circles, std::vector<Mat> &masks, Size mask_size)
+{
+    for (size_t i = 0; i < circles.size(); i++)
+    {
+        Mat mask(mask_size, CV_8U);
+        mask.setTo(Scalar(0));
+        masks.push_back(mask);
+        circle(mask, Point(circles[i][0], circles[i][1]), circles[i][2], Scalar(255), FILLED);
+        // imshow("", mask);
+        // waitKey();
+    }
+}
+
+void balls_localizer::filter_empty_circles(const std::vector<cv::Vec3f> &circles, const std::vector<Mat> &masks, const Mat &segmentation_mask, std::vector<cv::Vec3f> &filtered_circles, std::vector<cv::Mat> &filtered_masks, float intersection_threshold)
+{
+    for (size_t i = 0; i < circles.size(); i++)
+    {
+        float circle_area = countNonZero(masks[i]);
+        Mat masks_intersection;
+        bitwise_and(masks[i], segmentation_mask, masks_intersection);
+        float intersection_area = countNonZero(masks_intersection);
+
+        cout << intersection_area / circle_area << endl;
+        if (intersection_area / circle_area < intersection_threshold)
+        {
+            filtered_circles.push_back(circles[i]);
+            filtered_masks.push_back(masks[i]);
+        }
+    }
 }
 
 void balls_localizer::segmentation(const Mat &src, Mat &dst)
@@ -245,8 +291,8 @@ void balls_localizer::region_growing(const Mat &src, Mat &dst, const vector<Poin
         }
     }
 
-    int dx[] = {-1, 1,  0, 0, 1,  1, -1, -1};
-    int dy[] = {0,  0, -1, 1, 1, -1,  1, -1};
+    int dx[] = {-1, 1, 0, 0, 1, 1, -1, -1};
+    int dy[] = {0, 0, -1, 1, 1, -1, 1, -1};
 
     while (!toGrow.empty())
     {
