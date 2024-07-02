@@ -16,8 +16,8 @@ void playing_field_localizer::localize(const Mat &src)
     Mat segmented, labels;
     segmentation(blurred, segmented);
 
-    imshow("", segmented);
-    waitKey(0);
+    //imshow("", segmented);
+    //waitKey(0);
 
     const int RADIUS = 30;
     Vec3b board_color = get_board_color(segmented, RADIUS);
@@ -26,19 +26,19 @@ void playing_field_localizer::localize(const Mat &src)
     inRange(segmented, board_color, board_color, mask);
     segmented.setTo(Scalar(0, 0, 0), mask);
 
-    imshow("", mask);
-    waitKey(0);
+    //imshow("", mask);
+    //waitKey(0);
 
     non_maxima_connected_component_suppression(mask.clone(), mask);
-    imshow("", mask);
-    waitKey(0);
+    //imshow("", mask);
+    //waitKey(0);
 
     const int THRESHOLD_1_CANNY = 50;
     const int THRESHOLD_2_CANNY = 150;
     Mat edges;
     Canny(mask, edges, THRESHOLD_1_CANNY, THRESHOLD_2_CANNY);
-    imshow("", edges);
-    waitKey(0);
+    //imshow("", edges);
+    //waitKey(0);
 
     vector<Vec3f> lines, refined_lines;
     find_lines(edges, lines);
@@ -50,8 +50,8 @@ void playing_field_localizer::localize(const Mat &src)
     Mat table = blurred.clone();
     intersections(refined_lines, refined_lines_intersections, table.rows, table.cols);
     draw_pool_table(refined_lines_intersections, table);
-    imshow("", table);
-    waitKey(0);
+    //imshow("", table);
+    //waitKey(0);
 
     sort_points_clockwise(refined_lines_intersections);
 
@@ -60,8 +60,8 @@ void playing_field_localizer::localize(const Mat &src)
     fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
     fillConvexPoly(table_mask, refined_lines_intersections, 255);
     playing_field_mask = table_mask;
-    imshow("", table_mask);
-    waitKey(0);
+    //imshow("", table_mask);
+    //waitKey(0);
 }
 
 inline vector<Point> playing_field_localizer::get_playing_field_corners()
@@ -172,8 +172,8 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
         line(cdst, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
     }
 
-    imshow("", cdst);
-    waitKey();
+    //imshow("", cdst);
+    //waitKey();
 }
 
 /**
@@ -226,8 +226,8 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &li
         line(src_bgr, pt1, pt2, Scalar(0, 255, 0), 1, LINE_AA);
     }
 
-    imshow("", src_bgr);
-    waitKey();
+    //imshow("", src_bgr);
+    //waitKey();
 }
 
 void playing_field_localizer::dump_similar_lines(const Vec3f &reference_line, vector<Vec3f> &lines, vector<Vec3f> &similar_lines, float rho_threshold, float theta_threshold)

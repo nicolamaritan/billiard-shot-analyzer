@@ -13,7 +13,8 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 20;
     Mat blurred;
-    GaussianBlur(src.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
+    dilate(src, blurred, getStructuringElement(MORPH_CROSS, Size(3, 3)));
+    GaussianBlur(blurred.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
 
     Mat masked = blurred.clone();
     Mat mask_bgr;
@@ -91,7 +92,7 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
     waitKey();
 
     Mat segmentation_mask;
-    region_growing(masked, segmentation_mask, seed_points, 3, 10, 255);
+    region_growing(masked, segmentation_mask, seed_points, 5, 5, 200);
 
     imshow("", segmentation_mask);
     waitKey(0);
@@ -101,7 +102,7 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
     // waitKey();
     vector<Vec3f> circles;
 
-    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 2, 10, 100, 0.2, 5, 20);
+    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.2, 5, 23);
     // HoughCircles(src_gray, circles, HOUGH_GRADIENT, 1, 18, 30, 1, 5, 17);
 
     Mat display = src.clone();
@@ -244,8 +245,8 @@ void balls_localizer::region_growing(const Mat &src, Mat &dst, const vector<Poin
         }
     }
 
-    int dx[] = {-1, 1, 0, 0};
-    int dy[] = {0, 0, -1, 1};
+    int dx[] = {-1, 1,  0, 0, 1,  1, -1, -1};
+    int dy[] = {0,  0, -1, 1, 1, -1,  1, -1};
 
     while (!toGrow.empty())
     {
