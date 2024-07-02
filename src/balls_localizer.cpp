@@ -23,10 +23,9 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
     imshow("", masked);
     waitKey();
 
-    Mat connected_components_segmentation, labels;
+    Mat connected_components_segmentation;
     segmentation(masked, connected_components_segmentation);
-    
-    
+
     imshow("", connected_components_segmentation);
     waitKey(0);
 
@@ -45,21 +44,49 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
 
     Mat connected_components_pixels = src.clone();
     vector<Point> seed_points;
-    // Find contours (connected components)
-    std::vector<std::vector<cv::Point>> contours;
-    cv::findContours(connected_components_segmentation_mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-    // Iterate through each contour
-    for (size_t i = 0; i < contours.size(); ++i)
+    cv::Mat labels, stats, centroids;
+    int nLabels = cv::connectedComponentsWithStats(connected_components_segmentation_mask, labels, stats, centroids);
+
+    // Iterate through each connected component (excluding the background)
+    for (int i = 1; i < nLabels; ++i)
     {
-        // Get an arbitrary pixel from the contour (first point in the contour)
-        cv::Point arbitraryPixel = contours[i][contours[i].size() - 1];
-        seed_points.push_back(arbitraryPixel);
-        //std::cout << "Component " << i + 1 << ": " << arbitraryPixel << std::endl;
+        int left = stats.at<int>(i, cv::CC_STAT_LEFT);
+        int top = stats.at<int>(i, cv::CC_STAT_TOP);
+        int width = stats.at<int>(i, cv::CC_STAT_WIDTH);
+        int height = stats.at<int>(i, cv::CC_STAT_HEIGHT);
 
-        // Optional: Draw the pixel on the image for visualization
-        cv::circle(connected_components_pixels, arbitraryPixel, 3, cv::Scalar(255, 0, 0), -1);
+        // Calculate the center of the bounding box
+        int centerX = left + width / 2;
+        int centerY = top + height / 2;
+
+        // Ensure the point is within the component
+        cv::Point innerPoint(centerX, centerY);
+
+        // Check if the point is within the component (if necessary)
+        if (labels.at<int>(centerY, centerX) != i)
+        {
+            // Adjust the point to be within the component
+            for (int y = top; y < top + height; ++y)
+            {
+                for (int x = left; x < left + width; ++x)
+                {
+                    if (labels.at<int>(y, x) == i)
+                    {
+                        innerPoint = cv::Point(x, y);
+                        break;
+                    }
+                }
+                if (labels.at<int>(innerPoint.y, innerPoint.x) == i)
+                    break;
+            }
+        }
+        
+        cv::circle(connected_components_pixels, innerPoint, 3, cv::Scalar(255, 0, 0), -1);
+        seed_points.push_back(innerPoint);
+
     }
+
     imshow("", connected_components_pixels);
     waitKey();
 
@@ -69,9 +96,9 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
     imshow("", segmentation_mask);
     waitKey(0);
 
-    //non_maxima_connected_component_suppression(segmentation_mask.clone(), segmentation_mask);
-    //imshow("", segmentation_mask);
-    //waitKey();
+    // non_maxima_connected_component_suppression(segmentation_mask.clone(), segmentation_mask);
+    // imshow("", segmentation_mask);
+    // waitKey();
     vector<Vec3f> circles;
 
     HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 2, 10, 100, 0.2, 5, 20);
