@@ -29,6 +29,12 @@ add_library(balls_localizer
     src/balls_localizer.cpp
 )
 
+add_library(utils
+    include/utils.h
+    src/utils.cpp
+)
+
+
 add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
@@ -38,4 +44,5 @@ target_link_libraries(${PROJECT_NAME}
     show_cat
     playing_field_localizer
     balls_localizer
+    utils
 )

@@ -4,11 +4,12 @@
 #include <queue>
 #include <opencv2/features2d.hpp>
 #include "balls_localizer.h"
+#include "utils.h"
 
 using namespace cv;
 using namespace std;
 
-void balls_localizer::localize(const Mat &src, const Mat &mask)
+void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Point> playing_field_corners)
 {
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 5;
@@ -146,8 +147,6 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
 
         vector<Mat> hsv_channels;
         split(all_hsv, hsv_channels);
-        // imshow("", hsv_channels[1]); // interestingly, cloth area have really uniform 1 channel
-        // waitKey();
     }
 }
 
@@ -183,6 +182,21 @@ void balls_localizer::filter_out_of_bound_circles(const std::vector<cv::Vec3f> &
 {
     Mat shrinked_table_mask;
     erode(table_mask, shrinked_table_mask, getStructuringElement(MORPH_CROSS, Size(distance_threshold, distance_threshold)));
+
+    for (Vec3f circle : circles)
+    {
+        Point center = Point(circle[0], circle[1]);
+        if (shrinked_table_mask.at<uchar>(center) == 255)
+        {
+            filtered_circles.push_back(circle);
+        }
+    }
+}
+
+void balls_localizer::filter_out_of_bound_circles_perspective(const std::vector<cv::Vec3f> &circles, const Mat &table_mask, std::vector<cv::Vec3f> &filtered_circles, int distance_threshold)
+{
+    Mat shrinked_table_mask;
+    erode(table_mask, shrinked_table_mask, getStructuringElement(MORPH_RECT, Size(distance_threshold, 1)));
 
     for (Vec3f circle : circles)
     {

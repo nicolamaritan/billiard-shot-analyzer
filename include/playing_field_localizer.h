@@ -13,7 +13,7 @@ public:
      * @param src The input image.
      */
     void localize(const cv::Mat &src);
-    inline std::vector<cv::Point> get_playing_field_corners();
+    std::vector<cv::Point> get_playing_field_corners();
     cv::Mat playing_field_mask;
 
 

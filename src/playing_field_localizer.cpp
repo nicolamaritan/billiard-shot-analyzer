@@ -54,6 +54,7 @@ void playing_field_localizer::localize(const Mat &src)
     //waitKey(0);
 
     sort_points_clockwise(refined_lines_intersections);
+    playing_field_corners = refined_lines_intersections;
 
     Mat table_mask(Size(table.cols, table.rows), CV_8U);
     table_mask.setTo(0);
@@ -64,7 +65,7 @@ void playing_field_localizer::localize(const Mat &src)
     //waitKey(0);
 }
 
-inline vector<Point> playing_field_localizer::get_playing_field_corners()
+vector<Point> playing_field_localizer::get_playing_field_corners()
 {
     return playing_field_corners;
 }
