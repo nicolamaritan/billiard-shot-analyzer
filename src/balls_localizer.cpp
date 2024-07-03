@@ -11,7 +11,7 @@ using namespace std;
 void balls_localizer::localize(const Mat &src, const Mat &mask)
 {
     const int FILTER_SIZE = 3;
-    const int FILTER_SIGMA = 20;
+    const int FILTER_SIGMA = 5;
     Mat blurred;
     dilate(src, blurred, getStructuringElement(MORPH_CROSS, Size(3, 3)));
     GaussianBlur(blurred.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
