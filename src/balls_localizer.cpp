@@ -55,6 +55,7 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
         int top = stats.at<int>(i, cv::CC_STAT_TOP);
         int width = stats.at<int>(i, cv::CC_STAT_WIDTH);
         int height = stats.at<int>(i, cv::CC_STAT_HEIGHT);
+        ;
 
         // Calculate the center of the bounding box
         int centerX = left + width / 2;
@@ -117,13 +118,15 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
 
     vector<Vec3f> filtered_circles;
     vector<Mat> filtered_masks;
-    // filter_empty_circles(circles, hough_masks, segmentation_mask, filtered_circles, filtered_masks, 0.75);
     filter_empty_circles(circles, hough_masks, segmentation_mask, filtered_circles, filtered_masks, 0.60);
 
+    vector<Vec3f> filtered_out_of_bounds_circles;
+    filter_out_of_bound_circles(filtered_circles, mask, filtered_out_of_bounds_circles, 20);
+
     display = src.clone();
-    for (size_t i = 0; i < filtered_circles.size(); i++)
+    for (size_t i = 0; i < filtered_out_of_bounds_circles.size(); i++)
     {
-        Vec3i c = filtered_circles[i];
+        Vec3i c = filtered_out_of_bounds_circles[i];
         Point center = Point(c[0], c[1]);
         circle(display, center, 1, Scalar(0, 100, 100), 1, LINE_AA);
         int radius = c[2];
@@ -176,19 +179,17 @@ void balls_localizer::filter_empty_circles(const std::vector<cv::Vec3f> &circles
     }
 }
 
-void balls_localizer::filter_out_of_bound_circles(const std::vector<cv::Vec3f> &circles, const std::vector<Mat> &masks, const Mat &segmentation_mask, std::vector<cv::Vec3f> &filtered_circles, std::vector<cv::Mat> &filtered_masks, float intersection_threshold)
+void balls_localizer::filter_out_of_bound_circles(const std::vector<cv::Vec3f> &circles, const Mat &table_mask, std::vector<cv::Vec3f> &filtered_circles, int distance_threshold)
 {
-    for (size_t i = 0; i < circles.size(); i++)
-    {
-        float circle_area = countNonZero(masks[i]);
-        Mat masks_intersection;
-        bitwise_and(masks[i], segmentation_mask, masks_intersection);
-        float intersection_area = countNonZero(masks_intersection);
+    Mat shrinked_table_mask;
+    erode(table_mask, shrinked_table_mask, getStructuringElement(MORPH_CROSS, Size(distance_threshold, distance_threshold)));
 
-        if (intersection_area / circle_area > intersection_threshold)
+    for (Vec3f circle : circles)
+    {
+        Point center = Point(circle[0], circle[1]);
+        if (shrinked_table_mask.at<uchar>(center) == 255)
         {
-            filtered_circles.push_back(circles[i]);
-            filtered_masks.push_back(masks[i]);
+            filtered_circles.push_back(circle);
         }
     }
 }
@@ -217,7 +218,7 @@ void balls_localizer::segmentation(const Mat &src, Mat &dst)
     // Image segmentation is performed via kmeans on the hsv img
     Mat labels, centers;
     // const int NUMBER_OF_CENTERS = 8;
-    const int NUMBER_OF_CENTERS = 20;
+    const int NUMBER_OF_CENTERS = 10;
     const int KMEANS_MAX_COUNT = 10;
     const int KMEANS_EPSILON = 1.0;
     const int KMEANS_ATTEMPTS = 3;
