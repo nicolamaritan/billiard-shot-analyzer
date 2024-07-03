@@ -26,7 +26,6 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
 
     Mat connected_components_segmentation;
     segmentation(masked, connected_components_segmentation);
-
     imshow("", connected_components_segmentation);
     waitKey(0);
 
@@ -39,9 +38,9 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
     waitKey();
 
     // Single opening
-    morphologyEx(connected_components_segmentation_mask.clone(), connected_components_segmentation_mask, MORPH_OPEN, getStructuringElement(MORPH_CROSS, Size(3, 3)));
-    imshow("", connected_components_segmentation_mask);
-    waitKey();
+    // morphologyEx(connected_components_segmentation_mask.clone(), connected_components_segmentation_mask, MORPH_OPEN, getStructuringElement(MORPH_CROSS, Size(3, 3)));
+    // imshow("", connected_components_segmentation_mask);
+    // waitKey();
 
     Mat connected_components_pixels = src.clone();
     vector<Point> seed_points;
@@ -91,14 +90,11 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
     waitKey();
 
     Mat segmentation_mask;
-    region_growing(masked, segmentation_mask, seed_points, 5, 5, 200);
+    region_growing(masked, segmentation_mask, seed_points, 5, 5, 5);
 
     imshow("", segmentation_mask);
     waitKey(0);
 
-    // non_maxima_connected_component_suppression(segmentation_mask.clone(), segmentation_mask);
-    // imshow("", segmentation_mask);
-    // waitKey();
     vector<Vec3f> circles;
 
     HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.2, 5, 21);
@@ -109,9 +105,7 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
     {
         Vec3i c = circles[i];
         Point center = Point(c[0], c[1]);
-        // circle center
         circle(display, center, 1, Scalar(0, 100, 100), 1, LINE_AA);
-        // circle outline
         int radius = c[2];
         circle(display, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
     }
@@ -123,7 +117,9 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
 
     vector<Vec3f> filtered_circles;
     vector<Mat> filtered_masks;
-    filter_empty_circles(circles, hough_masks, segmentation_mask, filtered_circles, filtered_masks, 0.75);
+    // filter_empty_circles(circles, hough_masks, segmentation_mask, filtered_circles, filtered_masks, 0.75);
+    filter_empty_circles(circles, hough_masks, segmentation_mask, filtered_circles, filtered_masks, 0.60);
+
     display = src.clone();
     for (size_t i = 0; i < filtered_circles.size(); i++)
     {
@@ -135,6 +131,21 @@ void balls_localizer::localize(const Mat &src, const Mat &mask)
     }
     imshow("", display);
     waitKey(0);
+
+    for (size_t i = 0; i < filtered_circles.size(); i++)
+    {
+        Mat single_circle_filtered_mask;
+        Mat blurred_masked;
+        cvtColor(filtered_masks[i], single_circle_filtered_mask, COLOR_GRAY2BGR);
+        bitwise_and(blurred, single_circle_filtered_mask, blurred_masked);
+        Mat all_hsv;
+        cvtColor(blurred_masked, all_hsv, COLOR_BGR2HSV);
+
+        vector<Mat> hsv_channels;
+        split(all_hsv, hsv_channels);
+        // imshow("", hsv_channels[1]); // interestingly, cloth area have really uniform 1 channel
+        // waitKey();
+    }
 }
 
 void balls_localizer::circles_masks(const std::vector<Vec3f> &circles, std::vector<Mat> &masks, Size mask_size)
@@ -143,10 +154,8 @@ void balls_localizer::circles_masks(const std::vector<Vec3f> &circles, std::vect
     {
         Mat mask(mask_size, CV_8U);
         mask.setTo(Scalar(0));
-        masks.push_back(mask);
         circle(mask, Point(circles[i][0], circles[i][1]), circles[i][2], Scalar(255), FILLED);
-        // imshow("", mask);
-        // waitKey();
+        masks.push_back(mask);
     }
 }
 
@@ -159,8 +168,24 @@ void balls_localizer::filter_empty_circles(const std::vector<cv::Vec3f> &circles
         bitwise_and(masks[i], segmentation_mask, masks_intersection);
         float intersection_area = countNonZero(masks_intersection);
 
-        cout << intersection_area / circle_area << endl;
         if (intersection_area / circle_area < intersection_threshold)
+        {
+            filtered_circles.push_back(circles[i]);
+            filtered_masks.push_back(masks[i]);
+        }
+    }
+}
+
+void balls_localizer::filter_out_of_bound_circles(const std::vector<cv::Vec3f> &circles, const std::vector<Mat> &masks, const Mat &segmentation_mask, std::vector<cv::Vec3f> &filtered_circles, std::vector<cv::Mat> &filtered_masks, float intersection_threshold)
+{
+    for (size_t i = 0; i < circles.size(); i++)
+    {
+        float circle_area = countNonZero(masks[i]);
+        Mat masks_intersection;
+        bitwise_and(masks[i], segmentation_mask, masks_intersection);
+        float intersection_area = countNonZero(masks_intersection);
+
+        if (intersection_area / circle_area > intersection_threshold)
         {
             filtered_circles.push_back(circles[i]);
             filtered_masks.push_back(masks[i]);
@@ -174,6 +199,13 @@ void balls_localizer::segmentation(const Mat &src, Mat &dst)
     // it is employed for kmeans clustering.
     cvtColor(src, dst, COLOR_BGR2HSV);
 
+    const int VALUE_UNIFORM = 255;
+    vector<Mat> hsv_channels;
+    split(dst, hsv_channels);
+    hsv_channels[1].setTo(VALUE_UNIFORM);
+    hsv_channels[2].setTo(VALUE_UNIFORM);
+    merge(hsv_channels, dst);
+
     imshow("", dst);
     waitKey();
 
@@ -184,7 +216,8 @@ void balls_localizer::segmentation(const Mat &src, Mat &dst)
 
     // Image segmentation is performed via kmeans on the hsv img
     Mat labels, centers;
-    const int NUMBER_OF_CENTERS = 8;
+    // const int NUMBER_OF_CENTERS = 8;
+    const int NUMBER_OF_CENTERS = 20;
     const int KMEANS_MAX_COUNT = 10;
     const int KMEANS_EPSILON = 1.0;
     const int KMEANS_ATTEMPTS = 3;

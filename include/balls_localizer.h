@@ -19,6 +19,7 @@ private:
     void region_growing(const cv::Mat &src, cv::Mat &dst, const std::vector<cv::Point> &seeds, int threshold_0, int threshold_1, int threshold_2);
     void circles_masks(const std::vector<cv::Vec3f> &circles, std::vector<cv::Mat> &masks, cv::Size mask_size);
     void filter_empty_circles(const std::vector<cv::Vec3f> &circles, const std::vector<cv::Mat> &masks, const cv::Mat &segmentation_mask, std::vector<cv::Vec3f> &filtered_circles, std::vector<cv::Mat> &filtered_masks, float intersection_threshold);
+    void filter_out_of_bound_circles(const std::vector<cv::Vec3f> &circles, const std::vector<cv::Mat> &masks, const cv::Mat &segmentation_mask, std::vector<cv::Vec3f> &filtered_circles, std::vector<cv::Mat> &filtered_masks, float intersection_threshold);
     /**
      * @brief Perform segmentation of the image based on color. One of the clusters should
      * contain the whole table, surrounded by different clusters.
