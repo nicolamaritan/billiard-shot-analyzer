@@ -34,6 +34,10 @@ add_library(geometry
     src/geometry.cpp
 )
 
+add_library(segmentation
+    include/segmentation.h
+    src/segmentation.cpp
+)
 
 add_executable(${PROJECT_NAME}
 	src/main.cpp
@@ -45,4 +49,5 @@ target_link_libraries(${PROJECT_NAME}
     playing_field_localizer
     balls_localizer
     geometry
+    segmentation
 )
