@@ -7,7 +7,8 @@
 class playing_field_localizer
 {
 public:
-    void localize(const cv::Mat &src, cv::Mat &dst);
+    std::vector<cv::Point> localize(const cv::Mat &src, cv::Mat &dst);
+    cv::Mat temp_edges;
 
 private:
     /**
@@ -29,7 +30,7 @@ private:
      * @param radius Radius from the image center in which to compute the board color.
      * @return the computed color of the board.
      */
-    cv::Vec3b get_board_color(const cv::Mat &src, float radius);
+    //cv::Vec3b get_board_color(const cv::Mat &src, float radius);
     std::vector<cv::Vec2f> find_lines(const cv::Mat &src);
     std::vector<cv::Vec2f> refine_lines(std::vector<cv::Vec2f> &lines);
     void draw_lines(const cv::Mat &src, const std::vector<cv::Vec2f> &lines);
@@ -42,7 +43,7 @@ private:
     bool is_within_image(const cv::Point &p, int rows, int cols);
     bool intersection(cv::Point o1, cv::Point p1, cv::Point o2, cv::Point p2, cv::Point &r, int rows, int cols);
     void intersections(const std::vector<std::vector<cv::Point>> &points, std::vector<cv::Point> &inters, int rows, int cols);
-    double angle_between_lines(double m1, double m2);
+    //double angle_between_lines(double m1, double m2);
     void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
     void get_pairs_points_per_line(const std::vector<cv::Vec2f> &lines, std::vector<std::vector<cv::Point>> &points);
     void sort_points_clockwise(std::vector<cv::Point> &points);

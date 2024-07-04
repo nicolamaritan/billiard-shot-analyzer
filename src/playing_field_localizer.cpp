@@ -2,6 +2,8 @@
 #include <cmath>
 #include <map>
 #include "playing_field_localizer.h"
+#include "utils.h"
+
 
 using namespace cv;
 using namespace std;
@@ -18,7 +20,8 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
     split(dst, hsv_channels);
     hsv_channels[2].setTo(VALUE_UNIFORM);
     merge(hsv_channels, dst);
-
+    //imshow("", dst);
+    //waitKey(0);
     // data contains dst data (init with src data) used for kmeans clustering (therefore employs 32-bit float values)
     Mat data;
     dst.convertTo(data, CV_32F);
@@ -46,7 +49,7 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
     dst = data.reshape(3, dst.rows);
     dst.convertTo(dst, CV_8U);
 }
-
+/*
 Vec3b playing_field_localizer::get_board_color(const Mat &src, float radius)
 {
     int center_cols = src.cols / 2;
@@ -84,7 +87,7 @@ Vec3b playing_field_localizer::get_board_color(const Mat &src, float radius)
 
     return pixel_values[pixel_values.size() / 2];
 }
-
+*/
 vector<Vec2f> playing_field_localizer::find_lines(const Mat &edges)
 {
     const float RHO_RESOLUTION = 1.6;   // In pixels.
@@ -110,8 +113,8 @@ vector<Vec2f> playing_field_localizer::find_lines(const Mat &edges)
         line(cdst, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
     }
 
-    imshow("", cdst);
-    waitKey();
+    //imshow("", cdst);
+    //waitKey();
 
     return lines;
 }
@@ -122,7 +125,7 @@ vector<Vec2f> playing_field_localizer::find_lines(const Mat &edges)
  * @param src The input image.
  * @param dst The destination image containing the localized table.
  */
-void playing_field_localizer::localize(const Mat &src, Mat &dst)
+vector<Point> playing_field_localizer::localize(const Mat &src, Mat &dst)
 {
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 20;
@@ -131,8 +134,8 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     Mat segmented, labels;
     segmentation(src, segmented);
 
-    imshow("", segmented);
-    waitKey(0);
+    //imshow("", segmented);
+    //waitKey(0);
 
     const int RADIUS = 30;
     Vec3b board_color = get_board_color(segmented, RADIUS);
@@ -141,19 +144,20 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     inRange(segmented, board_color, board_color, mask);
     segmented.setTo(Scalar(0, 0, 0), mask);
 
-    imshow("", mask);
-    waitKey(0);
+    //imshow("", mask);
+    //waitKey(0);
 
     non_maxima_connected_component_suppression(mask.clone(), mask);
-    imshow("", mask);
-    waitKey(0);
+    //imshow("", mask);
+    //waitKey(0);
 
     const int THRESHOLD_1_CANNY = 50;
     const int THRESHOLD_2_CANNY = 150;
     Mat edges;
     Canny(mask, edges, THRESHOLD_1_CANNY, THRESHOLD_2_CANNY);
-    imshow("", edges);
-    waitKey(0);
+    temp_edges = edges;
+    //imshow("", edges);
+    //waitKey(0);
 
     vector<Vec2f> lines = find_lines(edges);
     vector<Vec2f> refined_lines = refine_lines(lines);
@@ -167,14 +171,15 @@ void playing_field_localizer::localize(const Mat &src, Mat &dst)
     Mat table = src.clone();
     intersections(points_refined_line, refined_lines_intersections, table.rows, table.cols);
     draw_pool_table(refined_lines_intersections, table);
-    imshow("", table);
-    waitKey(0);
+    //imshow("", table);
+    //waitKey(0);
 
     sort_points_clockwise(refined_lines_intersections);
 
     fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
-    imshow("", table);
-    waitKey(0);
+    //imshow("", table);
+    //waitKey(0);
+    return refined_lines_intersections;
 }
 
 /**
@@ -226,8 +231,8 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec2f> &li
         line(src_bgr, pt1, pt2, Scalar(0, 255, 0), 1, LINE_AA);
     }
 
-    imshow("", src_bgr);
-    waitKey();
+    //imshow("", src_bgr);
+    //waitKey();
 }
 
 void playing_field_localizer::dump_similar_lines(Vec2f reference_line, vector<Vec2f> &lines, vector<Vec2f> &similar_lines)
@@ -347,6 +352,7 @@ void playing_field_localizer::intersections(const vector<vector<Point>> &points,
     }
 }
 
+/*
 double playing_field_localizer::angle_between_lines(double m1, double m2)
 {
     double angle = atan(abs((m1 - m2) / (1 + m1 * m2)));
@@ -355,7 +361,7 @@ double playing_field_localizer::angle_between_lines(double m1, double m2)
     else
         return angle + CV_PI;
 }
-
+*/
 void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
 {
     if (is_vertical_line(inters[0], inters[1]) ||

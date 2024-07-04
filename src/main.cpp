@@ -3,7 +3,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include "playing_field_localizer.h"
-#include "show_cat.h"
+#include "balls_localizer.h"
 
 using namespace std;
 using namespace cv;
@@ -17,9 +17,13 @@ int main()
         if (filename.find("masks") == String::npos && filename.find("first") != String::npos)
         {
             Mat img = imread(filename);
-            Mat dst;
+            Mat dst1, dst2;
             playing_field_localizer localizer;
-            localizer.localize(img, dst);
+            vector<Point> corners;
+            corners = localizer.localize(img, dst1);
+            balls_localizer balls_loc;
+            balls_loc.localize_balls(img, dst2, localizer.temp_edges, corners);
+
         }
     }
 
