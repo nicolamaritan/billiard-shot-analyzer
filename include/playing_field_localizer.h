@@ -97,37 +97,6 @@ private:
     bool is_within_image(const cv::Point &pt, int rows, int cols);
 
     /**
-     * @brief Finds the intersection point of two lines if it lies within the image bounds.
-     *
-     * @param pts_line_1 Pair of points defining the first line.
-     * @param pts_line_2 Pair of points defining the second line.
-     * @param intersection_pt The output point of intersection.
-     * @param rows The number of rows in the image.
-     * @param cols The number of columns in the image.
-     * @return true If the intersection point is within the image bounds.
-     * @return false If the lines do not intersect within the image bounds or are parallel.
-     */
-    bool intersection(std::pair<cv::Point, cv::Point> pts_line_1, std::pair<cv::Point, cv::Point> pts_line_2, cv::Point &intersection_pt, int rows, int cols);
-
-    /**
-     * @brief Finds all intersections between pairs of lines and stores them if they lie within the image bounds.
-     *
-     * @param lines Vector of lines, each represented by a Vec3f (rho, theta, number of votes).
-     * @param out_intersections Vector of intersection points within the image bounds.
-     * @param rows The number of rows in the image.
-     * @param cols The number of columns in the image.
-     */
-    void intersections(const std::vector<cv::Vec3f> &lines, std::vector<cv::Point> &out_intersections, int rows, int cols);
-
-    /**
-     * @brief Converts a set of lines represented by (rho, theta) into pairs of points.
-     *
-     * @param lines Vector of lines, each represented by a Vec3f (rho, theta, number of votes).
-     * @param pts Output vector of pairs of points, each pair representing a line.
-     */
-    void get_pairs_points_per_line(const std::vector<cv::Vec3f> &lines, std::vector<std::pair<cv::Point, cv::Point>> &pts);
-
-    /**
      * @brief Sorts a vector of points in a clockwise order based on their position relative to the center of the set.
      *
      * @param points Vector of points to be sorted.
@@ -136,12 +105,8 @@ private:
 
     void estimate_holes_location(std::vector<cv::Point>& hole_points);
 
-    double angle_between_lines(double m1, double m2);
     void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
-    double angular_coefficient(const cv::Point &pt1, const cv::Point &pt2);
-    bool is_vertical_line(const cv::Point &pt1, const cv::Point &pt2);
-    bool are_parallel_lines(double m1, double m2);
-    double intercept(const cv::Point &pt1, const cv::Point &pt2);
+
 
     std::vector<cv::Point> playing_field_corners;
 };

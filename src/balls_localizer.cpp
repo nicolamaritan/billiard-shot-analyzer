@@ -4,7 +4,7 @@
 #include <queue>
 #include <opencv2/features2d.hpp>
 #include "balls_localizer.h"
-#include "utils.h"
+#include "geometry.h"
 
 using namespace cv;
 using namespace std;

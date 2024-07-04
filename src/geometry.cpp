@@ -1,4 +1,5 @@
-#include "utils.h"
+#include <limits>
+#include "geometry.h"
 
 using namespace std;
 using namespace cv;
@@ -71,4 +72,44 @@ bool intersection(pair<Point, Point> pts_line_1, pair<Point, Point> pts_line_2, 
 bool is_within_image(const Point &p, int rows, int cols)
 {
     return p.x >= 0 && p.x < cols && p.y >= 0 && p.y < rows;
+}
+
+double angular_coefficient(const pair<Point, Point> line)
+{
+    Point pt1 = line.first;
+    Point pt2 = line.second;
+    if ((pt2.x - pt1.x) == 0)
+    {
+        return numeric_limits<double>::max();
+    }
+    return (pt2.y - pt1.y) / (pt2.x - pt1.x);
+}
+
+double angle_between_lines(const pair<Point, Point> line_1, const pair<Point, Point> line_2)
+{
+    double m1 = angular_coefficient(line_1);
+    double m2 = angular_coefficient(line_2);
+    double angle = atan(abs((m1 - m2) / (1 + m1 * m2)));
+    if (angle >= 0)
+        return angle;
+    else
+        return angle + CV_PI;
+}
+
+bool is_vertical_line(const std::pair<cv::Point, cv::Point> line)
+{
+    return line.first.x == line.second.x;
+}
+
+bool are_parallel_lines(const std::pair<cv::Point, cv::Point> line_1, const std::pair<cv::Point, cv::Point> line_2)
+{
+    const float EPSILON = 0.001;
+    return abs(angular_coefficient(line_1) - angular_coefficient(line_2)) <= EPSILON;
+}
+
+double intercept(const std::pair<cv::Point, cv::Point> line)
+{
+    Point pt_1 = line.first;
+    Point pt_2 = line.second;
+    return pt_1.y - pt_1.x * angular_coefficient({pt_1, pt_2});
 }
