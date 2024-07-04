@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <map>
+#include <limits>
 #include "playing_field_localizer.h"
 
 using namespace cv;
@@ -16,8 +17,8 @@ void playing_field_localizer::localize(const Mat &src)
     Mat segmented, labels;
     segmentation(blurred, segmented);
 
-    //imshow("", segmented);
-    //waitKey(0);
+    // imshow("", segmented);
+    // waitKey(0);
 
     const int RADIUS = 30;
     Vec3b board_color = get_board_color(segmented, RADIUS);
@@ -26,19 +27,19 @@ void playing_field_localizer::localize(const Mat &src)
     inRange(segmented, board_color, board_color, mask);
     segmented.setTo(Scalar(0, 0, 0), mask);
 
-    //imshow("", mask);
-    //waitKey(0);
+    // imshow("", mask);
+    // waitKey(0);
 
     non_maxima_connected_component_suppression(mask.clone(), mask);
-    //imshow("", mask);
-    //waitKey(0);
+    // imshow("", mask);
+    // waitKey(0);
 
     const int THRESHOLD_1_CANNY = 50;
     const int THRESHOLD_2_CANNY = 150;
     Mat edges;
     Canny(mask, edges, THRESHOLD_1_CANNY, THRESHOLD_2_CANNY);
-    //imshow("", edges);
-    //waitKey(0);
+    // imshow("", edges);
+    // waitKey(0);
 
     vector<Vec3f> lines, refined_lines;
     find_lines(edges, lines);
@@ -50,19 +51,30 @@ void playing_field_localizer::localize(const Mat &src)
     Mat table = blurred.clone();
     intersections(refined_lines, refined_lines_intersections, table.rows, table.cols);
     draw_pool_table(refined_lines_intersections, table);
-    //imshow("", table);
-    //waitKey(0);
+    // imshow("", table);
+    // waitKey(0);
 
     sort_points_clockwise(refined_lines_intersections);
     playing_field_corners = refined_lines_intersections;
+
+    vector<Point> hole_points;
+    estimate_holes_location(hole_points);
+    playing_field_hole_points = hole_points;
+    Mat display = src.clone();
+    for (Point point : hole_points)
+    {
+        circle(display, point, 3, Scalar(0, 0, 255), -1);
+    }
+    imshow("", display);
+    waitKey();
 
     Mat table_mask(Size(table.cols, table.rows), CV_8U);
     table_mask.setTo(0);
     fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
     fillConvexPoly(table_mask, refined_lines_intersections, 255);
     playing_field_mask = table_mask;
-    //imshow("", table_mask);
-    //waitKey(0);
+    // imshow("", table_mask);
+    // waitKey(0);
 }
 
 vector<Point> playing_field_localizer::get_playing_field_corners()
@@ -173,8 +185,8 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
         line(cdst, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
     }
 
-    //imshow("", cdst);
-    //waitKey();
+    // imshow("", cdst);
+    // waitKey();
 }
 
 /**
@@ -227,8 +239,8 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &li
         line(src_bgr, pt1, pt2, Scalar(0, 255, 0), 1, LINE_AA);
     }
 
-    //imshow("", src_bgr);
-    //waitKey();
+    // imshow("", src_bgr);
+    // waitKey();
 }
 
 void playing_field_localizer::dump_similar_lines(const Vec3f &reference_line, vector<Vec3f> &lines, vector<Vec3f> &similar_lines, float rho_threshold, float theta_threshold)
@@ -309,7 +321,7 @@ bool playing_field_localizer::intersection(pair<Point, Point> pts_line_1, pair<P
 
     // t is a real number in the formula computed as follows
     double t = (difference_13.x * difference_34.y - difference_13.y * difference_34.x) / cross_product;
-    
+
     intersection_pt = pts_line_1.first - difference_12 * t;
 
     return is_within_image(intersection_pt, rows, cols);
@@ -384,6 +396,87 @@ void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
         return cross_product > 0; });
 }
 
+void playing_field_localizer::estimate_holes_location(vector<Point> &hole_points)
+{
+    float m_left_edge = angular_coefficient(playing_field_corners.at(0), playing_field_corners.at(1));
+    float m_right_edge = angular_coefficient(playing_field_corners.at(3), playing_field_corners.at(2));
+    pair<Point, Point> short_edge, long_edge_1, long_edge_2;
+    Point playing_field_center;
+    bool perspective_view = false;
+    intersection({playing_field_corners.at(0), playing_field_corners.at(2)}, {playing_field_corners.at(1), playing_field_corners.at(3)}, playing_field_center, 9999, 9999);
+
+    hole_points.push_back(playing_field_center);
+
+    if (abs(m_left_edge + m_right_edge) < 0.01)
+    {
+        cout << "perspective" << endl;
+        perspective_view = true;
+        long_edge_1 = {playing_field_corners.at(0), playing_field_corners.at(1)};
+        long_edge_2 = {playing_field_corners.at(3), playing_field_corners.at(2)};
+        short_edge = {playing_field_corners.at(3), playing_field_corners.at(0)};
+    }
+    else
+    {
+        if (norm(playing_field_corners.at(0) - playing_field_corners.at(1)) < norm(playing_field_corners.at(1) - playing_field_corners.at(2)))
+        {
+            short_edge = {playing_field_corners.at(0), playing_field_corners.at(1)};
+            long_edge_1 = {playing_field_corners.at(1), playing_field_corners.at(2)};
+            long_edge_2 = {playing_field_corners.at(3), playing_field_corners.at(0)};
+        }
+        else
+        {
+            short_edge = {playing_field_corners.at(1), playing_field_corners.at(2)};
+            long_edge_1 = {playing_field_corners.at(0), playing_field_corners.at(1)};
+            long_edge_2 = {playing_field_corners.at(2), playing_field_corners.at(3)};
+        }
+    }
+
+    Point short_edge_offset = short_edge.first - short_edge.second;
+    Point lateral_hole_1, lateral_hole_2;
+    intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_1, lateral_hole_1, 9999, 9999);
+    intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_2, lateral_hole_2, 9999, 9999);
+
+    Point2f bottom_left = playing_field_corners.at(0);
+    Point2f top_left = playing_field_corners.at(1);
+    Point2f top_right = playing_field_corners.at(2);
+    Point2f bottom_right = playing_field_corners.at(3);
+
+    Point2f playing_field_center_float = static_cast<Point2f>(playing_field_center);
+    Point2f lateral_hole_1_float = static_cast<Point2f>(lateral_hole_1);
+    Point2f lateral_hole_2_float = static_cast<Point2f>(lateral_hole_2);
+    Point2f top_left_float = static_cast<Point2f>(top_left);
+    Point2f top_right_float = static_cast<Point2f>(top_right);
+    Point2f bottom_left_float = static_cast<Point2f>(bottom_left);
+    Point2f bottom_right_float = static_cast<Point2f>(bottom_right);
+
+    vector<Point> refined_playing_field_corners;
+
+    const float LATERAL_HOLES_ADJUSTMENT = 15;
+    const float BOTTOM_CORNERS_ADJUSTMENT = perspective_view ? 25 : 10;
+    const float TOP_CORNERS_ADJUSTMENT = perspective_view ? 15 : 10;
+
+    Point2f lateral_hole_1_refined = lateral_hole_1_float + ((playing_field_center_float - lateral_hole_1_float) / norm(playing_field_center_float - lateral_hole_1_float)) * LATERAL_HOLES_ADJUSTMENT;
+    Point2f lateral_hole_2_refined = lateral_hole_2_float + ((playing_field_center_float - lateral_hole_2_float) / norm(playing_field_center_float - lateral_hole_2_float)) * LATERAL_HOLES_ADJUSTMENT;
+
+    Point2f top_left_refined = top_left_float + ((playing_field_center_float - top_left_float) / norm(playing_field_center_float - top_left_float)) * TOP_CORNERS_ADJUSTMENT;
+    Point2f top_right_refined = top_right_float + ((playing_field_center_float - top_right_float) / norm(playing_field_center_float - top_right_float)) * TOP_CORNERS_ADJUSTMENT;
+
+    Point2f bottom_left_refined = bottom_left_float + ((playing_field_center_float - bottom_left_float) / norm(playing_field_center_float - bottom_left_float)) * BOTTOM_CORNERS_ADJUSTMENT;
+    Point2f bottom_right_refined = bottom_right_float + ((playing_field_center_float - bottom_right_float) / norm(playing_field_center_float - bottom_right_float)) * BOTTOM_CORNERS_ADJUSTMENT;
+
+    refined_playing_field_corners.push_back(static_cast<Point>(lateral_hole_1_refined));
+    refined_playing_field_corners.push_back(static_cast<Point>(lateral_hole_2_refined));
+    refined_playing_field_corners.push_back(static_cast<Point>(top_left_refined));
+    refined_playing_field_corners.push_back(static_cast<Point>(top_right_refined));
+    refined_playing_field_corners.push_back(static_cast<Point>(bottom_left_refined));
+    refined_playing_field_corners.push_back(static_cast<Point>(bottom_right_refined));
+
+    for (Point refined_corner : refined_playing_field_corners)
+    {
+        hole_points.push_back(refined_corner);
+    }
+}
+
 double playing_field_localizer::angle_between_lines(double m1, double m2)
 {
     double angle = atan(abs((m1 - m2) / (1 + m1 * m2)));
@@ -446,6 +539,10 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
 
 double playing_field_localizer::angular_coefficient(const Point &pt1, const Point &pt2)
 {
+    if ((pt2.x - pt1.x) == 0)
+    {
+        return std::numeric_limits<double>::max();
+    }
     return (pt2.y - pt1.y) / (pt2.x - pt1.x);
 }
 

@@ -9,7 +9,7 @@
 using namespace cv;
 using namespace std;
 
-void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Point> playing_field_corners)
+void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Point>& playing_field_corners, const vector<Point>& hole_points)
 {
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 5;
@@ -124,10 +124,14 @@ void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Poi
     vector<Vec3f> filtered_out_of_bounds_circles;
     filter_out_of_bound_circles(filtered_circles, mask, filtered_out_of_bounds_circles, 20);
 
+    vector<Vec3f> filtered_near_holes_circles;
+    assert(hole_points.size() != 0);
+    filter_near_holes_circles(filtered_out_of_bounds_circles, filtered_near_holes_circles, hole_points, 20);
+
     display = src.clone();
-    for (size_t i = 0; i < filtered_out_of_bounds_circles.size(); i++)
+    for (size_t i = 0; i < filtered_near_holes_circles.size(); i++)
     {
-        Vec3i c = filtered_out_of_bounds_circles[i];
+        Vec3i c = filtered_near_holes_circles[i];
         Point center = Point(c[0], c[1]);
         circle(display, center, 1, Scalar(0, 100, 100), 1, LINE_AA);
         int radius = c[2];
@@ -190,6 +194,23 @@ void balls_localizer::filter_out_of_bound_circles(const std::vector<cv::Vec3f> &
         {
             filtered_circles.push_back(circle);
         }
+    }
+}
+
+void balls_localizer::filter_near_holes_circles(const std::vector<cv::Vec3f> &circles, std::vector<cv::Vec3f> &filtered_circles, const vector<Point>& holes_points, float distance_threshold)
+{
+    for (Vec3f circle : circles)
+    {
+        Point circle_point = Point(static_cast<int>(circle[0]), static_cast<int>(circle[1]));
+        bool keep_circle = true;
+        for (Point hole_point : holes_points)
+        {
+            if (norm(hole_point - circle_point) < distance_threshold) 
+                keep_circle = false;
+        }
+
+        if (keep_circle)
+            filtered_circles.push_back(circle);
     }
 }
 

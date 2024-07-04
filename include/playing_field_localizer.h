@@ -15,6 +15,7 @@ public:
     void localize(const cv::Mat &src);
     std::vector<cv::Point> get_playing_field_corners();
     cv::Mat playing_field_mask;
+    std::vector<cv::Point> playing_field_hole_points;
 
 
 private:
@@ -132,6 +133,8 @@ private:
      * @param points Vector of points to be sorted.
      */
     void sort_points_clockwise(std::vector<cv::Point> &points);
+
+    void estimate_holes_location(std::vector<cv::Point>& hole_points);
 
     double angle_between_lines(double m1, double m2);
     void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
