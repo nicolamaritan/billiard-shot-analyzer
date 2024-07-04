@@ -7,12 +7,14 @@
 class balls_localizer
 {
 public:
+    balls_localizer(const cv::Mat &playing_field_mask, const std::vector<cv::Point>& playing_field_corners, const std::vector<cv::Point>& playing_field_hole_points) 
+    : playing_field_mask{playing_field_mask}, playing_field_corners{playing_field_corners}, playing_field_hole_points{playing_field_hole_points}{};
     /**
      * Localize the pool table.
      *
      * @param src The input image.
      */
-    void localize(const cv::Mat &src, const cv::Mat &mask, const std::vector<cv::Point>& playing_field_corners, const std::vector<cv::Point>& hole_points);
+    void localize(const cv::Mat &src);
 
 private:
     void localize_red_balls(const cv::Mat &src, cv::Mat &dst);
@@ -51,6 +53,10 @@ private:
      * @param dst Output image where only the largest connected component is retained.
      */
     void non_maxima_connected_component_suppression(const cv::Mat &src, cv::Mat &dst);
+
+    const cv::Mat playing_field_mask;
+    const std::vector<cv::Point> playing_field_corners;
+    const std::vector<cv::Point> playing_field_hole_points;
 };
 
 #endif

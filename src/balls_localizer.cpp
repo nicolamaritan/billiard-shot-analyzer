@@ -5,11 +5,12 @@
 #include <opencv2/features2d.hpp>
 #include "balls_localizer.h"
 #include "geometry.h"
+#include <cassert>
 
 using namespace cv;
 using namespace std;
 
-void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Point>& playing_field_corners, const vector<Point>& hole_points)
+void balls_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 5;
@@ -19,7 +20,7 @@ void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Poi
 
     Mat masked = blurred.clone();
     Mat mask_bgr;
-    cvtColor(mask, mask_bgr, COLOR_GRAY2BGR);
+    cvtColor(playing_field_mask, mask_bgr, COLOR_GRAY2BGR);
     bitwise_and(masked, mask_bgr, masked);
 
     imshow("", masked);
@@ -122,11 +123,11 @@ void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Poi
     filter_empty_circles(circles, hough_masks, segmentation_mask, filtered_circles, filtered_masks, 0.60);
 
     vector<Vec3f> filtered_out_of_bounds_circles;
-    filter_out_of_bound_circles(filtered_circles, mask, filtered_out_of_bounds_circles, 20);
+    filter_out_of_bound_circles(filtered_circles, playing_field_mask, filtered_out_of_bounds_circles, 20);
 
     vector<Vec3f> filtered_near_holes_circles;
-    assert(hole_points.size() != 0);
-    filter_near_holes_circles(filtered_out_of_bounds_circles, filtered_near_holes_circles, hole_points, 20);
+    assert(playing_field_hole_points.size() != 0);
+    filter_near_holes_circles(filtered_out_of_bounds_circles, filtered_near_holes_circles, playing_field_hole_points, 20);
 
     display = src.clone();
     for (size_t i = 0; i < filtered_near_holes_circles.size(); i++)

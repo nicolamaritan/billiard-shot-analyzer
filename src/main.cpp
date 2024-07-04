@@ -19,12 +19,11 @@ int main()
         if (filename.find("masks") == String::npos && filename.find("first") != String::npos)
         {
             Mat img = imread(filename);
-            Mat another = imread(filename);
 
             playing_field_localizer pl_field_loc;
             pl_field_loc.localize(img);
-            balls_localizer balls_loc;
-            balls_loc.localize(another, pl_field_loc.get_playing_field_mask(), pl_field_loc.get_playing_field_corners(), pl_field_loc.get_playing_field_hole_points());
+            balls_localizer balls_loc(pl_field_loc.get_playing_field_mask(), pl_field_loc.get_playing_field_corners(), pl_field_loc.get_playing_field_hole_points());
+            balls_loc.localize(img);
         }
     }
 
