@@ -4,8 +4,6 @@
 using namespace std;
 using namespace cv;
 
-// Finds the intersection of two lines.
-// The lines are defined by (o1, pt1) and (o2, pt2).
 void intersections(const vector<Vec3f> &lines, vector<Point> &out_intersections, int rows, int cols)
 {
     // It is easier to compute intersections by expressing one line as a pair (pt1, pt2),
@@ -45,8 +43,6 @@ void get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Po
     }
 }
 
-// Finds the intersection of two lines.
-// The lines are defined by (o1, pt1) and (o2, pt2).
 bool intersection(pair<Point, Point> pts_line_1, pair<Point, Point> pts_line_2, Point &intersection_pt, int rows, int cols)
 {
     // pts_line_1 -> {(x1,y1), (x2,y2)}

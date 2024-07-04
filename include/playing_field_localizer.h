@@ -13,10 +13,9 @@ public:
      * @param src The input image.
      */
     void localize(const cv::Mat &src);
-    std::vector<cv::Point> get_playing_field_corners();
-    cv::Mat playing_field_mask;
-    std::vector<cv::Point> playing_field_hole_points;
-
+    std::vector<cv::Point> get_playing_field_corners() { return playing_field_corners; };
+    cv::Mat get_playing_field_mask() { return playing_field_mask; };
+    std::vector<cv::Point> get_playing_field_hole_points() { return playing_field_hole_points; };
 
 private:
     /**
@@ -103,12 +102,25 @@ private:
      */
     void sort_points_clockwise(std::vector<cv::Point> &points);
 
-    void estimate_holes_location(std::vector<cv::Point>& hole_points);
+    /**
+     * @brief Estimates the locations of holes on a playing field based on the corners of the field.
+     *
+     * This method calculates the positions of six hole points on a playing field. It determines if the view
+     * of the playing field is in perspective by analyzing the angular coefficients of the field's diagonals.
+     * Depending on whether the view is perspective or not, it identifies the long and short edges of the field.
+     * The method then finds the intersections of lines parallel to the short edge with the long edges to locate
+     * the initial hole positions. These positions are refined to account for perspective adjustments and are
+     * returned in the provided vector.
+     *
+     * @param hole_points A vector of Point objects where the estimated hole locations will be stored.
+     */
+    void estimate_holes_location(std::vector<cv::Point> &hole_points);
 
     void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
 
-
     std::vector<cv::Point> playing_field_corners;
+    cv::Mat playing_field_mask;
+    std::vector<cv::Point> playing_field_hole_points;
 };
 
 #endif

@@ -78,11 +78,6 @@ void playing_field_localizer::localize(const Mat &src)
     // waitKey(0);
 }
 
-vector<Point> playing_field_localizer::get_playing_field_corners()
-{
-    return playing_field_corners;
-}
-
 void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
 {
     // HSV allows to separate brightness from other color characteristics, therefore
@@ -334,18 +329,21 @@ void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
 
 void playing_field_localizer::estimate_holes_location(vector<Point> &hole_points)
 {
-    float m_left_edge = angular_coefficient({playing_field_corners.at(0), playing_field_corners.at(1)});
-    float m_right_edge = angular_coefficient({playing_field_corners.at(3), playing_field_corners.at(2)});
-    pair<Point, Point> short_edge, long_edge_1, long_edge_2;
+    pair<Point, Point> positive_diagonal = {playing_field_corners.at(0), playing_field_corners.at(2)};
+    pair<Point, Point> negative_diagonal = {playing_field_corners.at(1), playing_field_corners.at(3)};
     Point playing_field_center;
-    bool perspective_view = false;
-    intersection({playing_field_corners.at(0), playing_field_corners.at(2)}, {playing_field_corners.at(1), playing_field_corners.at(3)}, playing_field_center, 9999, 9999);
+    bool is_perspective_view = false;
+    intersection(positive_diagonal, negative_diagonal, playing_field_center, 9999, 9999);
 
-    hole_points.push_back(playing_field_center);
+    // Computation of long and short edges. Recall playing_field_corners starts from bottom left corner of
+    // the playing field and are sorted clockwise.
+    
+    pair<Point, Point> short_edge, long_edge_1, long_edge_2;
 
-    if (abs(m_left_edge + m_right_edge) < 0.01)
+    // If the two angular coefficients have similar absolute value and opposite sign, then we have a perspective view
+    if (abs(angular_coefficient(positive_diagonal) + angular_coefficient(negative_diagonal)) < 0.01)
     {
-        perspective_view = true;
+        is_perspective_view = true;
         long_edge_1 = {playing_field_corners.at(0), playing_field_corners.at(1)};
         long_edge_2 = {playing_field_corners.at(3), playing_field_corners.at(2)};
         short_edge = {playing_field_corners.at(3), playing_field_corners.at(0)};
@@ -366,11 +364,15 @@ void playing_field_localizer::estimate_holes_location(vector<Point> &hole_points
         }
     }
 
+    // A line of the same direction of the short edge intersects the two long
+    // edges in the hole positions. We now find such intersections.
     Point short_edge_offset = short_edge.first - short_edge.second;
     Point lateral_hole_1, lateral_hole_2;
     intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_1, lateral_hole_1, 9999, 9999);
     intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_2, lateral_hole_2, 9999, 9999);
 
+    // We now employ float representation of points for precise computation of the refined
+    // holes points. In fact, using cv::Point we obtain non negligible truncating errors.
     Point2f bottom_left = playing_field_corners.at(0);
     Point2f top_left = playing_field_corners.at(1);
     Point2f top_right = playing_field_corners.at(2);
@@ -384,11 +386,15 @@ void playing_field_localizer::estimate_holes_location(vector<Point> &hole_points
     Point2f bottom_left_float = static_cast<Point2f>(bottom_left);
     Point2f bottom_right_float = static_cast<Point2f>(bottom_right);
 
-    vector<Point> refined_playing_field_corners;
-
+    /*
+        Refined hole points computation
+        Refined hole points move "a bit towards" the playing field center.
+        The amount is defined by the "adjustment" vars below.
+        This is done to better estimate their location.
+    */
     const float LATERAL_HOLES_ADJUSTMENT = 15;
-    const float BOTTOM_CORNERS_ADJUSTMENT = perspective_view ? 25 : 10;
-    const float TOP_CORNERS_ADJUSTMENT = perspective_view ? 15 : 10;
+    const float BOTTOM_CORNERS_ADJUSTMENT = is_perspective_view ? 25 : 10;
+    const float TOP_CORNERS_ADJUSTMENT = is_perspective_view ? 15 : 10;
 
     Point2f lateral_hole_1_refined = lateral_hole_1_float + ((playing_field_center_float - lateral_hole_1_float) / norm(playing_field_center_float - lateral_hole_1_float)) * LATERAL_HOLES_ADJUSTMENT;
     Point2f lateral_hole_2_refined = lateral_hole_2_float + ((playing_field_center_float - lateral_hole_2_float) / norm(playing_field_center_float - lateral_hole_2_float)) * LATERAL_HOLES_ADJUSTMENT;
@@ -399,17 +405,12 @@ void playing_field_localizer::estimate_holes_location(vector<Point> &hole_points
     Point2f bottom_left_refined = bottom_left_float + ((playing_field_center_float - bottom_left_float) / norm(playing_field_center_float - bottom_left_float)) * BOTTOM_CORNERS_ADJUSTMENT;
     Point2f bottom_right_refined = bottom_right_float + ((playing_field_center_float - bottom_right_float) / norm(playing_field_center_float - bottom_right_float)) * BOTTOM_CORNERS_ADJUSTMENT;
 
-    refined_playing_field_corners.push_back(static_cast<Point>(lateral_hole_1_refined));
-    refined_playing_field_corners.push_back(static_cast<Point>(lateral_hole_2_refined));
-    refined_playing_field_corners.push_back(static_cast<Point>(top_left_refined));
-    refined_playing_field_corners.push_back(static_cast<Point>(top_right_refined));
-    refined_playing_field_corners.push_back(static_cast<Point>(bottom_left_refined));
-    refined_playing_field_corners.push_back(static_cast<Point>(bottom_right_refined));
-
-    for (Point refined_corner : refined_playing_field_corners)
-    {
-        hole_points.push_back(refined_corner);
-    }
+    hole_points.push_back(static_cast<Point>(lateral_hole_1_refined));
+    hole_points.push_back(static_cast<Point>(lateral_hole_2_refined));
+    hole_points.push_back(static_cast<Point>(top_left_refined));
+    hole_points.push_back(static_cast<Point>(top_right_refined));
+    hole_points.push_back(static_cast<Point>(bottom_left_refined));
+    hole_points.push_back(static_cast<Point>(bottom_right_refined));
 }
 
 void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
@@ -462,4 +463,3 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
         }
     }
 }
-
