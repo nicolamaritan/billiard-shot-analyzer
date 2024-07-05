@@ -57,6 +57,13 @@ void playing_field_localizer::localize(const Mat &src)
     fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
     imshow("", table);
     waitKey(0);
+
+    //print an image with only the found mask of the table
+    Mat found_table_mask(table.rows, table.cols, CV_8UC3);
+    found_table_mask.setTo(Scalar(0, 0, 0));
+    fillConvexPoly(found_table_mask, refined_lines_intersections, Scalar(0, 0, 255));
+    imshow("", found_table_mask);
+    waitKey(0);
 }
 
 inline vector<Point> playing_field_localizer::get_playing_field_corners()
