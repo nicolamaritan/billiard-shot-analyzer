@@ -6,7 +6,7 @@
 using namespace cv;
 using namespace std;
 
-void playing_field_localizer::localize(const Mat &src)
+Mat playing_field_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 20;
@@ -64,6 +64,8 @@ void playing_field_localizer::localize(const Mat &src)
     fillConvexPoly(found_table_mask, refined_lines_intersections, Scalar(0, 0, 255));
     imshow("", found_table_mask);
     waitKey(0);
+
+    return found_table_mask;
 }
 
 inline vector<Point> playing_field_localizer::get_playing_field_corners()

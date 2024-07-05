@@ -12,7 +12,7 @@ public:
      *
      * @param src The input image.
      */
-    void localize(const cv::Mat &src);
+    cv::Mat localize(const cv::Mat &src);
     inline std::vector<cv::Point> get_playing_field_corners();
 
 private:

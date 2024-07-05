@@ -24,9 +24,15 @@ add_library(playing_field_localizer
     src/playing_field_localizer.cpp
 )
 
-# Link OpenCV libraries to show_cat and playing_field_localizer
+add_library(performance_measurement
+    include/performance_measurement.h
+    src/performance_measurement.cpp
+)
+
+# Link OpenCV libraries to show_cat, playing_field_localizer and performance_measurement
 target_link_libraries(show_cat ${OpenCV_LIBS})
 target_link_libraries(playing_field_localizer ${OpenCV_LIBS})
+target_link_libraries(performance_measurement ${OpenCV_LIBS})
 
 add_executable(${PROJECT_NAME}
 	src/main.cpp
@@ -36,4 +42,5 @@ target_link_libraries(${PROJECT_NAME}
     ${OpenCV_LIBS}
     show_cat
     playing_field_localizer
+    performance_measurement
 )
