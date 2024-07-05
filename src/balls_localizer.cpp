@@ -42,35 +42,27 @@ void balls_localizer::localize(const Mat &src)
     imshow("", connected_components_segmentation_mask);
     waitKey();
 
-    // Single opening
-    // morphologyEx(connected_components_segmentation_mask.clone(), connected_components_segmentation_mask, MORPH_OPEN, getStructuringElement(MORPH_CROSS, Size(3, 3)));
-    // imshow("", connected_components_segmentation_mask);
-    // waitKey();
-
     Mat connected_components_pixels = src.clone();
     vector<Point> seed_points;
-
     cv::Mat labels, stats, centroids;
-    int nLabels = cv::connectedComponentsWithStats(connected_components_segmentation_mask, labels, stats, centroids);
+    int labels_number = cv::connectedComponentsWithStats(connected_components_segmentation_mask, labels, stats, centroids);
 
     // Iterate through each connected component (excluding the background)
-    for (int i = 1; i < nLabels; ++i)
+    for (int i = 1; i < labels_number; ++i)
     {
         int left = stats.at<int>(i, cv::CC_STAT_LEFT);
         int top = stats.at<int>(i, cv::CC_STAT_TOP);
         int width = stats.at<int>(i, cv::CC_STAT_WIDTH);
         int height = stats.at<int>(i, cv::CC_STAT_HEIGHT);
-        ;
 
-        // Calculate the center of the bounding box
-        int centerX = left + width / 2;
-        int centerY = top + height / 2;
+        int center_x = left + width / 2;
+        int center_y = top + height / 2;
 
         // Ensure the point is within the component
-        cv::Point innerPoint(centerX, centerY);
+        cv::Point inner_point(center_x, center_y);
 
         // Check if the point is within the component (if necessary)
-        if (labels.at<int>(centerY, centerX) != i)
+        if (labels.at<int>(center_y, center_x) != i)
         {
             // Adjust the point to be within the component
             for (int y = top; y < top + height; ++y)
@@ -79,17 +71,17 @@ void balls_localizer::localize(const Mat &src)
                 {
                     if (labels.at<int>(y, x) == i)
                     {
-                        innerPoint = cv::Point(x, y);
-                        break;
+                        inner_point = cv::Point(x, y);
+                        break;  // TODO remove
                     }
                 }
-                if (labels.at<int>(innerPoint.y, innerPoint.x) == i)
-                    break;
+                if (labels.at<int>(inner_point.y, inner_point.x) == i)
+                    break;  // TODO remove
             }
         }
 
-        cv::circle(connected_components_pixels, innerPoint, 3, cv::Scalar(255, 0, 0), -1);
-        seed_points.push_back(innerPoint);
+        cv::circle(connected_components_pixels, inner_point, 3, cv::Scalar(255, 0, 0), -1);
+        seed_points.push_back(inner_point);
     }
 
     imshow("", connected_components_pixels);
@@ -104,7 +96,6 @@ void balls_localizer::localize(const Mat &src)
     vector<Vec3f> circles;
 
     HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.2, 5, 21);
-    // HoughCircles(src_gray, circles, HOUGH_GRADIENT, 1, 18, 30, 1, 5, 17);
 
     Mat display = src.clone();
     for (size_t i = 0; i < circles.size(); i++)
@@ -218,21 +209,6 @@ void balls_localizer::filter_near_holes_circles(const std::vector<cv::Vec3f> &ci
     }
 }
 
-void balls_localizer::filter_out_of_bound_circles_perspective(const std::vector<cv::Vec3f> &circles, const Mat &table_mask, std::vector<cv::Vec3f> &filtered_circles, int distance_threshold)
-{
-    Mat shrinked_table_mask;
-    erode(table_mask, shrinked_table_mask, getStructuringElement(MORPH_RECT, Size(distance_threshold, 1)));
-
-    for (Vec3f circle : circles)
-    {
-        Point center = Point(circle[0], circle[1]);
-        if (shrinked_table_mask.at<uchar>(center) == 255)
-        {
-            filtered_circles.push_back(circle);
-        }
-    }
-}
-
 void balls_localizer::segmentation(const Mat &src, Mat &dst)
 {
     // HSV allows to separate brightness from other color characteristics, therefore
@@ -286,38 +262,4 @@ Vec3b balls_localizer::get_board_color(const Mat &src, float radius)
          { return norm(a) < norm(b); });
 
     return pixel_values[pixel_values.size() / 2];
-}
-
-void balls_localizer::non_maxima_connected_component_suppression(const Mat &src, Mat &dst)
-{
-    src.copyTo(dst);
-    Mat connected_components_labels, stats, centroids;
-    connectedComponentsWithStats(src, connected_components_labels, stats, centroids);
-
-    const int AREA_STAT_ID = 4;
-    int max_label_component = 1;
-    int max_area = 0;
-
-    // Find component with greatest area
-    for (int i = 1; i < stats.rows; i++)
-    {
-        int component_area = stats.at<int>(i, AREA_STAT_ID);
-        if (component_area > max_area)
-        {
-            max_area = component_area;
-            max_label_component = i;
-        }
-    }
-
-    // Suppress (mask set to 0) all components with non greatest area
-    for (int row = 0; row < src.rows; row++)
-    {
-        for (int col = 0; col < src.cols; col++)
-        {
-            if (connected_components_labels.at<int>(row, col) != max_label_component)
-            {
-                dst.at<uchar>(row, col) = 0;
-            }
-        }
-    }
 }

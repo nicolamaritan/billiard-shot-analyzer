@@ -22,7 +22,7 @@ private:
     void filter_empty_circles(const std::vector<cv::Vec3f> &circles, const std::vector<cv::Mat> &masks, const cv::Mat &segmentation_mask, std::vector<cv::Vec3f> &filtered_circles, std::vector<cv::Mat> &filtered_masks, float intersection_threshold);
     void filter_out_of_bound_circles(const std::vector<cv::Vec3f> &circles, const cv::Mat &table_mask, std::vector<cv::Vec3f> &filtered_circles, int distance_threshold);
     void filter_near_holes_circles(const std::vector<cv::Vec3f> &circles, std::vector<cv::Vec3f> &filtered_circles, const std::vector<cv::Point>& holes_points, float distance_threshold);
-    void filter_out_of_bound_circles_perspective(const std::vector<cv::Vec3f> &circles, const cv::Mat &table_mask, std::vector<cv::Vec3f> &filtered_circles, int distance_threshold);
+
     /**
      * @brief Perform segmentation of the image based on color. One of the clusters should
      * contain the whole table, surrounded by different clusters.
@@ -43,15 +43,6 @@ private:
      * @return the computed color of the board.
      */
     cv::Vec3b get_board_color(const cv::Mat &src, float radius);
-
-    /**
-     * @brief Performs non-maxima suppression on the connected components of the input image,
-     *        keeping only the largest component.
-     *
-     * @param src Input binary image.
-     * @param dst Output image where only the largest connected component is retained.
-     */
-    void non_maxima_connected_component_suppression(const cv::Mat &src, cv::Mat &dst);
 
     const cv::Mat playing_field_mask;
     const std::vector<cv::Point> playing_field_corners;
