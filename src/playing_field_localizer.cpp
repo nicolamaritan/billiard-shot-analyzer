@@ -66,8 +66,6 @@ void playing_field_localizer::localize(const Mat &src)
     {
         circle(display, point, 3, Scalar(0, 0, 255), -1);
     }
-    imshow("", display);
-    waitKey();
 
     Mat table_mask(Size(table.cols, table.rows), CV_8U);
     table_mask.setTo(0);
