@@ -19,7 +19,7 @@ int main()
     for (auto filename : filenames)
     {
         //if (filename.find(".mp4") != String::npos && filename.find("clip4") != String::npos)
-        if (filename.find(".mp4") != String::npos)
+        if (filename.find(".mp4") != String::npos )
         {
             VideoCapture cap(filename); // open the default camera
             if (!cap.isOpened())        // check if we succeeded
@@ -47,7 +47,8 @@ int main()
 
                 // show live and wait for a key with timeout long enough to show images
                 // imshow("Live", frame);
-                waitKey(3);
+                waitKey();
+                break;
                 // if (waitKey(5) >= 0)
                 //     break;
             }

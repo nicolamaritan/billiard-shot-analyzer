@@ -120,17 +120,17 @@ void balls_localizer::localize(const Mat &src)
     morphologyEx(inrange_segmentation_mask.clone(), inrange_segmentation_mask, MORPH_OPEN, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
 
     extractSeedPoints(inrange_segmentation_mask, seed_points);
-    region_growing(masked_hsv, segmentation_mask, seed_points, 2, 6, 6);
+    region_growing(masked_hsv, segmentation_mask, seed_points, 1, 22, 22);
 
     imshow("segmentation", segmentation_mask);
     
-    // waitKey(0);
+    //waitKey(0);
 
     Mat display_segm, inrange_segmentation_mask_bgr;
     cvtColor(inrange_segmentation_mask, inrange_segmentation_mask_bgr, COLOR_GRAY2BGR);
     bitwise_and(masked, inrange_segmentation_mask_bgr, display_segm);
     imshow("displa", display_segm);
-    waitKey();
+    //waitKey();
 
     vector<Vec3f> circles;
 
