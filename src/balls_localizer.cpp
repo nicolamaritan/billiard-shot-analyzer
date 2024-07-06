@@ -15,21 +15,22 @@ void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Poi
     const int FILTER_SIGMA = 5;
     Mat blurred;
     dilate(src, blurred, getStructuringElement(MORPH_CROSS, Size(3, 3)));
-    GaussianBlur(blurred.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
+    //GaussianBlur(blurred.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
 
     Mat masked = blurred.clone();
     Mat mask_bgr;
     cvtColor(mask, mask_bgr, COLOR_GRAY2BGR);
     bitwise_and(masked, mask_bgr, masked);
 
-    imshow("", masked);
-    waitKey();
+    //imshow("", masked);
+    //waitKey();
 
     Mat connected_components_segmentation;
     segmentation(masked, connected_components_segmentation);
-    imshow("", connected_components_segmentation);
-    waitKey(0);
+    //imshow("", connected_components_segmentation);
+    //waitKey(0);
 
+    /*
     const int RADIUS = 30;
     Vec3b board_color = get_board_color(connected_components_segmentation, RADIUS);
     Mat connected_components_segmentation_mask;
@@ -37,7 +38,7 @@ void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Poi
     // segmented.setTo(Scalar(0, 0, 0), connected_components_segmentation_mask);
     imshow("", connected_components_segmentation_mask);
     waitKey();
-
+    
     // Single opening
     // morphologyEx(connected_components_segmentation_mask.clone(), connected_components_segmentation_mask, MORPH_OPEN, getStructuringElement(MORPH_CROSS, Size(3, 3)));
     // imshow("", connected_components_segmentation_mask);
@@ -148,6 +149,7 @@ void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Poi
         vector<Mat> hsv_channels;
         split(all_hsv, hsv_channels);
     }
+    */
 }
 
 void balls_localizer::circles_masks(const std::vector<Vec3f> &circles, std::vector<Mat> &masks, Size mask_size)
@@ -210,8 +212,9 @@ void balls_localizer::filter_out_of_bound_circles_perspective(const std::vector<
 
 void balls_localizer::segmentation(const Mat &src, Mat &dst)
 {
-    // HSV allows to separate brightness from other color characteristics, therefore
-    // it is employed for kmeans clustering.
+    imshow("", src);
+    waitKey(0);
+
     cvtColor(src, dst, COLOR_BGR2HSV);
 
     const int VALUE_UNIFORM = 255;
@@ -222,8 +225,51 @@ void balls_localizer::segmentation(const Mat &src, Mat &dst)
     merge(hsv_channels, dst);
 
     imshow("", dst);
-    waitKey();
+    waitKey(0);
 
+    Vec3b color = get_board_color(dst, 30);
+    cout << color << endl;
+    
+    //Mat mask = Mat::zeros(dst.rows, dst.cols, CV_8U);
+    Mat mask(dst.rows, dst.cols, CV_8UC1, Scalar(0));
+    for(int y=0;y<dst.rows;y++)
+    {
+        for(int x=0;x<dst.cols;x++)
+        {
+            if(abs(dst.at<Vec3b>(y,x)[0]-color[0]) > 5)
+                mask.at<uchar>(y,x) = 255;
+            
+        }
+    }
+    
+    imshow("", mask);
+    waitKey(0);
+    dilate(mask.clone(), mask, getStructuringElement(MORPH_RECT, Size(5, 5)));
+    imshow("", mask);
+    waitKey(0);
+    vector<Vec3f> circles;
+    //HoughCircles(mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.2, 5, 21);
+    //HoughCircles(mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.1, 5, 40);
+
+    //HoughCircles(mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 150, 0.2, 5, 60);
+    HoughCircles(mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 200, 0.08, 5, 60);
+
+    // HoughCircles(src_gray, circles, HOUGH_GRADIENT, 1, 18, 30, 1, 5, 17);
+
+    Mat d = src.clone();
+    for (size_t i = 0; i < circles.size(); i++)
+    {
+        Vec3i c = circles[i];
+        Point center = Point(c[0], c[1]);
+        circle(d, center, 1, Scalar(0, 100, 100), 1, LINE_AA);
+        int radius = c[2];
+        circle(d, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
+    }
+    imshow("DISPLAY", d);
+    waitKey(0);
+
+
+    /*
     // data contains dst data (init with src data) used for kmeans clustering (therefore employs 32-bit float values)
     Mat data;
     dst.convertTo(data, CV_32F);
@@ -250,7 +296,7 @@ void balls_localizer::segmentation(const Mat &src, Mat &dst)
     }
 
     dst = data.reshape(3, dst.rows);
-    dst.convertTo(dst, CV_8U);
+    dst.convertTo(dst, CV_8U);*/
 }
 
 Vec3b balls_localizer::get_board_color(const Mat &src, float radius)
