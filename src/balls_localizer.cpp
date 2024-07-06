@@ -36,10 +36,10 @@ void extractSeedPoints(const Mat &inrange_segmentation_mask, vector<Point> &seed
 void balls_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
-    const int FILTER_SIGMA = 5;
+    const int FILTER_SIGMA = 3;
     Mat blurred = src.clone();
     //dilate(src, blurred, getStructuringElement(MORPH_CROSS, Size(3, 3)));
-    //GaussianBlur(blurred.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
+    GaussianBlur(blurred.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
 
     Mat masked = blurred.clone();
     Mat mask_bgr;
@@ -115,17 +115,24 @@ void balls_localizer::localize(const Mat &src)
 
     Vec3b board_color_hsv = get_board_color(masked_hsv, 100);
     Vec3b shadow_hsv = board_color_hsv - Vec3b(0, 0, 90);
-    inRange(masked_hsv, board_color_hsv - Vec3b(4, 40, 80), board_color_hsv + Vec3b(4, 40, 15), inrange_segmentation_mask_board);
-    inRange(masked_hsv, shadow_hsv - Vec3b(10, 100, 100), shadow_hsv + Vec3b(10, 20, 20), inrange_segmentation_mask_shadows);
+    inRange(masked_hsv, board_color_hsv - Vec3b(4, 40, 40), board_color_hsv + Vec3b(4, 40, 15), inrange_segmentation_mask_board);
+    inRange(masked_hsv, shadow_hsv - Vec3b(7, 100, 100), shadow_hsv + Vec3b(7, 80, 80), inrange_segmentation_mask_shadows);
     morphologyEx(inrange_segmentation_mask_shadows.clone(), inrange_segmentation_mask_shadows, MORPH_OPEN, getStructuringElement(MORPH_CROSS, Size(3, 3)));
 
+    Mat outer_field;
+    Mat shrinked_playing_field_mask;
+    erode(playing_field_mask, shrinked_playing_field_mask, getStructuringElement(MORPH_CROSS, Size(70, 70)));
+    bitwise_not(shrinked_playing_field_mask, outer_field);
+    imshow("outer_field", outer_field);
+
+    bitwise_and(inrange_segmentation_mask_shadows.clone(), outer_field, inrange_segmentation_mask_shadows);
 
     imshow("inrange_sementation_1", inrange_segmentation_mask_board);
     imshow("inrange_sementation_2", inrange_segmentation_mask_shadows);
     bitwise_or(inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask);
 
     extractSeedPoints(segmentation_mask, seed_points);
-    region_growing(masked_hsv, segmentation_mask, seed_points, 1, 22, 14);
+    region_growing(masked_hsv, segmentation_mask, seed_points, 3, 6, 4);
     
     vector<Point> mask_seed_points;
     Mat out_of_field_mask;
@@ -175,14 +182,14 @@ void balls_localizer::localize(const Mat &src)
     assert(playing_field_hole_points.size() != 0);
     filter_near_holes_circles(filtered_out_of_bounds_circles, filtered_near_holes_circles, playing_field_hole_points, 20);
 
-    display = src.clone();
+    display = blurred.clone();
     for (size_t i = 0; i < filtered_near_holes_circles.size(); i++)
     {
         Vec3i c = filtered_near_holes_circles[i];
         Point center = Point(c[0], c[1]);
-        circle(display, center, 1, Scalar(0, 100, 100), 1, LINE_AA);
+        circle(display, center, 1, Scalar(0, 100, 100), 2, LINE_AA);
         int radius = c[2];
-        circle(display, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
+        circle(display, center, radius, Scalar(255, 0, 255), 2, LINE_AA);
     }
     imshow("", display);
     // waitKey(0);

@@ -18,6 +18,7 @@ int main()
     glob("*.mp4", filenames, true);
     for (auto filename : filenames)
     {
+        int n_frames = 3;
         //if (filename.find(".mp4") != String::npos && filename.find("clip4") != String::npos)
         if (filename.find(".mp4") != String::npos )
         {
@@ -48,7 +49,9 @@ int main()
                 // show live and wait for a key with timeout long enough to show images
                 // imshow("Live", frame);
                 waitKey();
-                break;
+                if (--n_frames == 0)
+                    break;
+                //break;
                 // if (waitKey(5) >= 0)
                 //     break;
             }
