@@ -108,33 +108,46 @@ void balls_localizer::localize(const Mat &src)
     //waitKey();*/
 
     vector<Point> seed_points;
-    Mat inrange_segmentation_mask, segmentation_mask;
+    Mat inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask;
     // region_growing(masked, segmentation_mask, seed_points, 5, 5, 5);
     Mat masked_hsv;
     cvtColor(masked, masked_hsv, COLOR_BGR2HSV);
 
     Vec3b board_color_hsv = get_board_color(masked_hsv, 100);
-    inRange(masked_hsv, board_color_hsv - Vec3b(6, 20, 130), board_color_hsv + Vec3b(6, 20, 15), inrange_segmentation_mask);
+    Vec3b shadow_hsv = board_color_hsv - Vec3b(0, 0, 90);
+    inRange(masked_hsv, board_color_hsv - Vec3b(4, 40, 80), board_color_hsv + Vec3b(4, 40, 15), inrange_segmentation_mask_board);
+    inRange(masked_hsv, shadow_hsv - Vec3b(10, 100, 100), shadow_hsv + Vec3b(10, 20, 20), inrange_segmentation_mask_shadows);
+    morphologyEx(inrange_segmentation_mask_shadows.clone(), inrange_segmentation_mask_shadows, MORPH_OPEN, getStructuringElement(MORPH_CROSS, Size(3, 3)));
 
-    imshow("inrange_sementation", inrange_segmentation_mask);
-    morphologyEx(inrange_segmentation_mask.clone(), inrange_segmentation_mask, MORPH_OPEN, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
 
-    extractSeedPoints(inrange_segmentation_mask, seed_points);
-    region_growing(masked_hsv, segmentation_mask, seed_points, 1, 22, 22);
+    imshow("inrange_sementation_1", inrange_segmentation_mask_board);
+    imshow("inrange_sementation_2", inrange_segmentation_mask_shadows);
+    bitwise_or(inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask);
+
+    extractSeedPoints(segmentation_mask, seed_points);
+    region_growing(masked_hsv, segmentation_mask, seed_points, 1, 22, 14);
+    
+    vector<Point> mask_seed_points;
+    Mat out_of_field_mask;
+    mask_seed_points.push_back(Point(0, 0));
+    mask_region_growing(segmentation_mask, out_of_field_mask, mask_seed_points);
+
+    bitwise_or(segmentation_mask.clone(), out_of_field_mask, segmentation_mask);
 
     imshow("segmentation", segmentation_mask);
     
     //waitKey(0);
 
     Mat display_segm, inrange_segmentation_mask_bgr;
-    cvtColor(inrange_segmentation_mask, inrange_segmentation_mask_bgr, COLOR_GRAY2BGR);
+    cvtColor(inrange_segmentation_mask_board, inrange_segmentation_mask_bgr, COLOR_GRAY2BGR);
     bitwise_and(masked, inrange_segmentation_mask_bgr, display_segm);
-    imshow("displa", display_segm);
+    //imshow("displa", display_segm);
     //waitKey();
 
     vector<Vec3f> circles;
 
-    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.01, 2, 21);
+    //HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.01, 2, 21);
+    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT, 0.3, 15, 100, 5, 7, 16);
 
     Mat display = src.clone();
     for (size_t i = 0; i < circles.size(); i++)

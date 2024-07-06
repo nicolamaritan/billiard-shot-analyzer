@@ -72,3 +72,10 @@ void region_growing(const Mat &src, Mat &dst, const vector<Point> &seeds, int th
         }
     }
 }
+
+void mask_region_growing(const Mat &src, Mat &dst, const vector<Point> &seeds)
+{
+    Mat src_bgr;
+    cvtColor(src, src_bgr, COLOR_GRAY2BGR);
+    region_growing(src_bgr, dst, seeds, 0, 0, 0);
+}

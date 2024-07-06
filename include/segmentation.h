@@ -34,5 +34,6 @@ void kmeans(const cv::Mat &src, cv::Mat &dst, int centroids);
  */
 void region_growing(const cv::Mat &src, cv::Mat &dst, const std::vector<cv::Point> &seeds, int threshold_0, int threshold_1, int threshold_2);
 
+void mask_region_growing(const cv::Mat &src, cv::Mat &dst, const std::vector<cv::Point> &seeds);
 
 #endif
