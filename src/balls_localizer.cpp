@@ -115,7 +115,7 @@ void balls_localizer::localize(const Mat &src)
 
     Vec3b board_color_hsv = get_board_color(masked_hsv, 100);
     Vec3b shadow_hsv = board_color_hsv - Vec3b(0, 0, 90);
-    inRange(masked_hsv, board_color_hsv - Vec3b(4, 40, 40), board_color_hsv + Vec3b(4, 40, 15), inrange_segmentation_mask_board);
+    inRange(masked_hsv, board_color_hsv - Vec3b(4, 70, 40), board_color_hsv + Vec3b(4, 40, 15), inrange_segmentation_mask_board);
     inRange(masked_hsv, shadow_hsv - Vec3b(7, 100, 100), shadow_hsv + Vec3b(7, 80, 80), inrange_segmentation_mask_shadows);
     morphologyEx(inrange_segmentation_mask_shadows.clone(), inrange_segmentation_mask_shadows, MORPH_OPEN, getStructuringElement(MORPH_CROSS, Size(3, 3)));
 
@@ -154,7 +154,7 @@ void balls_localizer::localize(const Mat &src)
     vector<Vec3f> circles;
 
     //HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.01, 2, 21);
-    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT, 0.3, 15, 100, 5, 7, 16);
+    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT, 0.3, 18, 100, 5, 7, 16);
 
     Mat display = src.clone();
     for (size_t i = 0; i < circles.size(); i++)
@@ -180,7 +180,7 @@ void balls_localizer::localize(const Mat &src)
 
     vector<Vec3f> filtered_near_holes_circles;
     assert(playing_field_hole_points.size() != 0);
-    filter_near_holes_circles(filtered_out_of_bounds_circles, filtered_near_holes_circles, playing_field_hole_points, 20);
+    filter_near_holes_circles(filtered_out_of_bounds_circles, filtered_near_holes_circles, playing_field_hole_points, 27);
 
     display = blurred.clone();
     for (size_t i = 0; i < filtered_near_holes_circles.size(); i++)
