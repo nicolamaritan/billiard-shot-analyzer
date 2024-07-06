@@ -13,7 +13,7 @@
 using namespace cv;
 using namespace std;
 
-void extractSeedPoints(const Mat &inrange_segmentation_mask, vector<Point> &seed_points)
+void extract_seed_points(const Mat &inrange_segmentation_mask, vector<Point> &seed_points)
 {
     // Ensure the seed_points vector is empty
     seed_points.clear();
@@ -33,79 +33,42 @@ void extractSeedPoints(const Mat &inrange_segmentation_mask, vector<Point> &seed
     }
 }
 
+void fill_small_holes(cv::Mat &binaryMask, double areaThreshold)
+{
+    // Ensure the input is a binary mask
+    CV_Assert(binaryMask.type() == CV_8UC1);
+
+    // Find all contours
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(binaryMask, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
+
+    // Iterate through each contour
+    for (size_t i = 0; i < contours.size(); ++i)
+    {
+        // Calculate the area of the contour
+        double area = cv::contourArea(contours[i]);
+
+        // If the area is less than the threshold, fill the hole
+        if (area < areaThreshold)
+        {
+            cv::drawContours(binaryMask, contours, static_cast<int>(i), cv::Scalar(255), cv::FILLED, 8, hierarchy, 1);
+        }
+    }
+}
+
 void balls_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 3;
     Mat blurred = src.clone();
-    //dilate(src, blurred, getStructuringElement(MORPH_CROSS, Size(3, 3)));
+    // dilate(src, blurred, getStructuringElement(MORPH_CROSS, Size(3, 3)));
     GaussianBlur(blurred.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
 
     Mat masked = blurred.clone();
     Mat mask_bgr;
     cvtColor(playing_field_mask, mask_bgr, COLOR_GRAY2BGR);
     bitwise_and(masked, mask_bgr, masked);
-
-    // imshow("", masked);
-    // waitKey();
-
-    /*Mat connected_components_segmentation;
-    segmentation(masked, connected_components_segmentation);
-    //imshow("", connected_components_segmentation);
-    //waitKey(0);
-
-    const int RADIUS = 30;
-    Vec3b board_color = get_board_color(connected_components_segmentation, RADIUS);
-    Mat connected_components_segmentation_mask;
-    inRange(connected_components_segmentation, board_color, board_color, connected_components_segmentation_mask);
-    // segmented.setTo(Scalar(0, 0, 0), connected_components_segmentation_mask);
-    //imshow("", connected_components_segmentation_mask);
-    //waitKey();
-
-    Mat connected_components_pixels = src.clone();
-    vector<Point> seed_points;
-    cv::Mat labels, stats, centroids;
-    int labels_number = cv::connectedComponentsWithStats(connected_components_segmentation_mask, labels, stats, centroids);
-
-    // Iterate through each connected component (excluding the background)
-    for (int i = 1; i < labels_number; ++i)
-    {
-        int left = stats.at<int>(i, cv::CC_STAT_LEFT);
-        int top = stats.at<int>(i, cv::CC_STAT_TOP);
-        int width = stats.at<int>(i, cv::CC_STAT_WIDTH);
-        int height = stats.at<int>(i, cv::CC_STAT_HEIGHT);
-
-        int center_x = left + width / 2;
-        int center_y = top + height / 2;
-
-        // Ensure the point is within the component
-        cv::Point inner_point(center_x, center_y);
-
-        // Check if the point is within the component (if necessary)
-        if (labels.at<int>(center_y, center_x) != i)
-        {
-            // Adjust the point to be within the component
-            for (int y = top; y < top + height; ++y)
-            {
-                for (int x = left; x < left + width; ++x)
-                {
-                    if (labels.at<int>(y, x) == i)
-                    {
-                        inner_point = cv::Point(x, y);
-                        break;  // TODO remove
-                    }
-                }
-                if (labels.at<int>(inner_point.y, inner_point.x) == i)
-                    break;  // TODO remove
-            }
-        }
-
-        cv::circle(connected_components_pixels, inner_point, 3, cv::Scalar(255, 0, 0), -1);
-        seed_points.push_back(inner_point);
-    }
-
-    //imshow("", connected_components_pixels);
-    //waitKey();*/
 
     vector<Point> seed_points;
     Mat inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask;
@@ -131,29 +94,25 @@ void balls_localizer::localize(const Mat &src)
     imshow("inrange_sementation_2", inrange_segmentation_mask_shadows);
     bitwise_or(inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask);
 
-    extractSeedPoints(segmentation_mask, seed_points);
+    extract_seed_points(segmentation_mask, seed_points);
     region_growing(masked_hsv, segmentation_mask, seed_points, 3, 6, 4);
-    
+
     vector<Point> mask_seed_points;
     Mat out_of_field_mask;
     mask_seed_points.push_back(Point(0, 0));
     mask_region_growing(segmentation_mask, out_of_field_mask, mask_seed_points);
 
     bitwise_or(segmentation_mask.clone(), out_of_field_mask, segmentation_mask);
-
     imshow("segmentation", segmentation_mask);
-    
-    //waitKey(0);
+
+    fill_small_holes(segmentation_mask, 50);
 
     Mat display_segm, inrange_segmentation_mask_bgr;
     cvtColor(inrange_segmentation_mask_board, inrange_segmentation_mask_bgr, COLOR_GRAY2BGR);
     bitwise_and(masked, inrange_segmentation_mask_bgr, display_segm);
-    //imshow("displa", display_segm);
-    //waitKey();
 
     vector<Vec3f> circles;
 
-    //HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT_ALT, 5, 10, 100, 0.01, 2, 21);
     HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT, 0.3, 18, 100, 5, 7, 16);
 
     Mat display = src.clone();
