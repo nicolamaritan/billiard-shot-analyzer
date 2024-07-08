@@ -19,9 +19,9 @@ public:
 private:
     void localize_red_balls(const cv::Mat &src, cv::Mat &dst);
     void circles_masks(const std::vector<cv::Vec3f> &circles, std::vector<cv::Mat> &masks, cv::Size mask_size);
-    void filter_empty_circles(const std::vector<cv::Vec3f> &circles, const std::vector<cv::Mat> &masks, const cv::Mat &segmentation_mask, std::vector<cv::Vec3f> &filtered_circles, std::vector<cv::Mat> &filtered_masks, float intersection_threshold);
-    void filter_out_of_bound_circles(const std::vector<cv::Vec3f> &circles, const cv::Mat &table_mask, std::vector<cv::Vec3f> &filtered_circles, int distance_threshold);
-    void filter_near_holes_circles(const std::vector<cv::Vec3f> &circles, std::vector<cv::Vec3f> &filtered_circles, const std::vector<cv::Point>& holes_points, float distance_threshold);
+    void filter_empty_circles(std::vector<cv::Vec3f> &circles, const std::vector<cv::Mat> &masks, const cv::Mat &segmentation_mask, float intersection_threshold);
+    void filter_out_of_bound_circles(std::vector<cv::Vec3f> &circles, const cv::Mat &table_mask, int distance_threshold);
+    void filter_near_holes_circles(std::vector<cv::Vec3f> &circles, const std::vector<cv::Point>& holes_points, float distance_threshold);
 
     /**
      * @brief Perform segmentation of the image based on color. One of the clusters should
