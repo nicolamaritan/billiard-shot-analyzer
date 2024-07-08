@@ -33,26 +33,22 @@ void extract_seed_points(const Mat &inrange_segmentation_mask, vector<Point> &se
     }
 }
 
-void fill_small_holes(cv::Mat &binaryMask, double areaThreshold)
+void fill_small_holes(cv::Mat &binary_mask, double area_threshold)
 {
-    // Ensure the input is a binary mask
-    CV_Assert(binaryMask.type() == CV_8UC1);
+    CV_Assert(binary_mask.type() == CV_8UC1);
 
-    // Find all contours
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarchy;
-    cv::findContours(binaryMask, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
+    cv::findContours(binary_mask, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
 
-    // Iterate through each contour
-    for (size_t i = 0; i < contours.size(); ++i)
+    for (int i = 0; i < contours.size(); ++i)
     {
-        // Calculate the area of the contour
         double area = cv::contourArea(contours[i]);
 
         // If the area is less than the threshold, fill the hole
-        if (area < areaThreshold)
+        if (area < area_threshold)
         {
-            cv::drawContours(binaryMask, contours, static_cast<int>(i), cv::Scalar(255), cv::FILLED, 8, hierarchy, 1);
+            cv::drawContours(binary_mask, contours, i, cv::Scalar(255), cv::FILLED, 8, hierarchy, 1);
         }
     }
 }
@@ -61,8 +57,8 @@ void balls_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 3;
-    Mat blurred = src.clone();
-    GaussianBlur(blurred.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
+    Mat blurred;
+    GaussianBlur(src, blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
 
     Mat masked = blurred.clone();
     Mat mask_bgr;
@@ -105,7 +101,7 @@ void balls_localizer::localize(const Mat &src)
     mask_region_growing(segmentation_mask, out_of_field_mask, mask_seed_points);
 
     bitwise_or(segmentation_mask.clone(), out_of_field_mask, segmentation_mask);
-    fill_small_holes(segmentation_mask, 85);
+    fill_small_holes(segmentation_mask, 90);
     imshow("segmentation", segmentation_mask);
 
     Mat display_segm, inrange_segmentation_mask_bgr;
@@ -113,7 +109,6 @@ void balls_localizer::localize(const Mat &src)
     bitwise_and(masked, inrange_segmentation_mask_bgr, display_segm);
 
     vector<Vec3f> circles;
-
     HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT, 0.3, 18, 100, 5, 8, 16);
 
     Mat display = src.clone();

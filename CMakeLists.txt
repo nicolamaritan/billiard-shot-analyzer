@@ -34,6 +34,11 @@ add_library(geometry
     src/geometry.cpp
 )
 
+add_library(masking
+    include/masking.h
+    src/masking.cpp
+)
+
 add_library(segmentation
     include/segmentation.h
     src/segmentation.cpp
@@ -50,4 +55,5 @@ target_link_libraries(${PROJECT_NAME}
     balls_localizer
     geometry
     segmentation
+    masking
 )
