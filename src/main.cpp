@@ -4,8 +4,13 @@
 #include "balls_localizer.h"
 #include "show_cat.h"
 
+#include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/video/tracking.hpp>
+#include <opencv2/tracking.hpp>
+#include <opencv2/core/utility.hpp>
+#include <opencv2/tracking/tracking_legacy.hpp>
 
 #include <iostream>
 
@@ -19,41 +24,45 @@ int main()
     for (auto filename : filenames)
     {
         int n_frames = 3;
-        //if (filename.find(".mp4") != String::npos && filename.find("clip4") != String::npos)
-        if (filename.find(".mp4") != String::npos )
+
+        VideoCapture cap(filename); // open the default camera
+        if (!cap.isOpened())        // check if we succeeded
+            return -1;
+
+        Mat first_frame, frame;
+        cap.read(first_frame);
+        playing_field_localizer pl_field_loc;
+        pl_field_loc.localize(first_frame);
+
+        balls_localizer balls_loc(pl_field_loc.get_playing_field_mask(), pl_field_loc.get_playing_field_corners(), pl_field_loc.get_playing_field_hole_points());
+        balls_loc.localize(first_frame);
+
+        waitKey();
+        continue;
+
+        // Create a MultiTracker object
+        Ptr<legacy::MultiTracker> multiTracker = legacy::MultiTracker::create();
+
+        // Initialize the trackers for each ROI
+        for (const auto &roi : balls_loc.get_rois())
         {
-            VideoCapture cap(filename); // open the default camera
-            if (!cap.isOpened())        // check if we succeeded
-                return -1;
+            multiTracker->add(legacy::TrackerCSRT::create(), first_frame, roi);
+        }
 
-            Mat first_frame;
-            cap.read(first_frame);
-            playing_field_localizer pl_field_loc;
-            pl_field_loc.localize(first_frame);
-            for (;;)
+        while (cap.read(frame))
+        {
+            multiTracker->update(frame);
+
+            for (const auto &object : multiTracker->getObjects())
             {
-                Mat frame;
-                cap.read(frame);
+                rectangle(frame, object, Scalar(255, 0, 0), 2, 1);
+            }
 
-                if (frame.empty())
-                {
-                    cerr << "ERROR! blank frame grabbed\n";
-                    break;
-                }
+            imshow("MultiTracker", frame);
 
-                // Mat img = imread(filename);
-
-                balls_localizer balls_loc(pl_field_loc.get_playing_field_mask(), pl_field_loc.get_playing_field_corners(), pl_field_loc.get_playing_field_hole_points());
-                balls_loc.localize(frame);
-
-                // show live and wait for a key with timeout long enough to show images
-                // imshow("Live", frame);
-                waitKey();
-                if (--n_frames == 0)
-                    break;
-                //break;
-                // if (waitKey(5) >= 0)
-                //     break;
+            if (waitKey(1) == 'q')
+            {
+                break;
             }
         }
     }

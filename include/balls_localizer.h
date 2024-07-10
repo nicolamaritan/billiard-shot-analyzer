@@ -16,6 +16,8 @@ public:
      */
     void localize(const cv::Mat &src);
 
+    std::vector<cv::Rect> get_rois(){return rois;};
+    
 private:
     void localize_red_balls(const cv::Mat &src, cv::Mat &dst);
     void circles_masks(const std::vector<cv::Vec3f> &circles, std::vector<cv::Mat> &masks, cv::Size mask_size);
@@ -47,6 +49,8 @@ private:
     const cv::Mat playing_field_mask;
     const std::vector<cv::Point> playing_field_corners;
     const std::vector<cv::Point> playing_field_hole_points;
+
+    std::vector<cv::Rect> rois;
 };
 
 #endif

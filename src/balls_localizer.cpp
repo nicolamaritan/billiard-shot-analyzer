@@ -54,6 +54,31 @@ void fill_small_holes(cv::Mat &binary_mask, double area_threshold)
     }
 }
 
+void extract_bounding_boxes(const std::vector<cv::Vec3f> &circles, std::vector<cv::Rect> &bounding_boxes)
+{
+    for (const auto &circle : circles)
+    {
+        // Extract center coordinates and radius from the circle
+        int centerX = static_cast<int>(circle[0]);
+        int centerY = static_cast<int>(circle[1]);
+        int radius = static_cast<int>(circle[2]);
+
+        // Calculate top-left corner of the bounding box
+        int x = centerX - radius;
+        int y = centerY - radius;
+
+        // Calculate width and height of the bounding box
+        int width = 2 * radius;
+        int height = 2 * radius;
+
+        // Create a cv::Rect object
+        cv::Rect roi(x, y, width, height);
+
+        // Add the bounding box to the vector
+        bounding_boxes.push_back(roi);
+    }
+}
+
 void balls_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
@@ -111,8 +136,12 @@ void balls_localizer::localize(const Mat &src)
     cvtColor(inrange_segmentation_mask_board, inrange_segmentation_mask_bgr, COLOR_GRAY2BGR);
     bitwise_and(masked, inrange_segmentation_mask_bgr, display_segm);
 
+    const int HOUGH_MIN_RADIUS = 8;
+    const int HOUGH_MAX_RADIUS = 16;
+    const float HOUGH_DP = 0.3;
+    const int HOUGH_MIN_DISTANCE = 18;
     vector<Vec3f> circles;
-    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT, 0.3, 18, 100, 5, 8, 16);
+    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT, HOUGH_DP, HOUGH_MIN_DISTANCE, 100, 5, HOUGH_MIN_RADIUS, HOUGH_MAX_RADIUS);
 
     vector<Mat> hough_circle_masks;
     circles_masks(circles, hough_circle_masks, src.size());
@@ -131,6 +160,8 @@ void balls_localizer::localize(const Mat &src)
     }
     imshow("", display);
     // waitKey(0);
+
+    extract_bounding_boxes(circles, rois);
 }
 
 void balls_localizer::circles_masks(const std::vector<Vec3f> &circles, std::vector<Mat> &masks, Size mask_size)
