@@ -33,23 +33,25 @@ void balls_localizer::localize(const Mat &src)
     Mat masked_hsv;
     cvtColor(masked, masked_hsv, COLOR_BGR2HSV);
 
-    /*vector<Mat> channels;
+    vector<Mat> channels;
     split(masked_hsv, channels);
     imshow("0", channels[0]);
     imshow("1", channels[1]);
     imshow("2", channels[2]);
-    */
+    
 
     vector<Point> seed_points;
     Mat inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask;
+    Mat color_mask;
 
     int RADIUS = 100;
     const Vec3b board_color_hsv = get_board_color(masked_hsv, RADIUS);
     const Vec3b SHADOW_OFFSET = Vec3b(0, 0, 90);
 
     Vec3b shadow_hsv = board_color_hsv - SHADOW_OFFSET;
-    inRange(masked_hsv, board_color_hsv - Vec3b(4, 70, 50), board_color_hsv + Vec3b(4, 50, 15), inrange_segmentation_mask_board);
+    inRange(masked_hsv, board_color_hsv - Vec3b(5, 80, 50), board_color_hsv + Vec3b(5, 60, 15), inrange_segmentation_mask_board);
     inRange(masked_hsv, shadow_hsv - Vec3b(3, 30, 80), shadow_hsv + Vec3b(3, 100, 40), inrange_segmentation_mask_shadows);
+    //inRange(masked_hsv, board_color_hsv - Vec3b(10, 255, 150), shadow_hsv + Vec3b(10, 255, 255), color_mask);
 
     Mat outer_field;
     Mat shrinked_playing_field_mask;
@@ -58,10 +60,12 @@ void balls_localizer::localize(const Mat &src)
 
     // Consider shadow segmentation mask only near the table edges
     bitwise_and(inrange_segmentation_mask_shadows.clone(), outer_field, inrange_segmentation_mask_shadows);
+    //bitwise_and(color_mask.clone(), outer_field, color_mask);
 
     // imshow("inrange_sementation_1", inrange_segmentation_mask_board);
     // imshow("inrange_sementation_2", inrange_segmentation_mask_shadows);
     bitwise_or(inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask);
+    //bitwise_or(segmentation_mask, color_mask, segmentation_mask);
 
     extract_seed_points(segmentation_mask, seed_points);
     region_growing(masked_hsv, segmentation_mask, seed_points, 3, 6, 4);
@@ -71,17 +75,19 @@ void balls_localizer::localize(const Mat &src)
     Mat out_of_field_mask;
     mask_seed_points.push_back(Point(0, 0));
 
+    morphologyEx(segmentation_mask.clone(), segmentation_mask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
     fill_small_holes(segmentation_mask, 90);
-    imshow("segmentation", segmentation_mask);
+    imshow("before_growth", segmentation_mask);
 
-    Mat display_segm, inrange_segmentation_mask_bgr;
-    cvtColor(inrange_segmentation_mask_board, inrange_segmentation_mask_bgr, COLOR_GRAY2BGR);
-    bitwise_and(masked, inrange_segmentation_mask_bgr, display_segm);
+    Mat mask_region_growing_mask;
+    mask_region_growing(segmentation_mask, mask_region_growing_mask, {Point(0, 0)});
+    bitwise_or(segmentation_mask.clone(), mask_region_growing_mask, segmentation_mask);
+    imshow("segmentation", segmentation_mask);
 
     const int HOUGH_MIN_RADIUS = 8;
     const int HOUGH_MAX_RADIUS = 16;
     const float HOUGH_DP = 0.3;
-    const int HOUGH_MIN_DISTANCE = 20;
+    const int HOUGH_MIN_DISTANCE = 15;
     const int HOUGH_CANNY_PARAM = 100;
     const int HOUGH_MIN_VOTES = 5;
     vector<Vec3f> circles;
@@ -105,15 +111,28 @@ void balls_localizer::localize(const Mat &src)
     Vec3f white_ball_circle = circles_white_percentages.at(0).first;
 
     // We aim to remove the arm and other elements by coloring a radius around the white ball of pixels connected to the outer field
-    color_pixels_connected_to_outer_field(segmentation_mask, Point(static_cast<int>(white_ball_circle[0]), static_cast<int>(white_ball_circle[1])), 150);
+    /*color_pixels_connected_to_outer_field(segmentation_mask, Point(static_cast<int>(white_ball_circle[0]), static_cast<int>(white_ball_circle[1])), 150);
     bitwise_and(segmentation_mask, playing_field.mask, segmentation_mask);
     imshow("segmentation", segmentation_mask);
 
     // Compute new masks and filter out circles that has a large portion of white
     circles_masks(circles, hough_circle_masks, src.size());
     filter_empty_circles(circles, hough_circle_masks, segmentation_mask, 0.60);
-
+    */
     Mat display = blurred.clone();
+    for (size_t i = 0; i < circles.size(); i++)
+    {
+        Vec3i c = circles[i];
+        Point center = Point(c[0], c[1]);
+        circle(display, center, 1, Scalar(0, 100, 100), 1, LINE_AA);
+        int radius = c[2];
+        circle(display, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
+    }
+    imshow("", display);
+    waitKey();
+
+    remove_close_circles(circles, 25, 25, 2);
+    display = blurred.clone();
     for (size_t i = 0; i < circles.size(); i++)
     {
         Vec3i c = circles[i];
@@ -135,6 +154,45 @@ void balls_localizer::localize(const Mat &src)
     counter++;
 
     extract_bounding_boxes(circles, rois);
+}
+
+// Function to check if circles are too close below each other and remove them
+void balls_localizer::remove_close_circles(vector<Vec3f> &circles, float neighborhood_threshold, float distance_threshold, float radius_threshold)
+{
+    vector<bool> to_remove(circles.size(), false);
+
+    for (size_t i = 0; i < circles.size(); ++i)
+    {
+        for (size_t j = 0; j < circles.size(); ++j)
+        {
+            if (i != j && norm(circles[i] - circles[j]) < neighborhood_threshold)
+            {
+                float x1 = circles[i][0];
+                float y1 = circles[i][1];
+                float radius_1 = circles[i][2];
+                float x2 = circles[j][0];
+                float y2 = circles[j][1];
+                float radius_2 = circles[j][2];
+
+                if (y2 > y1 && abs(y2 - y1) < distance_threshold && radius_1 - radius_2 > radius_threshold)
+                {
+                    to_remove[j] = true;
+                }
+            }
+        }
+    }
+
+    // Create a new vector excluding the circles marked for removal
+    vector<Vec3f> filteredCircles;
+    for (size_t i = 0; i < circles.size(); ++i)
+    {
+        if (!to_remove[i])
+        {
+            filteredCircles.push_back(circles[i]);
+        }
+    }
+
+    circles = filteredCircles;
 }
 
 void balls_localizer::circles_masks(const vector<Vec3f> &circles, vector<Mat> &masks, Size mask_size)

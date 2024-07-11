@@ -31,6 +31,8 @@ private:
     void extract_seed_points(const cv::Mat &inrange_segmentation_mask, std::vector<cv::Point> &seed_points);
     float get_white_percentage_in_circle(const cv::Mat &src, cv::Vec3f circle);
     void color_pixels_connected_to_outer_field(cv::Mat &mask, cv::Point center, int radius);
+    void remove_close_circles(std::vector<cv::Vec3f> &circles, float neighborhood_threshold, float distance_threshold, float radius_threshold);
+
 
     /**
      * @brief Return the estimated board color.
