@@ -6,6 +6,22 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
+struct ball_localization
+{
+    cv::Vec3f circle;
+    cv::Rect bounding_box;
+};
+typedef struct ball_localization ball_localization;
+
+struct balls_localization
+{
+    std::vector<ball_localization> solids;
+    std::vector<ball_localization> stripes;
+    ball_localization black;
+    ball_localization cue;
+};
+typedef struct balls_localization balls_localization;
+
 class balls_localizer
 {
 public:
@@ -30,9 +46,8 @@ private:
     void fill_small_holes(cv::Mat &binary_mask, double area_threshold);
     void extract_seed_points(const cv::Mat &inrange_segmentation_mask, std::vector<cv::Point> &seed_points);
     float get_white_percentage_in_circle(const cv::Mat &src, cv::Vec3f circle);
-    void color_pixels_connected_to_outer_field(cv::Mat &mask, cv::Point center, int radius);
-    void remove_close_circles(std::vector<cv::Vec3f> &circles, float neighborhood_threshold, float distance_threshold, float radius_threshold);
-
+    void filter_close_dissimilar_circles(std::vector<cv::Vec3f> &circles, float neighborhood_threshold, float distance_threshold, float radius_threshold);
+    void draw_circles(const cv::Mat& src, cv::Mat& dst, std::vector<cv::Vec3f>& circles);
 
     /**
      * @brief Return the estimated board color.
