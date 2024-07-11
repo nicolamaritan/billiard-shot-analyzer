@@ -97,9 +97,39 @@ float get_white_percentage_in_circle(const Mat &src, Vec3f circle)
     int white_pixels = countNonZero(white_mask);
     int total_circle_pixels = countNonZero(mask);
     double percentage_white = static_cast<double>(white_pixels) / total_circle_pixels;
-    cout << circle << " " << percentage_white << endl;
 
     return percentage_white;
+}
+
+// Function to check if all pixels within a given radius from a center point are connected to the pixel (0, 0)
+void color_pixels_connected_to_outer_field(Mat &mask, Point center, int radius)
+{
+    // Get the dimensions of the mask
+    int rows = mask.rows;
+    int cols = mask.cols;
+
+    // Ensure the center point is within the image boundaries
+    if (center.x < 0 || center.x >= cols || center.y < 0 || center.y >= rows)
+    {
+        cout << "Center point is out of image bounds" << endl;
+        return;
+    }
+
+    // Create a copy of the mask to work on
+    Mat temp_mask = mask.clone();
+
+    // Use flood fill to find all connected points starting from (0, 0)
+    floodFill(temp_mask, Point(0, 0), Scalar(255), 0, Scalar(0), Scalar(0), 4);
+
+    // If all pixels within the radius are connected, color those pixels white
+    for (int y = max(0, center.y - radius); y < min(rows, center.y + radius + 1); y++)
+    {
+        for (int x = max(0, center.x - radius); x < min(cols, center.x + radius + 1); x++)
+        {
+            if (temp_mask.at<uchar>(y, x) == 255 && sqrt((x - center.x) * (x - center.x) + (y - center.y) * (y - center.y)) <= radius)
+                mask.at<uchar>(y, x) = 255;
+        }
+    }
 }
 
 void balls_localizer::localize(const Mat &src)
@@ -157,10 +187,6 @@ void balls_localizer::localize(const Mat &src)
     vector<Point> mask_seed_points;
     Mat out_of_field_mask;
     mask_seed_points.push_back(Point(0, 0));
-    // mask_region_growing(segmentation_mask, out_of_field_mask, mask_seed_points);
-
-    // bitwise_or(segmentation_mask.clone(), out_of_field_mask, segmentation_mask);
-    // erode(segmentation_mask.clone(), segmentation_mask, getStructuringElement(MORPH_CROSS, Size(5, 5)));
 
     fill_small_holes(segmentation_mask, 90);
     imshow("segmentation", segmentation_mask);
@@ -182,16 +208,25 @@ void balls_localizer::localize(const Mat &src)
     filter_out_of_bound_circles(circles, playing_field_mask, 20);
     filter_near_holes_circles(circles, playing_field_hole_points, 27);
 
+    // We compute, for each circle, the percentage of "white" pixels. The one with highest percentage is picked as white ball.
     vector<pair<Vec3f, float>> circles_white_percentages;
     for (Vec3f circle : circles)
     {
         circles_white_percentages.push_back({circle, get_white_percentage_in_circle(masked_hsv, circle)});
     }
+    // Sort by descending order of percentage
     std::sort(circles_white_percentages.begin(), circles_white_percentages.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
               { return a.second > b.second; });
     Vec3f white_ball_circle = circles_white_percentages.at(0).first;
-    // circles.erase(circles.begin());
-    cout << "/////////////////" << endl;
+
+    // We aim to remove the arm and other elements by coloring a radius around the white ball of pixels connected to the outer field
+    color_pixels_connected_to_outer_field(segmentation_mask, Point(static_cast<int>(white_ball_circle[0]), static_cast<int>(white_ball_circle[1])), 150);
+    bitwise_and(segmentation_mask, playing_field_mask, segmentation_mask);
+    imshow("segmentation", segmentation_mask);
+    
+    // Compute new masks and filter out circles that has a large portion of white
+    circles_masks(circles, hough_circle_masks, src.size());
+    filter_empty_circles(circles, hough_circle_masks, segmentation_mask, 0.60);
 
     Mat display = blurred.clone();
     for (size_t i = 0; i < circles.size(); i++)
@@ -216,6 +251,7 @@ void balls_localizer::localize(const Mat &src)
 
 void balls_localizer::circles_masks(const vector<Vec3f> &circles, vector<Mat> &masks, Size mask_size)
 {
+    masks.clear();
     for (size_t i = 0; i < circles.size(); i++)
     {
         Mat mask(mask_size, CV_8U);
