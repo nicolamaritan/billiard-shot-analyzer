@@ -1,7 +1,7 @@
 // Author: Nicola Maritan
 
-#include "playing_field_localizer.h"
-#include "balls_localizer.h"
+#include "playing_field_localization.h"
+#include "balls_localization.h"
 #include "show_cat.h"
 
 #include <opencv2/opencv.hpp>

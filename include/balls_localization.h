@@ -1,7 +1,7 @@
-#ifndef BALLS_LOCALIZER
-#define BALLS_LOCALIZER
+#ifndef BALLS_LOCALIZATION_H
+#define BALLS_LOCALIZATION_H
 
-#include "playing_field_localizer.h"
+#include "playing_field_localization.h"
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>

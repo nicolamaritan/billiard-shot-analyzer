@@ -1,5 +1,5 @@
-#include "playing_field_localizer.h"
-#include "balls_localizer.h"
+#include "playing_field_localization.h"
+#include "balls_localization.h"
 
 #include <iostream>
 
@@ -12,6 +12,7 @@ int main()
     glob("frame_*.png", filenames, true);
     for (auto filename : filenames)
     {
+        // Avoid ground-truth masks
         if (filename.find("frames") != String::npos)
         {
             Mat image = imread(filename);

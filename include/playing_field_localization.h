@@ -1,5 +1,5 @@
-#ifndef PLAYING_FIELD_LOCALIZER
-#define PLAYING_FIELD_LOCALIZER
+#ifndef PLAYING_FIELD_LOCALIZATION_H
+#define PLAYING_FIELD_LOCALIZATION_H
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>

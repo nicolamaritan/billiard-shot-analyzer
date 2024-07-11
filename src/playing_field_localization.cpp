@@ -2,7 +2,7 @@
 #include <cmath>
 #include <map>
 #include <limits>
-#include "playing_field_localizer.h"
+#include "playing_field_localization.h"
 #include "geometry.h"
 
 using namespace cv;
