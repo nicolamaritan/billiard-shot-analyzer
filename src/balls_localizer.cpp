@@ -127,7 +127,7 @@ void balls_localizer::localize(const Mat &src)
     circle(display, white_ball_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
     circle(display, white_ball_center, white_ball_radius, Scalar(255, 0, 0), 1, LINE_AA);
 
-    extract_bounding_boxes(circles, rois);
+    extract_bounding_boxes(circles, bounding_boxes);
 
     imshow("display - end of balls_localizer::localize", display);
 }

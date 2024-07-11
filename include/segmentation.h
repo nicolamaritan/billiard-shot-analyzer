@@ -34,6 +34,16 @@ void kmeans(const cv::Mat &src, cv::Mat &dst, int centroids);
  */
 void region_growing(const cv::Mat &src, cv::Mat &dst, const std::vector<cv::Point> &seeds, int threshold_0, int threshold_1, int threshold_2);
 
+/**
+ * @brief Performs region growing on a given source binary image starting from seed points and produces a binary mask.
+ * 
+ * This function initializes a destination image with zeros, then iteratively grows regions from the given seed points.
+ * A pixel is added to a region if the color is the same as the current pixel.
+ * 
+ * @param src The source image to be segmented.
+ * @param dst The destination image where the segmented output is stored.
+ * @param seeds A vector of points to be used as seed points for region growing.
+ */
 void mask_region_growing(const cv::Mat &src, cv::Mat &dst, const std::vector<cv::Point> &seeds);
 
 #endif

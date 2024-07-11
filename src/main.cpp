@@ -21,10 +21,8 @@ int main()
 {
     vector<String> filenames;
     glob("*.mp4", filenames, true);
-    for (auto filename : filenames)
+    for (String filename : filenames)
     {
-        int n_frames = 3;
-
         VideoCapture cap(filename); // open the default camera
         if (!cap.isOpened())        // check if we succeeded
             return -1;
@@ -37,14 +35,11 @@ int main()
         balls_localizer balls_loc(pl_field_loc.get_localization());
         balls_loc.localize(first_frame);
 
-        waitKey();
-        continue;
-
         // Create a MultiTracker object
         Ptr<legacy::MultiTracker> multiTracker = legacy::MultiTracker::create();
 
         // Initialize the trackers for each ROI
-        for (const auto &roi : balls_loc.get_rois())
+        for (const auto &roi : balls_loc.get_bounding_boxes())
         {
             multiTracker->add(legacy::TrackerCSRT::create(), first_frame, roi);
         }
