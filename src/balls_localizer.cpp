@@ -14,124 +14,6 @@
 using namespace cv;
 using namespace std;
 
-void extract_seed_points(const Mat &inrange_segmentation_mask, vector<Point> &seed_points)
-{
-    // Ensure the seed_points vector is empty
-    seed_points.clear();
-
-    // Loop through each pixel in the mask
-    for (int y = 0; y < inrange_segmentation_mask.rows; ++y)
-    {
-        for (int x = 0; x < inrange_segmentation_mask.cols; ++x)
-        {
-            // Check if the pixel value is non-zero
-            if (inrange_segmentation_mask.at<uchar>(y, x) > 0)
-            {
-                // Add the point to the vector
-                seed_points.push_back(Point(x, y));
-            }
-        }
-    }
-}
-
-void fill_small_holes(Mat &binary_mask, double area_threshold)
-{
-    CV_Assert(binary_mask.type() == CV_8UC1);
-
-    vector<vector<Point>> contours;
-    vector<Vec4i> hierarchy;
-    findContours(binary_mask, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
-
-    for (int i = 0; i < contours.size(); ++i)
-    {
-        double area = contourArea(contours[i]);
-
-        // If the area is less than the threshold, fill the hole
-        if (area < area_threshold)
-        {
-            drawContours(binary_mask, contours, i, Scalar(255), FILLED, 8, hierarchy, 1);
-        }
-    }
-}
-
-void extract_bounding_boxes(const vector<Vec3f> &circles, vector<Rect> &bounding_boxes)
-{
-    for (const auto &circle : circles)
-    {
-        // Extract center coordinates and radius from the circle
-        int centerX = static_cast<int>(circle[0]);
-        int centerY = static_cast<int>(circle[1]);
-        int radius = static_cast<int>(circle[2]);
-
-        // Calculate top-left corner of the bounding box
-        int x = centerX - radius;
-        int y = centerY - radius;
-
-        // Calculate width and height of the bounding box
-        int width = 2 * radius;
-        int height = 2 * radius;
-
-        // Create a Rect object
-        Rect roi(x, y, width, height);
-
-        // Add the bounding box to the vector
-        bounding_boxes.push_back(roi);
-    }
-}
-
-float get_white_percentage_in_circle(const Mat &src, Vec3f circle)
-{
-    int x = cvRound(circle[0]);
-    int y = cvRound(circle[1]);
-    int radius = cvRound(circle[2]);
-
-    Mat mask = Mat::zeros(src.size(), CV_8U);
-    cv::circle(mask, Point(x, y), radius, Scalar(255), FILLED);
-
-    Mat masked_hsv;
-    src.copyTo(masked_hsv, mask);
-
-    Mat white_mask;
-    inRange(masked_hsv, Vec3b(20, 0, 180), Vec3b(110, 100, 255), white_mask);
-
-    int white_pixels = countNonZero(white_mask);
-    int total_circle_pixels = countNonZero(mask);
-    double percentage_white = static_cast<double>(white_pixels) / total_circle_pixels;
-
-    return percentage_white;
-}
-
-// Function to check if all pixels within a given radius from a center point are connected to the pixel (0, 0)
-void color_pixels_connected_to_outer_field(Mat &mask, Point center, int radius)
-{
-    // Get the dimensions of the mask
-    int rows = mask.rows;
-    int cols = mask.cols;
-
-    // Ensure the center point is within the image boundaries
-    if (center.x < 0 || center.x >= cols || center.y < 0 || center.y >= rows)
-    {
-        cout << "Center point is out of image bounds" << endl;
-        return;
-    }
-
-    // Create a copy of the mask to work on
-    Mat temp_mask = mask.clone();
-
-    // Use flood fill to find all connected points starting from (0, 0)
-    floodFill(temp_mask, Point(0, 0), Scalar(255), 0, Scalar(0), Scalar(0), 4);
-
-    // If all pixels within the radius are connected, color those pixels white
-    for (int y = max(0, center.y - radius); y < min(rows, center.y + radius + 1); y++)
-    {
-        for (int x = max(0, center.x - radius); x < min(cols, center.x + radius + 1); x++)
-        {
-            if (temp_mask.at<uchar>(y, x) == 255 && sqrt((x - center.x) * (x - center.x) + (y - center.y) * (y - center.y)) <= radius)
-                mask.at<uchar>(y, x) = 255;
-        }
-    }
-}
-
 void balls_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
@@ -149,11 +31,12 @@ void balls_localizer::localize(const Mat &src)
     Mat masked_hsv;
     cvtColor(masked, masked_hsv, COLOR_BGR2HSV);
 
-    vector<Mat> channels;
+    /*vector<Mat> channels;
     split(masked_hsv, channels);
     imshow("0", channels[0]);
     imshow("1", channels[1]);
     imshow("2", channels[2]);
+    */
 
     vector<Point> seed_points;
     Mat inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask;
@@ -165,25 +48,23 @@ void balls_localizer::localize(const Mat &src)
     Vec3b shadow_hsv = board_color_hsv - SHADOW_OFFSET;
     inRange(masked_hsv, board_color_hsv - Vec3b(4, 70, 50), board_color_hsv + Vec3b(4, 50, 15), inrange_segmentation_mask_board);
     inRange(masked_hsv, shadow_hsv - Vec3b(3, 30, 80), shadow_hsv + Vec3b(3, 100, 40), inrange_segmentation_mask_shadows);
-    // morphologyEx(inrange_segmentation_mask_shadows.clone(), inrange_segmentation_mask_shadows, MORPH_OPEN, getStructuringElement(MORPH_CROSS, Size(3, 3)));
 
     Mat outer_field;
     Mat shrinked_playing_field_mask;
     erode(playing_field_mask, shrinked_playing_field_mask, getStructuringElement(MORPH_CROSS, Size(50, 50)));
     bitwise_not(shrinked_playing_field_mask, outer_field);
-    imshow("outer_field", outer_field);
 
     // Consider shadow segmentation mask only near the table edges
     bitwise_and(inrange_segmentation_mask_shadows.clone(), outer_field, inrange_segmentation_mask_shadows);
 
-    imshow("inrange_sementation_1", inrange_segmentation_mask_board);
-    imshow("inrange_sementation_2", inrange_segmentation_mask_shadows);
+    // imshow("inrange_sementation_1", inrange_segmentation_mask_board);
+    // imshow("inrange_sementation_2", inrange_segmentation_mask_shadows);
     bitwise_or(inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask);
 
     extract_seed_points(segmentation_mask, seed_points);
     region_growing(masked_hsv, segmentation_mask, seed_points, 3, 6, 4);
 
-    imshow("segmentation_before", segmentation_mask);
+    // imshow("segmentation_before", segmentation_mask);
     vector<Point> mask_seed_points;
     Mat out_of_field_mask;
     mask_seed_points.push_back(Point(0, 0));
@@ -199,8 +80,10 @@ void balls_localizer::localize(const Mat &src)
     const int HOUGH_MAX_RADIUS = 16;
     const float HOUGH_DP = 0.3;
     const int HOUGH_MIN_DISTANCE = 20;
+    const int HOUGH_CANNY_PARAM = 100;
+    const int HOUGH_MIN_VOTES = 5;
     vector<Vec3f> circles;
-    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT, HOUGH_DP, HOUGH_MIN_DISTANCE, 100, 5, HOUGH_MIN_RADIUS, HOUGH_MAX_RADIUS);
+    HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT, HOUGH_DP, HOUGH_MIN_DISTANCE, HOUGH_CANNY_PARAM, HOUGH_MIN_VOTES, HOUGH_MIN_RADIUS, HOUGH_MAX_RADIUS);
 
     vector<Mat> hough_circle_masks;
     circles_masks(circles, hough_circle_masks, src.size());
@@ -223,7 +106,7 @@ void balls_localizer::localize(const Mat &src)
     color_pixels_connected_to_outer_field(segmentation_mask, Point(static_cast<int>(white_ball_circle[0]), static_cast<int>(white_ball_circle[1])), 150);
     bitwise_and(segmentation_mask, playing_field_mask, segmentation_mask);
     imshow("segmentation", segmentation_mask);
-    
+
     // Compute new masks and filter out circles that has a large portion of white
     circles_masks(circles, hough_circle_masks, src.size());
     filter_empty_circles(circles, hough_circle_masks, segmentation_mask, 0.60);
@@ -330,6 +213,124 @@ void balls_localizer::segmentation(const Mat &src, Mat &dst)
 
     const int NUMBER_OF_CENTERS = 8;
     kmeans(src, dst, NUMBER_OF_CENTERS);
+}
+
+void balls_localizer::extract_seed_points(const Mat &inrange_segmentation_mask, vector<Point> &seed_points)
+{
+    // Ensure the seed_points vector is empty
+    seed_points.clear();
+
+    // Loop through each pixel in the mask
+    for (int y = 0; y < inrange_segmentation_mask.rows; ++y)
+    {
+        for (int x = 0; x < inrange_segmentation_mask.cols; ++x)
+        {
+            // Check if the pixel value is non-zero
+            if (inrange_segmentation_mask.at<uchar>(y, x) > 0)
+            {
+                // Add the point to the vector
+                seed_points.push_back(Point(x, y));
+            }
+        }
+    }
+}
+
+void balls_localizer::fill_small_holes(Mat &binary_mask, double area_threshold)
+{
+    CV_Assert(binary_mask.type() == CV_8UC1);
+
+    vector<vector<Point>> contours;
+    vector<Vec4i> hierarchy;
+    findContours(binary_mask, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
+
+    for (int i = 0; i < contours.size(); ++i)
+    {
+        double area = contourArea(contours[i]);
+
+        // If the area is less than the threshold, fill the hole
+        if (area < area_threshold)
+        {
+            drawContours(binary_mask, contours, i, Scalar(255), FILLED, 8, hierarchy, 1);
+        }
+    }
+}
+
+void balls_localizer::extract_bounding_boxes(const vector<Vec3f> &circles, vector<Rect> &bounding_boxes)
+{
+    for (const auto &circle : circles)
+    {
+        // Extract center coordinates and radius from the circle
+        int centerX = static_cast<int>(circle[0]);
+        int centerY = static_cast<int>(circle[1]);
+        int radius = static_cast<int>(circle[2]);
+
+        // Calculate top-left corner of the bounding box
+        int x = centerX - radius;
+        int y = centerY - radius;
+
+        // Calculate width and height of the bounding box
+        int width = 2 * radius;
+        int height = 2 * radius;
+
+        // Create a Rect object
+        Rect roi(x, y, width, height);
+
+        // Add the bounding box to the vector
+        bounding_boxes.push_back(roi);
+    }
+}
+
+float balls_localizer::get_white_percentage_in_circle(const Mat &src, Vec3f circle)
+{
+    int x = cvRound(circle[0]);
+    int y = cvRound(circle[1]);
+    int radius = cvRound(circle[2]);
+
+    Mat mask = Mat::zeros(src.size(), CV_8U);
+    cv::circle(mask, Point(x, y), radius, Scalar(255), FILLED);
+
+    Mat masked_hsv;
+    src.copyTo(masked_hsv, mask);
+
+    Mat white_mask;
+    inRange(masked_hsv, Vec3b(20, 0, 180), Vec3b(110, 100, 255), white_mask);
+
+    int white_pixels = countNonZero(white_mask);
+    int total_circle_pixels = countNonZero(mask);
+    double percentage_white = static_cast<double>(white_pixels) / total_circle_pixels;
+
+    return percentage_white;
+}
+
+// Function to check if all pixels within a given radius from a center point are connected to the pixel (0, 0)
+void balls_localizer::color_pixels_connected_to_outer_field(Mat &mask, Point center, int radius)
+{
+    // Get the dimensions of the mask
+    int rows = mask.rows;
+    int cols = mask.cols;
+
+    // Ensure the center point is within the image boundaries
+    if (center.x < 0 || center.x >= cols || center.y < 0 || center.y >= rows)
+    {
+        cout << "Center point is out of image bounds" << endl;
+        return;
+    }
+
+    // Create a copy of the mask to work on
+    Mat temp_mask = mask.clone();
+
+    // Use flood fill to find all connected points starting from (0, 0)
+    floodFill(temp_mask, Point(0, 0), Scalar(255), 0, Scalar(0), Scalar(0), 4);
+
+    // If all pixels within the radius are connected, color those pixels white
+    for (int y = max(0, center.y - radius); y < min(rows, center.y + radius + 1); y++)
+    {
+        for (int x = max(0, center.x - radius); x < min(cols, center.x + radius + 1); x++)
+        {
+            if (temp_mask.at<uchar>(y, x) == 255 && sqrt((x - center.x) * (x - center.x) + (y - center.y) * (y - center.y)) <= radius)
+                mask.at<uchar>(y, x) = 255;
+        }
+    }
 }
 
 Vec3b balls_localizer::get_board_color(const Mat &src, float radius)

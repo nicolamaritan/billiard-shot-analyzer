@@ -24,6 +24,11 @@ private:
     void filter_empty_circles(std::vector<cv::Vec3f> &circles, const std::vector<cv::Mat> &masks, const cv::Mat &segmentation_mask, float intersection_threshold);
     void filter_out_of_bound_circles(std::vector<cv::Vec3f> &circles, const cv::Mat &table_mask, int distance_threshold);
     void filter_near_holes_circles(std::vector<cv::Vec3f> &circles, const std::vector<cv::Point>& holes_points, float distance_threshold);
+    void extract_bounding_boxes(const std::vector<cv::Vec3f> &circles, std::vector<cv::Rect> &bounding_boxes);
+    void fill_small_holes(cv::Mat &binary_mask, double area_threshold);
+    void extract_seed_points(const cv::Mat &inrange_segmentation_mask, std::vector<cv::Point> &seed_points);
+    float get_white_percentage_in_circle(const cv::Mat &src, cv::Vec3f circle);
+    void color_pixels_connected_to_outer_field(cv::Mat &mask, cv::Point center, int radius);
 
     /**
      * @brief Perform segmentation of the image based on color. One of the clusters should
