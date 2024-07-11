@@ -51,7 +51,7 @@ void balls_localizer::localize(const Mat &src)
     Vec3b shadow_hsv = board_color_hsv - SHADOW_OFFSET;
     inRange(masked_hsv, board_color_hsv - Vec3b(5, 80, 50), board_color_hsv + Vec3b(5, 60, 15), inrange_segmentation_mask_board);
     inRange(masked_hsv, shadow_hsv - Vec3b(3, 30, 80), shadow_hsv + Vec3b(3, 100, 40), inrange_segmentation_mask_shadows);
-    //inRange(masked_hsv, board_color_hsv - Vec3b(10, 255, 150), shadow_hsv + Vec3b(10, 255, 255), color_mask);
+    inRange(masked_hsv, board_color_hsv - Vec3b(10, 255, 150), shadow_hsv + Vec3b(10, 255, 255), color_mask);
 
     Mat outer_field;
     Mat shrinked_playing_field_mask;
@@ -60,12 +60,15 @@ void balls_localizer::localize(const Mat &src)
 
     // Consider shadow segmentation mask only near the table edges
     bitwise_and(inrange_segmentation_mask_shadows.clone(), outer_field, inrange_segmentation_mask_shadows);
-    //bitwise_and(color_mask.clone(), outer_field, color_mask);
+
+    erode(playing_field.mask, shrinked_playing_field_mask, getStructuringElement(MORPH_CROSS, Size(30, 30)));
+    bitwise_not(shrinked_playing_field_mask, outer_field);
+    bitwise_and(color_mask.clone(), outer_field, color_mask);
 
     // imshow("inrange_sementation_1", inrange_segmentation_mask_board);
     // imshow("inrange_sementation_2", inrange_segmentation_mask_shadows);
     bitwise_or(inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask);
-    //bitwise_or(segmentation_mask, color_mask, segmentation_mask);
+    bitwise_or(segmentation_mask, color_mask, segmentation_mask);
 
     extract_seed_points(segmentation_mask, seed_points);
     region_growing(masked_hsv, segmentation_mask, seed_points, 3, 6, 4);
