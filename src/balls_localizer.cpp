@@ -14,8 +14,6 @@
 using namespace cv;
 using namespace std;
 
-static int counter = 0;
-
 void balls_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
@@ -89,7 +87,7 @@ void balls_localizer::localize(const Mat &src)
     Mat out_of_field_mask;
     mask_region_growing(final_segmentation_mask, out_of_field_mask, {Point(0, 0)});
     bitwise_or(final_segmentation_mask.clone(), out_of_field_mask, final_segmentation_mask);
-    imshow("segmentation", final_segmentation_mask);
+    imshow("segmentation - balls_localizer::localize", final_segmentation_mask);
 
     const int HOUGH_MIN_RADIUS = 8;
     const int HOUGH_MAX_RADIUS = 16;
@@ -131,9 +129,7 @@ void balls_localizer::localize(const Mat &src)
 
     extract_bounding_boxes(circles, rois);
 
-    imshow("display", display);
-    imwrite(to_string(counter) + ".png", display);
-    counter++;
+    imshow("display - end of balls_localizer::localize", display);
 }
 
 void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, float neighborhood_threshold, float distance_threshold, float radius_threshold)
@@ -144,7 +140,7 @@ void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, fl
     {
         for (size_t j = 0; j < circles.size(); ++j)
         {
-            if (i != j && norm(circles[i] - circles[j]) < neighborhood_threshold)
+            if (i != j && norm(circles.at(i) - circles.at(j)) < neighborhood_threshold)
             {
                 float y1 = circles.at(i)[1];
                 float radius_1 = circles.at(i)[2];
@@ -152,18 +148,16 @@ void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, fl
                 float radius_2 = circles.at(j)[2];
 
                 if (y2 > y1 && abs(y2 - y1) < distance_threshold && radius_1 - radius_2 > radius_threshold)
-                {
-                    to_remove[j] = true;
-                }
+                    to_remove.at(j) = true;
             }
         }
     }
 
     vector<Vec3f> filtered_circles;
-    for (size_t i = 0; i < circles.size(); ++i)
+    for (int i = 0; i < circles.size(); i++)
     {
         if (!to_remove[i])
-            filtered_circles.push_back(circles[i]);
+            filtered_circles.push_back(circles.at(i));
     }
 
     circles = filtered_circles;
@@ -205,7 +199,7 @@ void balls_localizer::filter_out_of_bound_circles(vector<Vec3f> &circles, const 
     Mat shrinked_table_mask;
     erode(table_mask, shrinked_table_mask, getStructuringElement(MORPH_CROSS, Size(distance_threshold, distance_threshold)));
 
-    for (Vec3f circle : circles)
+    for (const Vec3f circle : circles)
     {
         Point center = Point(circle[0], circle[1]);
         if (shrinked_table_mask.at<uchar>(center) == 255)
@@ -219,7 +213,7 @@ void balls_localizer::filter_out_of_bound_circles(vector<Vec3f> &circles, const 
 void balls_localizer::filter_near_holes_circles(vector<Vec3f> &circles, const vector<Point> &holes_points, float distance_threshold)
 {
     vector<Vec3f> filtered_circles;
-    for (Vec3f circle : circles)
+    for (const Vec3f circle : circles)
     {
         Point circle_point = Point(static_cast<int>(circle[0]), static_cast<int>(circle[1]));
         bool keep_circle = true;
@@ -262,18 +256,14 @@ void balls_localizer::fill_small_holes(Mat &binary_mask, double area_threshold)
     for (int i = 0; i < contours.size(); ++i)
     {
         double area = contourArea(contours[i]);
-
-        // If the area is less than the threshold, fill the hole
         if (area < area_threshold)
-        {
-            drawContours(binary_mask, contours, i, Scalar(255), FILLED, 8, hierarchy, 1);
-        }
+            drawContours(binary_mask, contours, i, Scalar(255), FILLED, 8, hierarchy, 1);   // Fills the hole
     }
 }
 
 void balls_localizer::extract_bounding_boxes(const vector<Vec3f> &circles, vector<Rect> &bounding_boxes)
 {
-    for (const auto &circle : circles)
+    for (const Vec3f circle : circles)
     {
         int center_x = static_cast<int>(circle[0]);
         int center_y = static_cast<int>(circle[1]);
@@ -305,7 +295,9 @@ float balls_localizer::get_white_percentage_in_circle(const Mat &src, Vec3f circ
     src.copyTo(masked_hsv, mask);
 
     Mat white_mask;
-    inRange(masked_hsv, Vec3b(20, 0, 180), Vec3b(110, 100, 255), white_mask);
+    const Vec3b WHITE_HSV_LOWERBOUND = Vec3b(20, 0, 180);
+    const Vec3b WHITE_HSV_UPPERBOUND = Vec3b(110, 100, 255);
+    inRange(masked_hsv, WHITE_HSV_LOWERBOUND, WHITE_HSV_UPPERBOUND, white_mask);
 
     int white_pixels = countNonZero(white_mask);
     int total_circle_pixels = countNonZero(mask);
@@ -355,7 +347,7 @@ Vec3b balls_localizer::get_board_color(const Mat &src, float radius)
 void balls_localizer::draw_circles(const cv::Mat& src, cv::Mat& dst, std::vector<cv::Vec3f>& circles)
 {
     dst = src.clone();
-    for (Vec3f circle : circles)
+    for (const Vec3f circle : circles)
     {
         Point center = Point(circle[0], circle[1]);
         cv::circle(dst, center, 1, Scalar(0, 100, 100), 1, LINE_AA);
