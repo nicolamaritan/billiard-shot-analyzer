@@ -48,7 +48,21 @@ add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
 
+add_executable(evaluation
+	src/evaluation.cpp
+)
+
 target_link_libraries(${PROJECT_NAME}
+    ${OpenCV_LIBS}
+    show_cat
+    playing_field_localizer
+    balls_localizer
+    geometry
+    segmentation
+    masking
+)
+
+target_link_libraries(evaluation
     ${OpenCV_LIBS}
     show_cat
     playing_field_localizer

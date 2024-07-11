@@ -14,6 +14,8 @@
 using namespace cv;
 using namespace std;
 
+static int counter = 0;
+
 void balls_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
@@ -128,6 +130,9 @@ void balls_localizer::localize(const Mat &src)
 
     imshow("", display);
     // waitKey(0);
+
+    imwrite(to_string(counter) + ".png", display);
+    counter++;
 
     extract_bounding_boxes(circles, rois);
 }

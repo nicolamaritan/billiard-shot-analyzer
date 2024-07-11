@@ -153,7 +153,7 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
 {
     const float RHO_RESOLUTION = 1.5;   // In pixels.
     const float THETA_RESOLUTION = 1.8; // In radians.
-    const int THRESHOLD = 120;
+    const int THRESHOLD = 110;
 
     Mat cdst;
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
@@ -172,9 +172,6 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
         pt2.y = cvRound(y0 - 1000 * (a));
         line(cdst, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
     }
-
-    // imshow("", cdst);
-    // waitKey();
 }
 
 /**
@@ -183,8 +180,8 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
  */
 void playing_field_localizer::refine_lines(const vector<Vec3f> &lines, vector<Vec3f> &refined_lines)
 {
-    const float RHO_THRESHOLD = 25;
-    const float THETA_THRESHOLD = 0.2;
+    const float RHO_THRESHOLD = 40;
+    const float THETA_THRESHOLD = 0.5;
     vector<Vec3f> lines_copy = lines;
 
     while (!lines_copy.empty())
@@ -226,9 +223,6 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &li
         pt2.y = cvRound(y0 - 1000 * (a));
         line(src_bgr, pt1, pt2, Scalar(0, 255, 0), 1, LINE_AA);
     }
-
-    // imshow("", src_bgr);
-    // waitKey();
 }
 
 void playing_field_localizer::dump_similar_lines(const Vec3f &reference_line, vector<Vec3f> &lines, vector<Vec3f> &similar_lines, float rho_threshold, float theta_threshold)
