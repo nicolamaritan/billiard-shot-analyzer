@@ -4,6 +4,15 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
+struct playing_field_localization
+{
+    std::vector<cv::Point> corners;
+    cv::Mat mask;
+    std::vector<cv::Point> hole_points;
+};
+
+typedef struct playing_field_localization playing_field_localization;
+
 class playing_field_localizer
 {
 public:
@@ -13,9 +22,7 @@ public:
      * @param src The input image.
      */
     void localize(const cv::Mat &src);
-    std::vector<cv::Point> get_playing_field_corners() { return playing_field_corners; };
-    cv::Mat get_playing_field_mask() { return playing_field_mask; };
-    std::vector<cv::Point> get_playing_field_hole_points() { return playing_field_hole_points; };
+    playing_field_localization get_localization() { return localization; }
 
 private:
     /**
@@ -121,6 +128,7 @@ private:
     std::vector<cv::Point> playing_field_corners;
     cv::Mat playing_field_mask;
     std::vector<cv::Point> playing_field_hole_points;
+    playing_field_localization localization;
 };
 
 #endif

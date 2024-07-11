@@ -26,7 +26,7 @@ void balls_localizer::localize(const Mat &src)
     // bitwise_and(masked, mask_bgr, masked);
 
     Mat masked;
-    mask_bgr(blurred, masked, playing_field_mask);
+    mask_bgr(blurred, masked, playing_field.mask);
 
     Mat masked_hsv;
     cvtColor(masked, masked_hsv, COLOR_BGR2HSV);
@@ -51,7 +51,7 @@ void balls_localizer::localize(const Mat &src)
 
     Mat outer_field;
     Mat shrinked_playing_field_mask;
-    erode(playing_field_mask, shrinked_playing_field_mask, getStructuringElement(MORPH_CROSS, Size(50, 50)));
+    erode(playing_field.mask, shrinked_playing_field_mask, getStructuringElement(MORPH_CROSS, Size(50, 50)));
     bitwise_not(shrinked_playing_field_mask, outer_field);
 
     // Consider shadow segmentation mask only near the table edges
@@ -88,8 +88,8 @@ void balls_localizer::localize(const Mat &src)
     vector<Mat> hough_circle_masks;
     circles_masks(circles, hough_circle_masks, src.size());
     filter_empty_circles(circles, hough_circle_masks, segmentation_mask, 0.60);
-    filter_out_of_bound_circles(circles, playing_field_mask, 20);
-    filter_near_holes_circles(circles, playing_field_hole_points, 27);
+    filter_out_of_bound_circles(circles, playing_field.mask, 20);
+    filter_near_holes_circles(circles, playing_field.hole_points, 27);
 
     // We compute, for each circle, the percentage of "white" pixels. The one with highest percentage is picked as white ball.
     vector<pair<Vec3f, float>> circles_white_percentages;
@@ -104,7 +104,7 @@ void balls_localizer::localize(const Mat &src)
 
     // We aim to remove the arm and other elements by coloring a radius around the white ball of pixels connected to the outer field
     color_pixels_connected_to_outer_field(segmentation_mask, Point(static_cast<int>(white_ball_circle[0]), static_cast<int>(white_ball_circle[1])), 150);
-    bitwise_and(segmentation_mask, playing_field_mask, segmentation_mask);
+    bitwise_and(segmentation_mask, playing_field.mask, segmentation_mask);
     imshow("segmentation", segmentation_mask);
 
     // Compute new masks and filter out circles that has a large portion of white
@@ -196,23 +196,6 @@ void balls_localizer::filter_near_holes_circles(vector<Vec3f> &circles, const ve
             filtered_circles.push_back(circle);
     }
     circles = filtered_circles;
-}
-
-void balls_localizer::segmentation(const Mat &src, Mat &dst)
-{
-    // HSV allows to separate brightness from other color characteristics, therefore
-    // it is employed for kmeans clustering.
-    cvtColor(src, dst, COLOR_BGR2HSV);
-
-    const int VALUE_UNIFORM = 255;
-    vector<Mat> hsv_channels;
-    split(dst, hsv_channels);
-    hsv_channels[1].setTo(VALUE_UNIFORM);
-    hsv_channels[2].setTo(VALUE_UNIFORM);
-    merge(hsv_channels, dst);
-
-    const int NUMBER_OF_CENTERS = 8;
-    kmeans(src, dst, NUMBER_OF_CENTERS);
 }
 
 void balls_localizer::extract_seed_points(const Mat &inrange_segmentation_mask, vector<Point> &seed_points)

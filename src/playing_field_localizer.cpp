@@ -18,9 +18,6 @@ void playing_field_localizer::localize(const Mat &src)
     Mat segmented, labels;
     segmentation(blurred, segmented);
 
-    // imshow("", segmented);
-    // waitKey(0);
-
     const int RADIUS = 30;
     Vec3b board_color = get_board_color(segmented, RADIUS);
 
@@ -57,23 +54,20 @@ void playing_field_localizer::localize(const Mat &src)
 
     sort_points_clockwise(refined_lines_intersections);
     playing_field_corners = refined_lines_intersections;
+    localization.corners = refined_lines_intersections;
 
     vector<Point> hole_points;
     estimate_holes_location(hole_points);
     playing_field_hole_points = hole_points;
-    Mat display = src.clone();
-    for (Point point : hole_points)
-    {
-        circle(display, point, 3, Scalar(0, 0, 255), -1);
-    }
+    localization.hole_points = hole_points;
 
     Mat table_mask(Size(table.cols, table.rows), CV_8U);
     table_mask.setTo(0);
     fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
     fillConvexPoly(table_mask, refined_lines_intersections, 255);
     playing_field_mask = table_mask;
-    // imshow("", table_mask);
-    // waitKey(0);
+
+    localization.mask = table_mask;
 }
 
 void playing_field_localizer::segmentation(const Mat &src, Mat &dst)

@@ -34,7 +34,7 @@ int main()
         playing_field_localizer pl_field_loc;
         pl_field_loc.localize(first_frame);
 
-        balls_localizer balls_loc(pl_field_loc.get_playing_field_mask(), pl_field_loc.get_playing_field_corners(), pl_field_loc.get_playing_field_hole_points());
+        balls_localizer balls_loc(pl_field_loc.get_localization());
         balls_loc.localize(first_frame);
 
         waitKey();
