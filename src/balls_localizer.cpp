@@ -34,27 +34,27 @@ void extract_seed_points(const Mat &inrange_segmentation_mask, vector<Point> &se
     }
 }
 
-void fill_small_holes(cv::Mat &binary_mask, double area_threshold)
+void fill_small_holes(Mat &binary_mask, double area_threshold)
 {
     CV_Assert(binary_mask.type() == CV_8UC1);
 
-    std::vector<std::vector<cv::Point>> contours;
-    std::vector<cv::Vec4i> hierarchy;
-    cv::findContours(binary_mask, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
+    vector<vector<Point>> contours;
+    vector<Vec4i> hierarchy;
+    findContours(binary_mask, contours, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
 
     for (int i = 0; i < contours.size(); ++i)
     {
-        double area = cv::contourArea(contours[i]);
+        double area = contourArea(contours[i]);
 
         // If the area is less than the threshold, fill the hole
         if (area < area_threshold)
         {
-            cv::drawContours(binary_mask, contours, i, cv::Scalar(255), cv::FILLED, 8, hierarchy, 1);
+            drawContours(binary_mask, contours, i, Scalar(255), FILLED, 8, hierarchy, 1);
         }
     }
 }
 
-void extract_bounding_boxes(const std::vector<cv::Vec3f> &circles, std::vector<cv::Rect> &bounding_boxes)
+void extract_bounding_boxes(const vector<Vec3f> &circles, vector<Rect> &bounding_boxes)
 {
     for (const auto &circle : circles)
     {
@@ -71,12 +71,35 @@ void extract_bounding_boxes(const std::vector<cv::Vec3f> &circles, std::vector<c
         int width = 2 * radius;
         int height = 2 * radius;
 
-        // Create a cv::Rect object
-        cv::Rect roi(x, y, width, height);
+        // Create a Rect object
+        Rect roi(x, y, width, height);
 
         // Add the bounding box to the vector
         bounding_boxes.push_back(roi);
     }
+}
+
+float get_white_percentage_in_circle(const Mat &src, Vec3f circle)
+{
+    int x = cvRound(circle[0]);
+    int y = cvRound(circle[1]);
+    int radius = cvRound(circle[2]);
+
+    Mat mask = Mat::zeros(src.size(), CV_8U);
+    cv::circle(mask, Point(x, y), radius, Scalar(255), FILLED);
+
+    Mat masked_hsv;
+    src.copyTo(masked_hsv, mask);
+
+    Mat white_mask;
+    inRange(masked_hsv, Vec3b(20, 0, 180), Vec3b(110, 100, 255), white_mask);
+
+    int white_pixels = countNonZero(white_mask);
+    int total_circle_pixels = countNonZero(mask);
+    double percentage_white = static_cast<double>(white_pixels) / total_circle_pixels;
+    cout << circle << " " << percentage_white << endl;
+
+    return percentage_white;
 }
 
 void balls_localizer::localize(const Mat &src)
@@ -96,20 +119,27 @@ void balls_localizer::localize(const Mat &src)
     Mat masked_hsv;
     cvtColor(masked, masked_hsv, COLOR_BGR2HSV);
 
+    vector<Mat> channels;
+    split(masked_hsv, channels);
+    imshow("0", channels[0]);
+    imshow("1", channels[1]);
+    imshow("2", channels[2]);
+
     vector<Point> seed_points;
     Mat inrange_segmentation_mask_board, inrange_segmentation_mask_shadows, segmentation_mask;
 
     int RADIUS = 100;
-    Vec3b board_color_hsv = get_board_color(masked_hsv, RADIUS);
+    const Vec3b board_color_hsv = get_board_color(masked_hsv, RADIUS);
     const Vec3b SHADOW_OFFSET = Vec3b(0, 0, 90);
+
     Vec3b shadow_hsv = board_color_hsv - SHADOW_OFFSET;
-    inRange(masked_hsv, board_color_hsv - Vec3b(4, 50, 40), board_color_hsv + Vec3b(4, 40, 15), inrange_segmentation_mask_board);
-    inRange(masked_hsv, shadow_hsv - Vec3b(7, 100, 100), shadow_hsv + Vec3b(7, 80, 80), inrange_segmentation_mask_shadows);
-    morphologyEx(inrange_segmentation_mask_shadows.clone(), inrange_segmentation_mask_shadows, MORPH_OPEN, getStructuringElement(MORPH_CROSS, Size(3, 3)));
+    inRange(masked_hsv, board_color_hsv - Vec3b(4, 70, 50), board_color_hsv + Vec3b(4, 50, 15), inrange_segmentation_mask_board);
+    inRange(masked_hsv, shadow_hsv - Vec3b(3, 30, 80), shadow_hsv + Vec3b(3, 100, 40), inrange_segmentation_mask_shadows);
+    // morphologyEx(inrange_segmentation_mask_shadows.clone(), inrange_segmentation_mask_shadows, MORPH_OPEN, getStructuringElement(MORPH_CROSS, Size(3, 3)));
 
     Mat outer_field;
     Mat shrinked_playing_field_mask;
-    erode(playing_field_mask, shrinked_playing_field_mask, getStructuringElement(MORPH_CROSS, Size(70, 70)));
+    erode(playing_field_mask, shrinked_playing_field_mask, getStructuringElement(MORPH_CROSS, Size(50, 50)));
     bitwise_not(shrinked_playing_field_mask, outer_field);
     imshow("outer_field", outer_field);
 
@@ -123,12 +153,15 @@ void balls_localizer::localize(const Mat &src)
     extract_seed_points(segmentation_mask, seed_points);
     region_growing(masked_hsv, segmentation_mask, seed_points, 3, 6, 4);
 
+    imshow("segmentation_before", segmentation_mask);
     vector<Point> mask_seed_points;
     Mat out_of_field_mask;
     mask_seed_points.push_back(Point(0, 0));
-    mask_region_growing(segmentation_mask, out_of_field_mask, mask_seed_points);
+    // mask_region_growing(segmentation_mask, out_of_field_mask, mask_seed_points);
 
-    bitwise_or(segmentation_mask.clone(), out_of_field_mask, segmentation_mask);
+    // bitwise_or(segmentation_mask.clone(), out_of_field_mask, segmentation_mask);
+    // erode(segmentation_mask.clone(), segmentation_mask, getStructuringElement(MORPH_CROSS, Size(5, 5)));
+
     fill_small_holes(segmentation_mask, 90);
     imshow("segmentation", segmentation_mask);
 
@@ -139,7 +172,7 @@ void balls_localizer::localize(const Mat &src)
     const int HOUGH_MIN_RADIUS = 8;
     const int HOUGH_MAX_RADIUS = 16;
     const float HOUGH_DP = 0.3;
-    const int HOUGH_MIN_DISTANCE = 18;
+    const int HOUGH_MIN_DISTANCE = 20;
     vector<Vec3f> circles;
     HoughCircles(segmentation_mask, circles, HOUGH_GRADIENT, HOUGH_DP, HOUGH_MIN_DISTANCE, 100, 5, HOUGH_MIN_RADIUS, HOUGH_MAX_RADIUS);
 
@@ -149,22 +182,39 @@ void balls_localizer::localize(const Mat &src)
     filter_out_of_bound_circles(circles, playing_field_mask, 20);
     filter_near_holes_circles(circles, playing_field_hole_points, 27);
 
+    vector<pair<Vec3f, float>> circles_white_percentages;
+    for (Vec3f circle : circles)
+    {
+        circles_white_percentages.push_back({circle, get_white_percentage_in_circle(masked_hsv, circle)});
+    }
+    std::sort(circles_white_percentages.begin(), circles_white_percentages.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
+              { return a.second > b.second; });
+    Vec3f white_ball_circle = circles_white_percentages.at(0).first;
+    // circles.erase(circles.begin());
+    cout << "/////////////////" << endl;
+
     Mat display = blurred.clone();
     for (size_t i = 0; i < circles.size(); i++)
     {
         Vec3i c = circles[i];
         Point center = Point(c[0], c[1]);
-        circle(display, center, 1, Scalar(0, 100, 100), 2, LINE_AA);
+        circle(display, center, 1, Scalar(0, 100, 100), 1, LINE_AA);
         int radius = c[2];
-        circle(display, center, radius, Scalar(255, 0, 255), 2, LINE_AA);
+        circle(display, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
     }
+
+    int white_ball_radius = white_ball_circle[2];
+    Point white_ball_center = Point(white_ball_circle[0], white_ball_circle[1]);
+    circle(display, white_ball_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
+    circle(display, white_ball_center, white_ball_radius, Scalar(255, 0, 0), 1, LINE_AA);
+
     imshow("", display);
     // waitKey(0);
 
     extract_bounding_boxes(circles, rois);
 }
 
-void balls_localizer::circles_masks(const std::vector<Vec3f> &circles, std::vector<Mat> &masks, Size mask_size)
+void balls_localizer::circles_masks(const vector<Vec3f> &circles, vector<Mat> &masks, Size mask_size)
 {
     for (size_t i = 0; i < circles.size(); i++)
     {
@@ -175,9 +225,9 @@ void balls_localizer::circles_masks(const std::vector<Vec3f> &circles, std::vect
     }
 }
 
-void balls_localizer::filter_empty_circles(std::vector<cv::Vec3f> &circles, const std::vector<Mat> &masks, const Mat &segmentation_mask, float intersection_threshold)
+void balls_localizer::filter_empty_circles(vector<Vec3f> &circles, const vector<Mat> &masks, const Mat &segmentation_mask, float intersection_threshold)
 {
-    std::vector<cv::Vec3f> filtered_circles;
+    vector<Vec3f> filtered_circles;
     for (size_t i = 0; i < circles.size(); i++)
     {
         float circle_area = countNonZero(masks[i]);
@@ -193,9 +243,9 @@ void balls_localizer::filter_empty_circles(std::vector<cv::Vec3f> &circles, cons
     circles = filtered_circles;
 }
 
-void balls_localizer::filter_out_of_bound_circles(std::vector<cv::Vec3f> &circles, const Mat &table_mask, int distance_threshold)
+void balls_localizer::filter_out_of_bound_circles(vector<Vec3f> &circles, const Mat &table_mask, int distance_threshold)
 {
-    std::vector<cv::Vec3f> filtered_circles;
+    vector<Vec3f> filtered_circles;
     Mat shrinked_table_mask;
     erode(table_mask, shrinked_table_mask, getStructuringElement(MORPH_CROSS, Size(distance_threshold, distance_threshold)));
 
@@ -210,9 +260,9 @@ void balls_localizer::filter_out_of_bound_circles(std::vector<cv::Vec3f> &circle
     circles = filtered_circles;
 }
 
-void balls_localizer::filter_near_holes_circles(std::vector<cv::Vec3f> &circles, const vector<Point> &holes_points, float distance_threshold)
+void balls_localizer::filter_near_holes_circles(vector<Vec3f> &circles, const vector<Point> &holes_points, float distance_threshold)
 {
-    std::vector<cv::Vec3f> filtered_circles;
+    vector<Vec3f> filtered_circles;
     for (Vec3f circle : circles)
     {
         Point circle_point = Point(static_cast<int>(circle[0]), static_cast<int>(circle[1]));
