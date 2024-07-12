@@ -9,6 +9,59 @@
 using namespace cv;
 using namespace std;
 
+
+int COUNTER = 1;
+
+void region_growing(const Mat &src, Mat &dst, const vector<Point> &seeds, int threshold_0, int threshold_1, int threshold_2)
+{
+    dst = Mat::zeros(src.size(), CV_8UC1); // Initialize the destination image
+    queue<Point> to_grow;                   // Queue for points to be processed
+
+    for (const Point &seed : seeds)
+    {
+        if (seed.x >= 0 && seed.x < src.cols && seed.y >= 0 && seed.y < src.rows)
+        {
+            to_grow.push(seed);
+            dst.at<uchar>(seed) = 255; // Mark the seed point in the destination image
+        }
+    }
+
+    int dx[] = {-1, 1, 0, 0, 1, 1, -1, -1};
+    int dy[] = {0, 0, -1, 1, 1, -1, 1, -1};
+
+    while (!to_grow.empty())
+    {
+        Point p = to_grow.front();
+        to_grow.pop();
+
+        for (int i = 0; i < 4; ++i)
+        {
+            Point neighbor(p.x + dx[i], p.y + dy[i]);
+            if (neighbor.x >= 0 && neighbor.x < src.cols && neighbor.y >= 0 && neighbor.y < src.rows)
+            {
+                if (dst.at<uchar>(neighbor) == 0 &&
+                    abs(src.at<Vec3b>(p)[0] - src.at<Vec3b>(neighbor)[0]) <= threshold_0 &&
+                    abs(src.at<Vec3b>(p)[1] - src.at<Vec3b>(neighbor)[1]) <= threshold_1 &&
+                    abs(src.at<Vec3b>(p)[2] - src.at<Vec3b>(neighbor)[2]) <= threshold_2)
+                {
+                    dst.at<uchar>(neighbor) = 255;
+                    to_grow.push(neighbor);
+                }
+            }
+        }
+    }
+}
+
+void mask_region_growing(const Mat &src, Mat &dst, const vector<Point> &seeds)
+{
+    Mat src_bgr;
+    cvtColor(src, src_bgr, COLOR_GRAY2BGR);
+    region_growing(src_bgr, dst, seeds, 0, 0, 0);
+}
+
+
+
+
 void balls_localizer::localize(const Mat &src, const Mat &mask, const vector<Point> playing_field_corners)
 {
     const int FILTER_SIZE = 3;
@@ -167,10 +220,14 @@ void balls_localizer::filter_empty_circles(const std::vector<cv::Vec3f> &circles
 {
     for (size_t i = 0; i < circles.size(); i++)
     {
+        cout << "gggg"<<endl;
         float circle_area = countNonZero(masks[i]);
+        cout << "aaaa"<<endl;
         Mat masks_intersection;
         bitwise_and(masks[i], segmentation_mask, masks_intersection);
+        cout << "sssssss"<<endl;
         float intersection_area = countNonZero(masks_intersection);
+        cout << "ddddd"<<endl;
 
         if (intersection_area / circle_area < intersection_threshold)
         {
@@ -215,36 +272,50 @@ void balls_localizer::segmentation(const Mat &src, Mat &dst)
     imshow("", src);
     waitKey(0);
 
-    cvtColor(src, dst, COLOR_BGR2HSV);
+    cvtColor(src, dst, COLOR_BGR2Lab);
 
     const int VALUE_UNIFORM = 255;
     vector<Mat> hsv_channels;
     split(dst, hsv_channels);
-    hsv_channels[1].setTo(VALUE_UNIFORM);
+    //hsv_channels[0].setTo(VALUE_UNIFORM);
+    hsv_channels[1].setTo(255);
     hsv_channels[2].setTo(VALUE_UNIFORM);
     merge(hsv_channels, dst);
 
-    imshow("", dst);
+    imshow("HSV", dst);
     waitKey(0);
-
+    /*
+    if(COUNTER == 8)
+        imwrite("hsv8.png", dst);
+    */
+    COUNTER++;
     Vec3b color = get_board_color(dst, 30);
     cout << color << endl;
     
     //Mat mask = Mat::zeros(dst.rows, dst.cols, CV_8U);
-    Mat mask(dst.rows, dst.cols, CV_8UC1, Scalar(0));
+    Mat mask(dst.rows, dst.cols, CV_8UC1, Scalar(255));
     for(int y=0;y<dst.rows;y++)
     {
         for(int x=0;x<dst.cols;x++)
         {
             if(abs(dst.at<Vec3b>(y,x)[0]-color[0]) > 5)
-                mask.at<uchar>(y,x) = 255;
+                mask.at<uchar>(y,x) = 0;
             
         }
     }
     
     imshow("", mask);
     waitKey(0);
-    dilate(mask.clone(), mask, getStructuringElement(MORPH_RECT, Size(5, 5)));
+    /*
+    Mat out;
+    mask_region_growing(mask.clone(), out, {Point(0,0)});
+    bitwise_or(mask.clone(), out, mask);
+    imshow("", mask);
+    waitKey(0);
+    */
+    
+
+    erode(mask.clone(), mask, getStructuringElement(MORPH_RECT, Size(3, 3)));
     imshow("", mask);
     waitKey(0);
     vector<Vec3f> circles;
@@ -257,6 +328,7 @@ void balls_localizer::segmentation(const Mat &src, Mat &dst)
     // HoughCircles(src_gray, circles, HOUGH_GRADIENT, 1, 18, 30, 1, 5, 17);
 
     Mat d = src.clone();
+    
     for (size_t i = 0; i < circles.size(); i++)
     {
         Vec3i c = circles[i];
@@ -265,6 +337,21 @@ void balls_localizer::segmentation(const Mat &src, Mat &dst)
         int radius = c[2];
         circle(d, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
     }
+    
+   /*
+    vector<Vec3f> filtered_circles;
+    vector<Mat> masks, filtered_masks;
+    circles_masks(circles, masks, Size(src.size()));
+    filter_empty_circles(circles, masks, mask, filtered_circles, filtered_masks, 0.6);
+    for (size_t i = 0; i < circles.size(); i++)
+    {
+        Vec3i c = filtered_circles[i];
+        Point center = Point(c[0], c[1]);
+        circle(d, center, 1, Scalar(0, 100, 100), 1, LINE_AA);
+        int radius = c[2];
+        circle(d, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
+    }
+    */
     imshow("DISPLAY", d);
     waitKey(0);
 
