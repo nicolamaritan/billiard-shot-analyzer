@@ -1,7 +1,9 @@
 #include <iostream>
 #include <cmath>
 #include <map>
-#include "playing_field_localizer.h"
+#include <limits>
+#include "playing_field_localization.h"
+#include "geometry.h"
 
 using namespace cv;
 using namespace std;
@@ -10,13 +12,11 @@ void playing_field_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 20;
-    GaussianBlur(src.clone(), src, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
+    Mat blurred;
+    GaussianBlur(src.clone(), blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
 
     Mat segmented, labels;
-    segmentation(src, segmented);
-
-    imshow("", segmented);
-    waitKey(0);
+    segmentation(blurred, segmented);
 
     const int RADIUS = 30;
     Vec3b board_color = get_board_color(segmented, RADIUS);
@@ -25,19 +25,19 @@ void playing_field_localizer::localize(const Mat &src)
     inRange(segmented, board_color, board_color, mask);
     segmented.setTo(Scalar(0, 0, 0), mask);
 
-    imshow("", mask);
-    waitKey(0);
+    // imshow("", mask);
+    // waitKey(0);
 
     non_maxima_connected_component_suppression(mask.clone(), mask);
-    imshow("", mask);
-    waitKey(0);
+    // imshow("", mask);
+    // waitKey(0);
 
     const int THRESHOLD_1_CANNY = 50;
     const int THRESHOLD_2_CANNY = 150;
     Mat edges;
     Canny(mask, edges, THRESHOLD_1_CANNY, THRESHOLD_2_CANNY);
-    imshow("", edges);
-    waitKey(0);
+    // imshow("", edges);
+    // waitKey(0);
 
     vector<Vec3f> lines, refined_lines;
     find_lines(edges, lines);
@@ -46,22 +46,28 @@ void playing_field_localizer::localize(const Mat &src)
     draw_lines(edges, refined_lines);
 
     vector<Point> refined_lines_intersections;
-    Mat table = src.clone();
+    Mat table = blurred.clone();
     intersections(refined_lines, refined_lines_intersections, table.rows, table.cols);
     draw_pool_table(refined_lines_intersections, table);
-    imshow("", table);
-    waitKey(0);
+    // imshow("", table);
+    // waitKey(0);
 
     sort_points_clockwise(refined_lines_intersections);
+    playing_field_corners = refined_lines_intersections;
+    localization.corners = refined_lines_intersections;
 
+    vector<Point> hole_points;
+    estimate_holes_location(hole_points);
+    playing_field_hole_points = hole_points;
+    localization.hole_points = hole_points;
+
+    Mat table_mask(Size(table.cols, table.rows), CV_8U);
+    table_mask.setTo(0);
     fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
-    imshow("", table);
-    waitKey(0);
-}
+    fillConvexPoly(table_mask, refined_lines_intersections, 255);
+    playing_field_mask = table_mask;
 
-inline vector<Point> playing_field_localizer::get_playing_field_corners()
-{
-    return playing_field_corners;
+    localization.mask = table_mask;
 }
 
 void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
@@ -87,7 +93,7 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
     const int NUMBER_OF_CENTERS = 3;
     const int KMEANS_MAX_COUNT = 10;
     const int KMEANS_EPSILON = 1.0;
-    const int KMEANS_ATTEMPTS = 3;
+    const int KMEANS_ATTEMPTS = 8;
     kmeans(data, NUMBER_OF_CENTERS, labels, TermCriteria(TermCriteria::MAX_ITER, KMEANS_MAX_COUNT, KMEANS_EPSILON), KMEANS_ATTEMPTS, KMEANS_PP_CENTERS, centers);
 
     // Reshape both to a single row of Vec3f pixels
@@ -147,7 +153,7 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
 {
     const float RHO_RESOLUTION = 1.5;   // In pixels.
     const float THETA_RESOLUTION = 1.8; // In radians.
-    const int THRESHOLD = 120;
+    const int THRESHOLD = 110;
 
     Mat cdst;
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
@@ -166,9 +172,6 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
         pt2.y = cvRound(y0 - 1000 * (a));
         line(cdst, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
     }
-
-    imshow("", cdst);
-    waitKey();
 }
 
 /**
@@ -177,8 +180,8 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
  */
 void playing_field_localizer::refine_lines(const vector<Vec3f> &lines, vector<Vec3f> &refined_lines)
 {
-    const float RHO_THRESHOLD = 25;
-    const float THETA_THRESHOLD = 0.2;
+    const float RHO_THRESHOLD = 40;
+    const float THETA_THRESHOLD = 0.5;
     vector<Vec3f> lines_copy = lines;
 
     while (!lines_copy.empty())
@@ -220,9 +223,6 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &li
         pt2.y = cvRound(y0 - 1000 * (a));
         line(src_bgr, pt1, pt2, Scalar(0, 255, 0), 1, LINE_AA);
     }
-
-    imshow("", src_bgr);
-    waitKey();
 }
 
 void playing_field_localizer::dump_similar_lines(const Vec3f &reference_line, vector<Vec3f> &lines, vector<Vec3f> &similar_lines, float rho_threshold, float theta_threshold)
@@ -285,71 +285,6 @@ bool playing_field_localizer::is_within_image(const Point &p, int rows, int cols
     return p.x >= 0 && p.x < cols && p.y >= 0 && p.y < rows;
 }
 
-// Finds the intersection of two lines.
-// The lines are defined by (o1, pt1) and (o2, pt2).
-bool playing_field_localizer::intersection(pair<Point, Point> pts_line_1, pair<Point, Point> pts_line_2, Point &intersection_pt, int rows, int cols)
-{
-    // pts_line_1 -> {(x1,y1), (x2,y2)}
-    // pts_line_2 -> {(x3,y3), (x4,y4)}
-    // We follow the formula in https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
-    Point difference_12 = pts_line_1.first - pts_line_1.second;
-    Point difference_13 = pts_line_1.first - pts_line_2.first;
-    Point difference_34 = pts_line_2.first - pts_line_2.second;
-
-    const float EPSILON = 1e-8;
-    float cross_product = difference_12.x * difference_34.y - difference_12.y * difference_34.x;
-    if (abs(cross_product) < EPSILON)
-        return false;
-
-    // t is a real number in the formula computed as follows
-    double t = (difference_13.x * difference_34.y - difference_13.y * difference_34.x) / cross_product;
-    
-    intersection_pt = pts_line_1.first - difference_12 * t;
-
-    return is_within_image(intersection_pt, rows, cols);
-}
-
-// Finds the intersection of two lines.
-// The lines are defined by (o1, pt1) and (o2, pt2).
-void playing_field_localizer::intersections(const vector<Vec3f> &lines, vector<Point> &out_intersections, int rows, int cols)
-{
-    // It is easier to compute intersections by expressing one line as a pair (pt1, pt2),
-    // distinct points in the line.
-    vector<pair<Point, Point>> points;
-    get_pairs_points_per_line(lines, points);
-
-    for (int i = 0; i < points.size() - 1; i++)
-    {
-        for (int j = i + 1; j < points.size(); j++)
-        {
-            Point intersection_ij;
-            if (intersection(points.at(i), points.at(j), intersection_ij, rows, cols))
-                out_intersections.push_back(intersection_ij);
-        }
-    }
-}
-
-void playing_field_localizer::get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Point>> &pts)
-{
-    // Arbitrary x coordinate to compute the 2 points in each line.
-    const float POINT_X = 1000;
-
-    for (auto line : lines)
-    {
-        float rho = line[0];
-        float theta = line[1];
-        Point pt1, pt2;
-        double a = cos(theta), b = sin(theta);
-        double x0 = a * rho, y0 = b * rho;
-        pt1.x = cvRound(x0 + POINT_X * (-b));
-        pt1.y = cvRound(y0 + POINT_X * (a));
-        pt2.x = cvRound(x0 - POINT_X * (-b));
-        pt2.y = cvRound(y0 - POINT_X * (a));
-
-        pts.push_back({pt1, pt2});
-    }
-}
-
 void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
 {
     Point center;
@@ -378,20 +313,97 @@ void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
         return cross_product > 0; });
 }
 
-double playing_field_localizer::angle_between_lines(double m1, double m2)
+void playing_field_localizer::estimate_holes_location(vector<Point> &hole_points)
 {
-    double angle = atan(abs((m1 - m2) / (1 + m1 * m2)));
-    if (angle >= 0)
-        return angle;
+    pair<Point, Point> positive_diagonal = {playing_field_corners.at(0), playing_field_corners.at(2)};
+    pair<Point, Point> negative_diagonal = {playing_field_corners.at(1), playing_field_corners.at(3)};
+    Point playing_field_center;
+    bool is_perspective_view = false;
+    intersection(positive_diagonal, negative_diagonal, playing_field_center, 9999, 9999);
+
+    // Computation of long and short edges. Recall playing_field_corners starts from bottom left corner of
+    // the playing field and are sorted clockwise.
+    
+    pair<Point, Point> short_edge, long_edge_1, long_edge_2;
+
+    // If the two angular coefficients have similar absolute value and opposite sign, then we have a perspective view
+    if (abs(angular_coefficient(positive_diagonal) + angular_coefficient(negative_diagonal)) < 0.01)
+    {
+        is_perspective_view = true;
+        long_edge_1 = {playing_field_corners.at(0), playing_field_corners.at(1)};
+        long_edge_2 = {playing_field_corners.at(3), playing_field_corners.at(2)};
+        short_edge = {playing_field_corners.at(3), playing_field_corners.at(0)};
+    }
     else
-        return angle + CV_PI;
+    {
+        if (norm(playing_field_corners.at(0) - playing_field_corners.at(1)) < norm(playing_field_corners.at(1) - playing_field_corners.at(2)))
+        {
+            short_edge = {playing_field_corners.at(0), playing_field_corners.at(1)};
+            long_edge_1 = {playing_field_corners.at(1), playing_field_corners.at(2)};
+            long_edge_2 = {playing_field_corners.at(3), playing_field_corners.at(0)};
+        }
+        else
+        {
+            short_edge = {playing_field_corners.at(1), playing_field_corners.at(2)};
+            long_edge_1 = {playing_field_corners.at(0), playing_field_corners.at(1)};
+            long_edge_2 = {playing_field_corners.at(2), playing_field_corners.at(3)};
+        }
+    }
+
+    // A line of the same direction of the short edge intersects the two long
+    // edges in the hole positions. We now find such intersections.
+    Point short_edge_offset = short_edge.first - short_edge.second;
+    Point lateral_hole_1, lateral_hole_2;
+    intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_1, lateral_hole_1, 9999, 9999);
+    intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_2, lateral_hole_2, 9999, 9999);
+
+    // We now employ float representation of points for precise computation of the refined
+    // holes points. In fact, using cv::Point we obtain non negligible truncating errors.
+    Point2f bottom_left = playing_field_corners.at(0);
+    Point2f top_left = playing_field_corners.at(1);
+    Point2f top_right = playing_field_corners.at(2);
+    Point2f bottom_right = playing_field_corners.at(3);
+
+    Point2f playing_field_center_float = static_cast<Point2f>(playing_field_center);
+    Point2f lateral_hole_1_float = static_cast<Point2f>(lateral_hole_1);
+    Point2f lateral_hole_2_float = static_cast<Point2f>(lateral_hole_2);
+    Point2f top_left_float = static_cast<Point2f>(top_left);
+    Point2f top_right_float = static_cast<Point2f>(top_right);
+    Point2f bottom_left_float = static_cast<Point2f>(bottom_left);
+    Point2f bottom_right_float = static_cast<Point2f>(bottom_right);
+
+    /*
+        Refined hole points computation
+        Refined hole points move "a bit towards" the playing field center.
+        The amount is defined by the "adjustment" vars below.
+        This is done to better estimate their location.
+    */
+    const float LATERAL_HOLES_ADJUSTMENT = 15;
+    const float BOTTOM_CORNERS_ADJUSTMENT = is_perspective_view ? 25 : 10;
+    const float TOP_CORNERS_ADJUSTMENT = is_perspective_view ? 15 : 10;
+
+    Point2f lateral_hole_1_refined = lateral_hole_1_float + ((playing_field_center_float - lateral_hole_1_float) / norm(playing_field_center_float - lateral_hole_1_float)) * LATERAL_HOLES_ADJUSTMENT;
+    Point2f lateral_hole_2_refined = lateral_hole_2_float + ((playing_field_center_float - lateral_hole_2_float) / norm(playing_field_center_float - lateral_hole_2_float)) * LATERAL_HOLES_ADJUSTMENT;
+
+    Point2f top_left_refined = top_left_float + ((playing_field_center_float - top_left_float) / norm(playing_field_center_float - top_left_float)) * TOP_CORNERS_ADJUSTMENT;
+    Point2f top_right_refined = top_right_float + ((playing_field_center_float - top_right_float) / norm(playing_field_center_float - top_right_float)) * TOP_CORNERS_ADJUSTMENT;
+
+    Point2f bottom_left_refined = bottom_left_float + ((playing_field_center_float - bottom_left_float) / norm(playing_field_center_float - bottom_left_float)) * BOTTOM_CORNERS_ADJUSTMENT;
+    Point2f bottom_right_refined = bottom_right_float + ((playing_field_center_float - bottom_right_float) / norm(playing_field_center_float - bottom_right_float)) * BOTTOM_CORNERS_ADJUSTMENT;
+
+    hole_points.push_back(static_cast<Point>(lateral_hole_1_refined));
+    hole_points.push_back(static_cast<Point>(lateral_hole_2_refined));
+    hole_points.push_back(static_cast<Point>(top_left_refined));
+    hole_points.push_back(static_cast<Point>(top_right_refined));
+    hole_points.push_back(static_cast<Point>(bottom_left_refined));
+    hole_points.push_back(static_cast<Point>(bottom_right_refined));
 }
 
 void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
 {
-    if (is_vertical_line(inters[0], inters[1]) ||
-        is_vertical_line(inters[0], inters[2]) ||
-        is_vertical_line(inters[0], inters[3]))
+    if (is_vertical_line({inters[0], inters[1]}) ||
+        is_vertical_line({inters[0], inters[2]}) ||
+        is_vertical_line({inters[0], inters[3]}))
     {
         vector<int> x_coord = {inters[0].x, inters[1].x, inters[2].x, inters[3].x};
         vector<int> y_coord = {inters[0].y, inters[1].y, inters[2].y, inters[3].y};
@@ -406,13 +418,13 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
 
     else
     {
-        double m1 = angular_coefficient(inters[0], inters[1]); // line 1
-        double m2 = angular_coefficient(inters[0], inters[2]); // line 2
-        double m3 = angular_coefficient(inters[0], inters[3]); // line 3
+        double m1 = angular_coefficient({inters[0], inters[1]}); // line 1
+        double m2 = angular_coefficient({inters[0], inters[2]}); // line 2
+        double m3 = angular_coefficient({inters[0], inters[3]}); // line 3
 
-        double theta1 = angle_between_lines(m1, m2); // angle between line 1 and line 2
-        double theta2 = angle_between_lines(m1, m3); // angle between line 1 and line 3
-        double theta3 = angle_between_lines(m2, m3); // angle between line 2 and line 3
+        double theta1 = angle_between_lines({inters[0], inters[1]}, {inters[0], inters[2]}); // angle between line 1 and line 2
+        double theta2 = angle_between_lines({inters[0], inters[1]}, {inters[0], inters[3]}); // angle between line 1 and line 3
+        double theta3 = angle_between_lines({inters[0], inters[2]}, {inters[0], inters[3]}); // angle between line 2 and line 3
 
         if (theta1 >= theta2 && theta1 >= theta3)
         {
@@ -436,25 +448,4 @@ void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
             line(image, inters[1], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
         }
     }
-}
-
-double playing_field_localizer::angular_coefficient(const Point &pt1, const Point &pt2)
-{
-    return (pt2.y - pt1.y) / (pt2.x - pt1.x);
-}
-
-bool playing_field_localizer::is_vertical_line(const Point &pt1, const Point &pt2)
-{
-    return pt1.x == pt2.x;
-}
-
-bool playing_field_localizer::are_parallel_lines(double m1, double m2)
-{
-    const float EPSILON = 0.001;
-    return abs(m1 - m2) <= EPSILON;
-}
-
-double playing_field_localizer::intercept(const Point &pt1, const Point &pt2)
-{
-    return pt1.y - pt1.x * angular_coefficient(pt1, pt2);
 }

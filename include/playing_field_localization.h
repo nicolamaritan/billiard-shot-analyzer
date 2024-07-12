@@ -1,8 +1,17 @@
-#ifndef PLAYING_FIELD_LOCALIZER
-#define PLAYING_FIELD_LOCALIZER
+#ifndef PLAYING_FIELD_LOCALIZATION_H
+#define PLAYING_FIELD_LOCALIZATION_H
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+
+struct playing_field_localization
+{
+    std::vector<cv::Point> corners;
+    cv::Mat mask;
+    std::vector<cv::Point> hole_points;
+};
+
+typedef struct playing_field_localization playing_field_localization;
 
 class playing_field_localizer
 {
@@ -13,7 +22,7 @@ public:
      * @param src The input image.
      */
     void localize(const cv::Mat &src);
-    inline std::vector<cv::Point> get_playing_field_corners();
+    playing_field_localization get_localization() { return localization; }
 
 private:
     /**
@@ -94,51 +103,32 @@ private:
     bool is_within_image(const cv::Point &pt, int rows, int cols);
 
     /**
-     * @brief Finds the intersection point of two lines if it lies within the image bounds.
-     *
-     * @param pts_line_1 Pair of points defining the first line.
-     * @param pts_line_2 Pair of points defining the second line.
-     * @param intersection_pt The output point of intersection.
-     * @param rows The number of rows in the image.
-     * @param cols The number of columns in the image.
-     * @return true If the intersection point is within the image bounds.
-     * @return false If the lines do not intersect within the image bounds or are parallel.
-     */
-    bool intersection(std::pair<cv::Point, cv::Point> pts_line_1, std::pair<cv::Point, cv::Point> pts_line_2, cv::Point &intersection_pt, int rows, int cols);
-
-    /**
-     * @brief Finds all intersections between pairs of lines and stores them if they lie within the image bounds.
-     *
-     * @param lines Vector of lines, each represented by a Vec3f (rho, theta, number of votes).
-     * @param out_intersections Vector of intersection points within the image bounds.
-     * @param rows The number of rows in the image.
-     * @param cols The number of columns in the image.
-     */
-    void intersections(const std::vector<cv::Vec3f> &lines, std::vector<cv::Point> &out_intersections, int rows, int cols);
-
-    /**
-     * @brief Converts a set of lines represented by (rho, theta) into pairs of points.
-     *
-     * @param lines Vector of lines, each represented by a Vec3f (rho, theta, number of votes).
-     * @param pts Output vector of pairs of points, each pair representing a line.
-     */
-    void get_pairs_points_per_line(const std::vector<cv::Vec3f> &lines, std::vector<std::pair<cv::Point, cv::Point>> &pts);
-
-    /**
      * @brief Sorts a vector of points in a clockwise order based on their position relative to the center of the set.
      *
      * @param points Vector of points to be sorted.
      */
     void sort_points_clockwise(std::vector<cv::Point> &points);
 
-    double angle_between_lines(double m1, double m2);
+    /**
+     * @brief Estimates the locations of holes on a playing field based on the corners of the field.
+     *
+     * This method calculates the positions of six hole points on a playing field. It determines if the view
+     * of the playing field is in perspective by analyzing the angular coefficients of the field's diagonals.
+     * Depending on whether the view is perspective or not, it identifies the long and short edges of the field.
+     * The method then finds the intersections of lines parallel to the short edge with the long edges to locate
+     * the initial hole positions. These positions are refined to account for perspective adjustments and are
+     * returned in the provided vector.
+     *
+     * @param hole_points A vector of Point objects where the estimated hole locations will be stored.
+     */
+    void estimate_holes_location(std::vector<cv::Point> &hole_points);
+
     void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
-    double angular_coefficient(const cv::Point &pt1, const cv::Point &pt2);
-    bool is_vertical_line(const cv::Point &pt1, const cv::Point &pt2);
-    bool are_parallel_lines(double m1, double m2);
-    double intercept(const cv::Point &pt1, const cv::Point &pt2);
 
     std::vector<cv::Point> playing_field_corners;
+    cv::Mat playing_field_mask;
+    std::vector<cv::Point> playing_field_hole_points;
+    playing_field_localization localization;
 };
 
 #endif

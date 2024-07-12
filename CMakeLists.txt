@@ -19,17 +19,55 @@ add_library(show_cat
     src/show_cat.cpp
 )
 
-add_library(playing_field_localizer
-    include/playing_field_localizer.h
-    src/playing_field_localizer.cpp
+add_library(playing_field_localization
+    include/playing_field_localization.h
+    src/playing_field_localization.cpp
+)
+
+add_library(balls_localization
+    include/balls_localization.h
+    src/balls_localization.cpp
+)
+
+add_library(geometry
+    include/geometry.h
+    src/geometry.cpp
+)
+
+add_library(masking
+    include/masking.h
+    src/masking.cpp
+)
+
+add_library(segmentation
+    include/segmentation.h
+    src/segmentation.cpp
 )
 
 add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
 
+add_executable(evaluation
+	src/evaluation.cpp
+)
+
 target_link_libraries(${PROJECT_NAME}
     ${OpenCV_LIBS}
     show_cat
-    playing_field_localizer
+    playing_field_localization
+    balls_localization
+    geometry
+    segmentation
+    masking
+)
+
+target_link_libraries(evaluation
+    ${OpenCV_LIBS}
+    show_cat
+    playing_field_localization
+    balls_localization
+    geometry
+    segmentation
+    masking
 )
