@@ -105,7 +105,7 @@ private:
      * @param circle The circle to analyze.
      * @return The percentage of white pixels in the circle.
      */
-    float get_white_percentage_in_circle(const cv::Mat &src, cv::Vec3f circle);
+    float get_white_percentage_in_circle(const cv::Mat &src, const cv::Mat& segmentation_mask, cv::Vec3f circle);
 
     /**
      * @brief Filters out circles that are close to each other but significantly different in radius and position.
@@ -138,8 +138,12 @@ private:
      */
     cv::Vec3b get_board_color(const cv::Mat &src, float radius);
 
+    float mean_squared_bgr_intra_pixel_difference(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
+
+
     const playing_field_localization playing_field;
     std::vector<cv::Rect> bounding_boxes;
+    balls_localization localization;
 };
 
 #endif
