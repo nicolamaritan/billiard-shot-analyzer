@@ -14,6 +14,16 @@
 using namespace cv;
 using namespace std;
 
+bool operator==(const ball_localization &lhs, const ball_localization &rhs)
+{
+    return lhs.circle == rhs.circle && lhs.bounding_box == rhs.bounding_box;
+}
+
+bool operator!=(const ball_localization &lhs, const ball_localization &rhs)
+{
+    return !(lhs == rhs);
+}
+
 void balls_localizer::localize(const Mat &src)
 {
     const int FILTER_SIZE = 3;
@@ -103,42 +113,30 @@ void balls_localizer::localize(const Mat &src)
     filter_empty_circles(circles, hough_circle_masks, final_segmentation_mask, 0.60);
     filter_out_of_bound_circles(circles, playing_field.mask, 20);
     filter_near_holes_circles(circles, playing_field.hole_points, 27);
-
-    // We compute, for each circle, the percentage of "white" pixels. The one with highest percentage is picked as white ball.
-    vector<pair<Vec3f, float>> circles_white_percentages;
-    for (Vec3f circle : circles)
-    {
-        circles_white_percentages.push_back({circle, get_white_percentage_in_circle(masked_hsv, final_segmentation_mask, circle)});
-        //cout << "bgr_mse: " << mean_squared_bgr_intra_pixel_difference(masked, final_segmentation_mask, circle) << endl;
-    }
-    //cout << "/////////////////////" << endl;
-    // Sort by descending order of percentage
-    std::sort(circles_white_percentages.begin(), circles_white_percentages.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
-              { return a.second > b.second; });
-    Vec3f white_ball_circle;
-    if (circles_white_percentages.at(0).second - circles_white_percentages.at(0).second > 0.1)
-        white_ball_circle = circles_white_percentages.at(0).first;
-    else
-    {
-        // Tie break
-        double difference_0 = mean_squared_bgr_intra_pixel_difference(masked, final_segmentation_mask, circles_white_percentages.at(0).first);
-        double difference_1 = mean_squared_bgr_intra_pixel_difference(masked, final_segmentation_mask, circles_white_percentages.at(1).first);
-        white_ball_circle = difference_0 < difference_1 ? circles_white_percentages.at(0).first : circles_white_percentages.at(1).first;
-    }
-
-    Mat display;
-    draw_circles(src, display, circles);
-
     filter_close_dissimilar_circles(circles, 25, 25, 2);
-    display = blurred.clone();
+
+    Mat display = blurred.clone();
     draw_circles(src, display, circles);
 
+    find_cue_ball(masked, final_segmentation_mask, circles);
+    find_black_ball(masked, final_segmentation_mask, circles);
+
+    Vec3f white_ball_circle = localization.cue.circle;
     int white_ball_radius = white_ball_circle[2];
     Point white_ball_center = Point(white_ball_circle[0], white_ball_circle[1]);
     circle(display, white_ball_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
-    circle(display, white_ball_center, white_ball_radius, Scalar(255, 0, 0), 1, LINE_AA);
+    circle(display, white_ball_center, white_ball_radius, Scalar(255, 255, 255), 2, LINE_AA);
 
-    extract_bounding_boxes(circles, bounding_boxes);
+    if (localization.black != NO_LOCALIZATION)
+    {
+        Vec3f black_ball_circle = localization.black.circle;
+        int black_ball_radius = black_ball_circle[2];
+        Point black_ball_center = Point(black_ball_circle[0], black_ball_circle[1]);
+        circle(display, black_ball_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
+        circle(display, black_ball_center, black_ball_radius, Scalar(0, 0, 0), 2, LINE_AA);
+    }
+
+    get_bounding_boxes(circles, bounding_boxes);
 
     imshow("display - end of balls_localizer::localize", display);
 }
@@ -272,7 +270,7 @@ void balls_localizer::fill_small_holes(Mat &binary_mask, double area_threshold)
     }
 }
 
-void balls_localizer::extract_bounding_boxes(const vector<Vec3f> &circles, vector<Rect> &bounding_boxes)
+void balls_localizer::get_bounding_boxes(const vector<Vec3f> &circles, vector<Rect> &bounding_boxes) // TODO move to dedicated lib
 {
     for (const Vec3f circle : circles)
     {
@@ -293,7 +291,24 @@ void balls_localizer::extract_bounding_boxes(const vector<Vec3f> &circles, vecto
     }
 }
 
-float balls_localizer::get_white_percentage_in_circle(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
+cv::Rect balls_localizer::get_bounding_box(cv::Vec3f circle) // TODO move to dedicated lib
+{
+    int center_x = static_cast<int>(circle[0]);
+    int center_y = static_cast<int>(circle[1]);
+    int radius = static_cast<int>(circle[2]);
+
+    // Calculate top-left corner of the bounding box
+    int x = center_x - radius;
+    int y = center_y - radius;
+
+    // Calculate width and height of the bounding box
+    int width = 2 * radius;
+    int height = 2 * radius;
+
+    return Rect(x, y, width, height);
+}
+
+float balls_localizer::get_white_ratio_in_circle(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
     int x = cvRound(circle[0]);
     int y = cvRound(circle[1]);
@@ -317,9 +332,34 @@ float balls_localizer::get_white_percentage_in_circle(const Mat &src, const Mat 
     int total_circle_pixels = countNonZero(mask);
     double percentage_white = static_cast<double>(white_pixels) / total_circle_pixels;
 
-    //cout << circle << ", " << percentage_white << endl;
-
     return percentage_white;
+}
+
+float balls_localizer::get_black_ratio_in_circle(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
+{
+    int x = cvRound(circle[0]);
+    int y = cvRound(circle[1]);
+    int radius = cvRound(circle[2]);
+
+    Mat mask = Mat::zeros(src.size(), CV_8U);
+    cv::circle(mask, Point(x, y), radius, Scalar(255), FILLED);
+    Mat balls_segmentation_mask;
+    bitwise_not(segmentation_mask, balls_segmentation_mask);
+    bitwise_and(mask, balls_segmentation_mask, mask);
+
+    Mat masked_hsv;
+    src.copyTo(masked_hsv, mask);
+
+    Mat black_mask;
+    const Vec3b BLACK_HSV_LOWERBOUND = Vec3b(35, 1, 0);
+    const Vec3b BLACK_HSV_UPPERBOUND = Vec3b(140, 255, 90);
+    inRange(masked_hsv, BLACK_HSV_LOWERBOUND, BLACK_HSV_UPPERBOUND, black_mask);
+
+    int white_pixels = countNonZero(black_mask);
+    int total_circle_pixels = countNonZero(mask);
+    double percentage_black = static_cast<double>(white_pixels) / total_circle_pixels;
+
+    return percentage_black;
 }
 
 float balls_localizer::mean_squared_bgr_intra_pixel_difference(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
@@ -395,4 +435,72 @@ void balls_localizer::draw_circles(const cv::Mat &src, cv::Mat &dst, std::vector
         int radius = circle[2];
         cv::circle(dst, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
     }
+}
+
+void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
+{
+    Mat src_hsv;
+    cvtColor(src, src_hsv, COLOR_BGR2HSV);
+
+    // We compute, for each circle, the percentage of "white" pixels. The one with highest percentage is picked as white ball.
+    vector<pair<Vec3f, float>> circles_white_percentages;
+    for (Vec3f circle : circles)
+    {
+        circles_white_percentages.push_back({circle, get_white_ratio_in_circle(src_hsv, segmentation_mask, circle)});
+    }
+
+    //  Sort by descending order of percentage
+    std::sort(circles_white_percentages.begin(), circles_white_percentages.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
+              { return a.second > b.second; });
+
+    Vec3f white_ball_circle;
+    if (circles_white_percentages.at(0).second - circles_white_percentages.at(0).second > 0.1)
+        white_ball_circle = circles_white_percentages.at(0).first;
+    else
+    {
+        // Tie break
+        double difference_0 = mean_squared_bgr_intra_pixel_difference(src, segmentation_mask, circles_white_percentages.at(0).first);
+        double difference_1 = mean_squared_bgr_intra_pixel_difference(src, segmentation_mask, circles_white_percentages.at(1).first);
+        white_ball_circle = difference_0 < difference_1 ? circles_white_percentages.at(0).first : circles_white_percentages.at(1).first;
+    }
+
+    localization.cue.circle = white_ball_circle;
+    localization.cue.bounding_box = get_bounding_box(white_ball_circle);
+}
+
+void balls_localizer::find_black_ball(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
+{
+    Mat src_hsv;
+    cvtColor(src, src_hsv, COLOR_BGR2HSV);
+
+    // We compute, for each circle, the percentage of "white" pixels. The one with highest percentage is picked as white ball.
+    vector<pair<Vec3f, float>> circles_black_ratios;
+    for (Vec3f circle : circles)
+    {
+        circles_black_ratios.push_back({circle, get_black_ratio_in_circle(src_hsv, segmentation_mask, circle)});
+    }
+
+    // Sort by descending order of percentage
+    std::sort(circles_black_ratios.begin(), circles_black_ratios.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
+              { return a.second > b.second; });
+
+    const float RATIO_THRESHOLD = 0.5;
+    if (circles_black_ratios.at(0).second > RATIO_THRESHOLD)
+    {
+        localization.black.circle = circles_black_ratios.at(0).first;
+        localization.black.bounding_box = get_bounding_box(circles_black_ratios.at(0).first);
+    }
+    else
+    {
+        // No black circle detected
+        localization.black = NO_LOCALIZATION;
+    }
+}
+
+void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
+{
+}
+
+void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
+{
 }

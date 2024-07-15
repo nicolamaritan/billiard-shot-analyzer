@@ -13,6 +13,11 @@ struct ball_localization
 };
 typedef struct ball_localization ball_localization;
 
+bool operator==(const ball_localization &lhs, const ball_localization &rhs);
+bool operator!=(const ball_localization &lhs, const ball_localization &rhs);
+
+const ball_localization NO_LOCALIZATION = {cv::Vec3f(-1, -1, -1), cv::Rect(-1, -1, -1, -1)};
+
 struct balls_localization
 {
     std::vector<ball_localization> solids;
@@ -80,7 +85,9 @@ private:
      * @param circles A vector of circles to generate bounding boxes for.
      * @param bounding_boxes A vector to store the generated bounding boxes.
      */
-    void extract_bounding_boxes(const std::vector<cv::Vec3f> &circles, std::vector<cv::Rect> &bounding_boxes);
+    void get_bounding_boxes(const std::vector<cv::Vec3f> &circles, std::vector<cv::Rect> &bounding_boxes);
+
+    cv::Rect get_bounding_box(cv::Vec3f circle);
 
     /**
      * @brief Fills small holes in a binary mask.
@@ -105,7 +112,9 @@ private:
      * @param circle The circle to analyze.
      * @return The percentage of white pixels in the circle.
      */
-    float get_white_percentage_in_circle(const cv::Mat &src, const cv::Mat& segmentation_mask, cv::Vec3f circle);
+    float get_white_ratio_in_circle(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
+
+    float get_black_ratio_in_circle(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
 
     /**
      * @brief Filters out circles that are close to each other but significantly different in radius and position.
@@ -140,6 +149,10 @@ private:
 
     float mean_squared_bgr_intra_pixel_difference(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
 
+    void find_cue_ball(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
+    void find_black_ball(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
+    void find_stripe_balls(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
+    void find_solid_balls(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
 
     const playing_field_localization playing_field;
     std::vector<cv::Rect> bounding_boxes;
