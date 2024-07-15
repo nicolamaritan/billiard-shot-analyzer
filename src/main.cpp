@@ -36,14 +36,6 @@ int main()
         balls_localizer balls_loc(pl_field_loc.get_localization());
         balls_loc.localize(first_frame);
 
-        // Load minimap
-        Mat pool_table_map = imread("pool_table.png");
-        Mat trajectories = pool_table_map.clone();
-        minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization());
-        vector<Point> initial_balls_pos;
-        mini.get_balls_centers(balls_loc.bounding_boxes, initial_balls_pos);
-        mini.draw_initial_minimap(initial_balls_pos, first_frame, pool_table_map);
-        vector<Rect2d> old_balls = balls_loc.bounding_boxes;
         // Create a MultiTracker object
         Ptr<legacy::MultiTracker> multiTracker = legacy::MultiTracker::create();
 
@@ -52,9 +44,21 @@ int main()
         {
             multiTracker->add(legacy::TrackerCSRT::create(), first_frame, roi);
         }
+
+        // Load minimap
+        Mat pool_table_map = imread("pool_table.png");
+        Mat trajectories = pool_table_map.clone();
+        minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization());
+
+        vector<Point> initial_balls_pos;
+        mini.get_balls_pos(multiTracker->getObjects(), initial_balls_pos);
+        mini.draw_initial_minimap(initial_balls_pos, first_frame, pool_table_map);
+        imshow("minimap", pool_table_map);
+        vector<Rect2d> old_balls_bounding_boxes = multiTracker->getObjects();
+
         while (cap.read(frame))
         {
-            
+
             multiTracker->update(frame);
 
             for (const auto &object : multiTracker->getObjects())
@@ -62,20 +66,23 @@ int main()
                 rectangle(frame, object, Scalar(255, 0, 0), 2, 1);
             }
             vector<Point> old_balls_pos;
-            mini.get_balls_centers(old_balls, old_balls_pos);
+            mini.get_balls_pos(old_balls_bounding_boxes, old_balls_pos);
 
             vector<Point> current_balls_pos;
-            mini.get_balls_centers(multiTracker->getObjects(), current_balls_pos);
+            mini.get_balls_pos(multiTracker->getObjects(), current_balls_pos);
+
+            cout << "old balls: " << old_balls_pos << endl << "current: " << current_balls_pos << endl; // TODO remove
 
             mini.draw_minimap(old_balls_pos, current_balls_pos, first_frame, trajectories, pool_table_map);
-            old_balls = multiTracker->getObjects();
+            old_balls_bounding_boxes = multiTracker->getObjects();
 
             imshow("MultiTracker", frame);
             imshow("Map", pool_table_map);
+            waitKey();
 
             if (waitKey(1) == 'q')
             {
-                break; //TODO remove
+                break; // TODO remove
             }
         }
     }

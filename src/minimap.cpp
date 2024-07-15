@@ -59,7 +59,7 @@ void minimap::draw_dashed_line(Mat &img, Point pt1, Point pt2, Scalar color, int
 	}
 }
 
-void minimap::get_balls_centers(const vector<Rect2d> &bounding_boxes, vector<Point> &balls_pos)
+void minimap::get_balls_pos(const vector<Rect2d> &bounding_boxes, vector<Point> &balls_pos)
 {
 	for (Rect2d bounding_box : bounding_boxes)
 	{
