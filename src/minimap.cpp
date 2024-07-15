@@ -13,6 +13,15 @@
 using namespace cv;
 using namespace std;
 
+minimap::minimap(playing_field_localization playing_field, balls_localization balls)
+{
+	corners_2f.resize(playing_field.corners.size());
+	transform(playing_field.corners.begin(), playing_field.corners.end(), corners_2f.begin(), [](const Point &point)
+			  { return static_cast<Point2f>(point); });
+
+	projection_matrix = getPerspectiveTransform(corners_2f, corners_minimap);
+}
+
 void minimap::draw_dashed_line(Mat &img, Point pt1, Point pt2, Scalar color, int thickness, string style, int gap)
 {
 	float dx = pt1.x - pt2.x;
@@ -54,19 +63,12 @@ void minimap::get_balls_centers(const vector<Rect2d> &bounding_boxes, vector<Poi
 {
 	for (Rect2d bounding_box : bounding_boxes)
 	{
-		balls_pos.push_back(Point2f(bounding_box.x + bounding_box.width / 2, bounding_box.y + bounding_box.height / 2));
+		balls_pos.push_back(Point(bounding_box.x + bounding_box.width / 2, bounding_box.y + bounding_box.height / 2));
 	}
 }
 
-void minimap::draw_initial_minimap(const vector<Point> &corners, const vector<Point> &balls_pos, const Mat &src, Mat &dst)
+void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const Mat &src, Mat &dst)
 {
-	vector<Point2f> corners_minimap = {Point2f(70, 60), Point2f(924, 60), Point2f(924, 500), Point2f(70, 500)};
-	vector<Point2f> corners_2f(corners.size());
-
-	transform(corners.begin(), corners.end(), corners_2f.begin(), [](const Point &point)
-			  { return static_cast<Point2f>(point); });
-
-	Mat H = getPerspectiveTransform(corners_2f, corners_minimap);
 
 	vector<Point2f> balls_pos_2f(balls_pos.size());
 	transform(balls_pos.begin(), balls_pos.end(), balls_pos_2f.begin(), [](const Point &point)
@@ -80,21 +82,14 @@ void minimap::draw_initial_minimap(const vector<Point> &corners, const vector<Po
 		vector<Point2f> ball_pos_dst;
 		vector<Point2f> ball_pos_src = {ball_pos};
 
-		perspectiveTransform(ball_pos_src, ball_pos_dst, H);
+		perspectiveTransform(ball_pos_src, ball_pos_dst, projection_matrix);
 		circle(dst, ball_pos_dst.at(0), 20, Scalar(0, 0, 255), FILLED);
 		balls_pos_minimap.push_back(ball_pos_dst.at(0));
 	}
 }
 
-void minimap::draw_minimap(const vector<Point> &corners, const vector<Point> &old_balls_pos, const vector<Point> &balls_pos, const Mat &src, Mat &trajectories, Mat &dst)
+void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Point> &balls_pos, const Mat &src, Mat &trajectories, Mat &dst)
 {
-	vector<Point2f> corners_minimap = {Point2f(70, 60), Point2f(924, 60), Point2f(924, 500), Point2f(70, 500)};
-	vector<Point2f> corners_2f(corners.size());
-	transform(corners.begin(), corners.end(), corners_2f.begin(), [](const Point &point)
-			  { return static_cast<Point2f>(point); });
-	
-	Mat H = getPerspectiveTransform(corners_2f, corners_minimap);
-
 	vector<Point2f> balls_pos_2f(balls_pos.size());
 	transform(balls_pos.begin(), balls_pos.end(), balls_pos_2f.begin(), [](const Point &point)
 			  { return static_cast<Point2f>(point); });
@@ -111,7 +106,7 @@ void minimap::draw_minimap(const vector<Point> &corners, const vector<Point> &ol
 		vector<Point2f> ball_pos_dst;
 		vector<Point2f> ball_pos_src = {balls_pos.at(i)};
 
-		perspectiveTransform(ball_pos_src, ball_pos_dst, H);
+		perspectiveTransform(ball_pos_src, ball_pos_dst, projection_matrix);
 
 		// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
 		const float DELTA_MOVEMENT = 5;

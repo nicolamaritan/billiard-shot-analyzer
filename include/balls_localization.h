@@ -35,7 +35,9 @@ public:
     void localize(const cv::Mat &src);
 
     std::vector<cv::Rect2d> get_bounding_boxes() { return bounding_boxes; };
+    balls_localization get_localization() { return localization; }
 
+    balls_localization localization;
     std::vector<cv::Vec3f> balls_circles;
     std::vector<cv::Rect2d> bounding_boxes;
 
