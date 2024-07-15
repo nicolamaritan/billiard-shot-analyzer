@@ -2,6 +2,7 @@
 
 #include "playing_field_localization.h"
 #include "balls_localization.h"
+#include "minimap.h"
 #include "show_cat.h"
 
 #include <opencv2/opencv.hpp>
@@ -35,6 +36,13 @@ int main()
         balls_localizer balls_loc(pl_field_loc.get_localization());
         balls_loc.localize(first_frame);
 
+        // Load minimap
+        Mat pool_table_map = imread("pool_table.png");
+        Mat trajectories = pool_table_map.clone();
+        minimap mini;
+        vector<Point> initial_balls_pos = mini.get_balls_pos(balls_loc.bounding_boxes);
+        mini.draw_initial_minimap(pl_field_loc.playing_field_corners, initial_balls_pos, first_frame, pool_table_map);
+        vector<Rect2d> old_balls = balls_loc.bounding_boxes;
         // Create a MultiTracker object
         Ptr<legacy::MultiTracker> multiTracker = legacy::MultiTracker::create();
 
@@ -43,21 +51,26 @@ int main()
         {
             multiTracker->add(legacy::TrackerCSRT::create(), first_frame, roi);
         }
-
         while (cap.read(frame))
         {
+            
             multiTracker->update(frame);
 
             for (const auto &object : multiTracker->getObjects())
             {
                 rectangle(frame, object, Scalar(255, 0, 0), 2, 1);
             }
+            vector<Point> old_balls_pos = mini.get_balls_pos(old_balls);
+            vector<Point> current_balls_pos = mini.get_balls_pos(multiTracker->getObjects());
+            mini.draw_minimap(pl_field_loc.playing_field_corners, old_balls_pos, current_balls_pos, first_frame, trajectories, pool_table_map);
+            old_balls = multiTracker->getObjects();
 
             imshow("MultiTracker", frame);
+            imshow("Map", pool_table_map);
 
             if (waitKey(1) == 'q')
             {
-                break;
+                break; //TODO remove
             }
         }
     }

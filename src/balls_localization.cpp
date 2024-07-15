@@ -130,6 +130,7 @@ void balls_localizer::localize(const Mat &src)
     extract_bounding_boxes(circles, bounding_boxes);
 
     imshow("display - end of balls_localizer::localize", display);
+    
 }
 
 void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, float neighborhood_threshold, float distance_threshold, float radius_threshold)
@@ -261,7 +262,7 @@ void balls_localizer::fill_small_holes(Mat &binary_mask, double area_threshold)
     }
 }
 
-void balls_localizer::extract_bounding_boxes(const vector<Vec3f> &circles, vector<Rect> &bounding_boxes)
+void balls_localizer::extract_bounding_boxes(const vector<Vec3f> &circles, vector<Rect2d> &bounding_boxes)
 {
     for (const Vec3f circle : circles)
     {

@@ -34,7 +34,10 @@ public:
      */
     void localize(const cv::Mat &src);
 
-    std::vector<cv::Rect> get_bounding_boxes() { return bounding_boxes; };
+    std::vector<cv::Rect2d> get_bounding_boxes() { return bounding_boxes; };
+
+    std::vector<cv::Vec3f> balls_circles;
+    std::vector<cv::Rect2d> bounding_boxes;
 
 private:
     /**
@@ -80,7 +83,7 @@ private:
      * @param circles A vector of circles to generate bounding boxes for.
      * @param bounding_boxes A vector to store the generated bounding boxes.
      */
-    void extract_bounding_boxes(const std::vector<cv::Vec3f> &circles, std::vector<cv::Rect> &bounding_boxes);
+    void extract_bounding_boxes(const std::vector<cv::Vec3f> &circles, std::vector<cv::Rect2d> &bounding_boxes);
 
     /**
      * @brief Fills small holes in a binary mask.
@@ -139,7 +142,6 @@ private:
     cv::Vec3b get_board_color(const cv::Mat &src, float radius);
 
     const playing_field_localization playing_field;
-    std::vector<cv::Rect> bounding_boxes;
 };
 
 #endif

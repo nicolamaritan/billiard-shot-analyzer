@@ -44,6 +44,11 @@ add_library(segmentation
     src/segmentation.cpp
 )
 
+add_library(minimap
+    include/minimap.h
+    src/minimap.cpp
+)
+
 add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
@@ -60,6 +65,7 @@ target_link_libraries(${PROJECT_NAME}
     geometry
     segmentation
     masking
+    minimap
 )
 
 target_link_libraries(evaluation
