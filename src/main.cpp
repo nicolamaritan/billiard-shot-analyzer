@@ -40,7 +40,8 @@ int main()
         Mat pool_table_map = imread("pool_table.png");
         Mat trajectories = pool_table_map.clone();
         minimap mini;
-        vector<Point> initial_balls_pos = mini.get_balls_pos(balls_loc.bounding_boxes);
+        vector<Point> initial_balls_pos;
+        mini.get_balls_centers(balls_loc.bounding_boxes, initial_balls_pos);
         mini.draw_initial_minimap(pl_field_loc.playing_field_corners, initial_balls_pos, first_frame, pool_table_map);
         vector<Rect2d> old_balls = balls_loc.bounding_boxes;
         // Create a MultiTracker object
@@ -60,8 +61,12 @@ int main()
             {
                 rectangle(frame, object, Scalar(255, 0, 0), 2, 1);
             }
-            vector<Point> old_balls_pos = mini.get_balls_pos(old_balls);
-            vector<Point> current_balls_pos = mini.get_balls_pos(multiTracker->getObjects());
+            vector<Point> old_balls_pos;
+            mini.get_balls_centers(old_balls, old_balls_pos);
+
+            vector<Point> current_balls_pos;
+            mini.get_balls_centers(multiTracker->getObjects(), current_balls_pos);
+
             mini.draw_minimap(pl_field_loc.playing_field_corners, old_balls_pos, current_balls_pos, first_frame, trajectories, pool_table_map);
             old_balls = multiTracker->getObjects();
 
