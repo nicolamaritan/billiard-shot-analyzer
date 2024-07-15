@@ -75,7 +75,7 @@ void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const Mat &sr
 			  { return static_cast<Point2f>(point); });
 
 	// Fill balls positions in minimap
-	vector<Point2f> balls_pos_minimap;
+	//vector<Point2f> balls_pos_minimap;
 	for (Point2f ball_pos : balls_pos_2f)
 	{
 		// Projected coordinate input and output arrays
@@ -84,7 +84,7 @@ void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const Mat &sr
 
 		perspectiveTransform(ball_pos_src, ball_pos_dst, projection_matrix);
 		circle(dst, ball_pos_dst.at(0), 20, Scalar(0, 0, 255), FILLED);
-		balls_pos_minimap.push_back(ball_pos_dst.at(0));
+		//balls_pos_minimap.push_back(ball_pos_dst.at(0));
 	}
 }
 
@@ -100,18 +100,23 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 
 	// Fill balls positions in minimap
 	vector<Point2f> balls_pos_minimap;
+
 	for (int i = 0; i < balls_pos_2f.size(); i++)
 	{
 		// Projected coordinate input and output arrays
 		vector<Point2f> ball_pos_dst;
-		vector<Point2f> ball_pos_src = {balls_pos.at(i)};
+		vector<Point2f> ball_pos_src = {balls_pos_2f.at(i)};
+
+		vector<Point2f> old_ball_pos_dst;
+		vector<Point2f> old_ball_pos_src = {old_balls_pos_2f.at(i)};
 
 		perspectiveTransform(ball_pos_src, ball_pos_dst, projection_matrix);
+		perspectiveTransform(old_ball_pos_src, old_ball_pos_dst, projection_matrix);
 
 		// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
-		const float DELTA_MOVEMENT = 5;
-		if (norm(ball_pos_dst.at(0) - old_balls_pos_2f.at(i)) > DELTA_MOVEMENT)
-			draw_dashed_line(trajectories, old_balls_pos_2f.at(i), ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
+		const float DELTA_MOVEMENT = 2;
+		if (norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
+			draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
 
 		balls_pos_minimap.push_back(ball_pos_dst.at(0));
 	}
@@ -119,6 +124,6 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 	dst = trajectories.clone();
 	for (Point2f ball_pos : balls_pos_minimap)
 	{
-		circle(dst, ball_pos, 20, Scalar(0, 0, 255), FILLED);
+		circle(dst, ball_pos, 10, Scalar(0, 0, 255), FILLED);
 	}
 }
