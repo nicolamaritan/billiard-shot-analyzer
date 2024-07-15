@@ -120,6 +120,7 @@ void balls_localizer::localize(const Mat &src)
 
     find_cue_ball(masked, final_segmentation_mask, circles);
     find_black_ball(masked, final_segmentation_mask, circles);
+    find_stripe_balls(masked, final_segmentation_mask, circles);
 
     Vec3f white_ball_circle = localization.cue.circle;
     int white_ball_radius = white_ball_circle[2];
@@ -308,7 +309,7 @@ cv::Rect balls_localizer::get_bounding_box(cv::Vec3f circle) // TODO move to ded
     return Rect(x, y, width, height);
 }
 
-float balls_localizer::get_white_ratio_in_circle(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
+float balls_localizer::get_white_ratio_in_circle_cue(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
     int x = cvRound(circle[0]);
     int y = cvRound(circle[1]);
@@ -327,6 +328,63 @@ float balls_localizer::get_white_ratio_in_circle(const Mat &src, const Mat &segm
     const Vec3b WHITE_HSV_LOWERBOUND = Vec3b(20, 0, 180);
     const Vec3b WHITE_HSV_UPPERBOUND = Vec3b(110, 100, 255);
     inRange(masked_hsv, WHITE_HSV_LOWERBOUND, WHITE_HSV_UPPERBOUND, white_mask);
+
+    int white_pixels = countNonZero(white_mask);
+    int total_circle_pixels = countNonZero(mask);
+    double percentage_white = static_cast<double>(white_pixels) / total_circle_pixels;
+
+    return percentage_white;
+}
+
+void balls_localizer::remove_connected_components_by_diameter(Mat &mask, double min_diameter)
+{
+    CV_Assert(mask.type() == CV_8UC1);
+
+    cv::Mat labels, stats, centroids;
+    int nLabels = cv::connectedComponentsWithStats(mask, labels, stats, centroids, 8, CV_32S);
+
+    for (int label = 1; label < nLabels; ++label)
+    {
+        // Start from 1 to skip the background
+        cv::Mat component = (labels == label);
+
+        // Find the minimum enclosing circle
+        std::vector<cv::Point> points;
+        cv::findNonZero(component, points);
+        cv::Point2f center;
+        float radius;
+        cv::minEnclosingCircle(points, center, radius);
+
+        // Calculate the diameter
+        double diameter = 2 * radius;
+
+        // If the diameter is outside the specified range, remove the component
+        if (diameter < min_diameter)
+            mask.setTo(0, component);
+    }
+}
+
+float balls_localizer::get_white_ratio_in_circle_stripes(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
+{
+    int x = cvRound(circle[0]);
+    int y = cvRound(circle[1]);
+    int radius = cvRound(circle[2]);
+
+    Mat mask = Mat::zeros(src.size(), CV_8U);
+    cv::circle(mask, Point(x, y), radius, Scalar(255), FILLED);
+    Mat balls_segmentation_mask;
+    bitwise_not(segmentation_mask, balls_segmentation_mask);
+    bitwise_and(mask, balls_segmentation_mask, mask);
+
+    Mat masked_hsv;
+    src.copyTo(masked_hsv, mask);
+
+    Mat white_mask;
+    const Vec3b WHITE_HSV_LOWERBOUND = Vec3b(0, 0, 95);
+    const Vec3b WHITE_HSV_UPPERBOUND = Vec3b(120, 100, 255);
+
+    inRange(masked_hsv, WHITE_HSV_LOWERBOUND, WHITE_HSV_UPPERBOUND, white_mask);
+    remove_connected_components_by_diameter(white_mask, 8);
 
     int white_pixels = countNonZero(white_mask);
     int total_circle_pixels = countNonZero(mask);
@@ -446,7 +504,7 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
     vector<pair<Vec3f, float>> circles_white_percentages;
     for (Vec3f circle : circles)
     {
-        circles_white_percentages.push_back({circle, get_white_ratio_in_circle(src_hsv, segmentation_mask, circle)});
+        circles_white_percentages.push_back({circle, get_white_ratio_in_circle_cue(src_hsv, segmentation_mask, circle)});
     }
 
     //  Sort by descending order of percentage
@@ -499,6 +557,49 @@ void balls_localizer::find_black_ball(const Mat &src, const Mat &segmentation_ma
 
 void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
 {
+    Mat src_hsv;
+    cvtColor(src, src_hsv, COLOR_BGR2HSV);
+
+    // We compute, for each circle, the percentage of "white" pixels.
+    vector<pair<Vec3f, float>> circles_white_ratios;
+    for (Vec3f circle : circles)
+    {
+        circles_white_ratios.push_back({circle, get_white_ratio_in_circle_stripes(src_hsv, segmentation_mask, circle)});
+    }
+
+    //  Sort by descending order of percentage
+    std::sort(circles_white_ratios.begin(), circles_white_ratios.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
+              { return a.second > b.second; });
+
+    vector<pair<Vec3f, float>> circles_white_ratios_filtered;
+    std::copy_if(circles_white_ratios.begin(), circles_white_ratios.end(), std::back_inserter(circles_white_ratios_filtered), [](pair<Vec3f, float> p)
+                 { return p.second >= 0.17 && p.second <= 0.81; });
+
+    vector<pair<Vec3f, float>> circles_stripes;
+    std::copy_if(circles_white_ratios_filtered.begin(), circles_white_ratios_filtered.end(), std::back_inserter(circles_stripes), [this](pair<Vec3f, float> p)
+                 { return p.first != this->localization.cue.circle && p.first != this->localization.black.circle; });
+
+    for (auto p : circles_white_ratios)
+    {
+        cout << p.first << p.second << endl;
+    }
+    cout << "------filtered-----" << endl;
+
+    for (auto p : circles_stripes)
+    {
+        cout << p.first << p.second << endl;
+    }
+    cout << "-----------" << endl;
+
+    vector<Vec3f> temp_circles;
+    for (auto t : circles_stripes)
+    {
+        temp_circles.push_back(t.first);
+    }
+
+    Mat temp = src.clone();
+    draw_circles(src, temp, temp_circles);
+    imshow("temp", temp);
 }
 
 void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)

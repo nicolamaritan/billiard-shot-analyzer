@@ -112,7 +112,7 @@ private:
      * @param circle The circle to analyze.
      * @return The percentage of white pixels in the circle.
      */
-    float get_white_ratio_in_circle(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
+    float get_white_ratio_in_circle_cue(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
 
     float get_black_ratio_in_circle(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
 
@@ -148,6 +148,8 @@ private:
     cv::Vec3b get_board_color(const cv::Mat &src, float radius);
 
     float mean_squared_bgr_intra_pixel_difference(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
+    void remove_connected_components_by_diameter(cv::Mat& mask, double min_diameter);
+    float get_white_ratio_in_circle_stripes(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
 
     void find_cue_ball(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
     void find_black_ball(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
