@@ -38,11 +38,17 @@ void balls_localizer::localize(const Mat &src)
     Mat masked;
     mask_bgr(blurred, masked, playing_field.mask);
 
+    Mat masked_not_blurred;
+    mask_bgr(src, masked_not_blurred, playing_field.mask);
+
     Mat masked_hsv;
     cvtColor(masked, masked_hsv, COLOR_BGR2HSV);
 
+    Mat masked_not_blurred_hsv;
+    cvtColor(masked_not_blurred, masked_not_blurred_hsv, COLOR_BGR2HSV);
+
     vector<Mat> channels;
-    split(masked_hsv, channels);
+    split(masked_not_blurred_hsv, channels);
     imshow("0", channels[0]);
     imshow("1", channels[1]);
     imshow("2", channels[2]);
@@ -120,7 +126,7 @@ void balls_localizer::localize(const Mat &src)
 
     find_cue_ball(masked, final_segmentation_mask, circles);
     find_black_ball(masked, final_segmentation_mask, circles);
-    find_stripe_balls(masked, final_segmentation_mask, circles);
+    find_stripe_balls(masked_not_blurred, final_segmentation_mask, circles);
 
     Vec3f white_ball_circle = localization.cue.circle;
     int white_ball_radius = white_ball_circle[2];
@@ -380,7 +386,7 @@ float balls_localizer::get_white_ratio_in_circle_stripes(const Mat &src, const M
     src.copyTo(masked_hsv, mask);
 
     Mat white_mask;
-    const Vec3b WHITE_HSV_LOWERBOUND = Vec3b(0, 0, 95);
+    const Vec3b WHITE_HSV_LOWERBOUND = Vec3b(0, 0, 135);
     const Vec3b WHITE_HSV_UPPERBOUND = Vec3b(120, 100, 255);
 
     inRange(masked_hsv, WHITE_HSV_LOWERBOUND, WHITE_HSV_UPPERBOUND, white_mask);
@@ -567,19 +573,20 @@ void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_
         circles_white_ratios.push_back({circle, get_white_ratio_in_circle_stripes(src_hsv, segmentation_mask, circle)});
     }
 
-    //  Sort by descending order of percentage
-    std::sort(circles_white_ratios.begin(), circles_white_ratios.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
-              { return a.second > b.second; });
-
     vector<pair<Vec3f, float>> circles_white_ratios_filtered;
     std::copy_if(circles_white_ratios.begin(), circles_white_ratios.end(), std::back_inserter(circles_white_ratios_filtered), [](pair<Vec3f, float> p)
-                 { return p.second >= 0.17 && p.second <= 0.81; });
+                 {  
+                    const float LOW_THRESHOLD = 0.15;
+                    const float HIGH_THRESHOLD = 0.81;
+                    return p.second >= LOW_THRESHOLD && p.second <= HIGH_THRESHOLD; });
 
     vector<pair<Vec3f, float>> circles_stripes;
+    // Exclude white and black balls, since they may be incorrectly be detected as stripes
     std::copy_if(circles_white_ratios_filtered.begin(), circles_white_ratios_filtered.end(), std::back_inserter(circles_stripes), [this](pair<Vec3f, float> p)
                  { return p.first != this->localization.cue.circle && p.first != this->localization.black.circle; });
 
-    for (auto p : circles_white_ratios)
+    
+    /*for (auto p : circles_white_ratios)
     {
         cout << p.first << p.second << endl;
     }
@@ -590,7 +597,7 @@ void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_
         cout << p.first << p.second << endl;
     }
     cout << "-----------" << endl;
-
+*/
     vector<Vec3f> temp_circles;
     for (auto t : circles_stripes)
     {
@@ -600,6 +607,7 @@ void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_
     Mat temp = src.clone();
     draw_circles(src, temp, temp_circles);
     imshow("temp", temp);
+    
 }
 
 void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
