@@ -156,6 +156,8 @@ private:
     void find_stripe_balls(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
     void find_solid_balls(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
 
+    void show_detection(const cv::Mat& src);
+
     const playing_field_localization playing_field;
     std::vector<cv::Rect> bounding_boxes;
     balls_localization localization;

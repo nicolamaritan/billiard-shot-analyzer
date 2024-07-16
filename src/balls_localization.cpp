@@ -31,38 +31,31 @@ void balls_localizer::localize(const Mat &src)
     Mat blurred;
     GaussianBlur(src, blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
 
-    Mat masked;
-    mask_bgr(blurred, masked, playing_field.mask);
+    Mat src_masked;
+    src.copyTo(src_masked, playing_field.mask);
 
-    Mat masked_not_blurred;
-    mask_bgr(src, masked_not_blurred, playing_field.mask);
+    Mat blurred_masked;
+    blurred.copyTo(blurred_masked, playing_field.mask);
 
-    Mat masked_hsv;
-    cvtColor(masked, masked_hsv, COLOR_BGR2HSV);
+    Mat blurred_masked_hsv;
+    cvtColor(blurred_masked, blurred_masked_hsv, COLOR_BGR2HSV);
 
-    Mat masked_not_blurred_hsv;
-    cvtColor(masked_not_blurred, masked_not_blurred_hsv, COLOR_BGR2HSV);
+    Mat src_masked_hsv;
+    cvtColor(src_masked, src_masked_hsv, COLOR_BGR2HSV);
 
-    /*vector<Mat> channels;
-    split(masked_not_blurred_hsv, channels);
-    imshow("0", channels[0]);
-    imshow("1", channels[1]);
-    imshow("2", channels[2]);*/
-
-    vector<Point> seed_points;
     Mat board_mask;
     Mat shadows_mask;
     Mat color_mask;
     Mat final_segmentation_mask;
 
     int RADIUS = 100;
-    const Vec3b board_color_hsv = get_board_color(masked_hsv, RADIUS);
+    const Vec3b board_color_hsv = get_board_color(blurred_masked_hsv, RADIUS);
     const Vec3b SHADOW_OFFSET = Vec3b(0, 0, 90);
 
     Vec3b shadow_hsv = board_color_hsv - SHADOW_OFFSET;
-    inRange(masked_hsv, board_color_hsv - Vec3b(5, 80, 50), board_color_hsv + Vec3b(5, 60, 15), board_mask);
-    inRange(masked_hsv, shadow_hsv - Vec3b(3, 30, 80), shadow_hsv + Vec3b(3, 100, 40), shadows_mask);
-    inRange(masked_hsv, board_color_hsv - Vec3b(10, 255, 150), shadow_hsv + Vec3b(10, 255, 255), color_mask);
+    inRange(blurred_masked_hsv, board_color_hsv - Vec3b(5, 80, 50), board_color_hsv + Vec3b(5, 60, 15), board_mask);
+    inRange(blurred_masked_hsv, shadow_hsv - Vec3b(3, 30, 80), shadow_hsv + Vec3b(3, 100, 40), shadows_mask);
+    inRange(blurred_masked_hsv, board_color_hsv - Vec3b(10, 255, 150), shadow_hsv + Vec3b(10, 255, 255), color_mask);
 
     Mat outer_field;
     Mat shrinked_playing_field_mask;
@@ -85,8 +78,9 @@ void balls_localizer::localize(const Mat &src)
     bitwise_or(board_mask, shadows_mask, final_segmentation_mask);
     bitwise_or(final_segmentation_mask, color_mask, final_segmentation_mask);
 
+    vector<Point> seed_points;
     extract_seed_points(final_segmentation_mask, seed_points);
-    region_growing(masked_hsv, final_segmentation_mask, seed_points, 3, 6, 4);
+    region_growing(blurred_masked_hsv, final_segmentation_mask, seed_points, 3, 6, 4);
 
     // imshow("segmentation_before", segmentation_mask);
 
@@ -112,18 +106,33 @@ void balls_localizer::localize(const Mat &src)
 
     vector<Mat> hough_circle_masks;
     circles_masks(circles, hough_circle_masks, src.size());
-    filter_empty_circles(circles, hough_circle_masks, final_segmentation_mask, 0.60);
-    filter_out_of_bound_circles(circles, playing_field.mask, 20);
-    filter_near_holes_circles(circles, playing_field.hole_points, 27);
-    filter_close_dissimilar_circles(circles, 25, 25, 2);
 
-    Mat display = blurred.clone();
-    //draw_circles(src, display, circles);
+    const float MAX_INTERSECTION = 0.60;
+    const float MAX_DISTANCE_OUT_OF_BOUNDS = 20;
+    const float MIN_DISTANCE_FROM_HOLE = 27;
+    const float MIN_DISSIMILAR_NEIGHBORDHOOD_DISTANCE = 25;
+    const float MIN_DISSIMILAR_VERTICAL_DISTANCE = 25;
+    const float MIN_DISSIMILAR_RADIUS_DIFFERENCE = 2;
+    filter_empty_circles(circles, hough_circle_masks, final_segmentation_mask, MAX_INTERSECTION);
+    filter_out_of_bound_circles(circles, playing_field.mask, MAX_DISTANCE_OUT_OF_BOUNDS);
+    filter_near_holes_circles(circles, playing_field.hole_points, MIN_DISTANCE_FROM_HOLE);
+    filter_close_dissimilar_circles(circles, MIN_DISSIMILAR_NEIGHBORDHOOD_DISTANCE, MIN_DISSIMILAR_VERTICAL_DISTANCE, MIN_DISSIMILAR_RADIUS_DIFFERENCE);
 
-    find_cue_ball(masked, final_segmentation_mask, circles);
-    find_black_ball(masked, final_segmentation_mask, circles);
-    find_stripe_balls(masked_not_blurred, final_segmentation_mask, circles);
-    find_solid_balls(masked, final_segmentation_mask, circles);
+    // draw_circles(src, display, circles);
+
+    find_cue_ball(blurred_masked, final_segmentation_mask, circles);
+    find_black_ball(blurred_masked, final_segmentation_mask, circles);
+    find_stripe_balls(src_masked, final_segmentation_mask, circles);
+    find_solid_balls(blurred_masked, final_segmentation_mask, circles);
+
+    get_bounding_boxes(circles, bounding_boxes);
+
+    show_detection(src);
+}
+
+void balls_localizer::show_detection(const Mat &src)
+{
+    Mat display = src.clone();
 
     Vec3f white_ball_circle = localization.cue.circle;
     int white_ball_radius = white_ball_circle[2];
@@ -159,8 +168,6 @@ void balls_localizer::localize(const Mat &src)
         cv::circle(display, circle_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
         cv::circle(display, circle_center, circle_radius, Scalar(255, 0, 0), 2, LINE_AA);
     }
-
-    get_bounding_boxes(circles, bounding_boxes);
 
     imshow("display - end of balls_localizer::localize", display);
 }
@@ -436,6 +443,7 @@ float balls_localizer::get_black_ratio_in_circle(const Mat &src, const Mat &segm
     const Vec3b BLACK_HSV_UPPERBOUND = Vec3b(140, 255, 90);
     inRange(masked_hsv, BLACK_HSV_LOWERBOUND, BLACK_HSV_UPPERBOUND, black_mask);
 
+    // Computing ratio
     int white_pixels = countNonZero(black_mask);
     int total_circle_pixels = countNonZero(mask);
     double percentage_black = static_cast<double>(white_pixels) / total_circle_pixels;
