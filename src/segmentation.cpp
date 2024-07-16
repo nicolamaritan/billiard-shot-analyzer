@@ -47,17 +47,16 @@ void region_growing(const Mat &src, Mat &dst, const vector<Point> &seeds, int th
         }
     }
 
-    int dx[] = {-1, 1, 0, 0, 1, 1, -1, -1};
-    int dy[] = {0, 0, -1, 1, 1, -1, 1, -1};
+    vector<pair<int, int>> directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
     while (!to_grow.empty())
     {
         Point p = to_grow.front();
         to_grow.pop();
 
-        for (int i = 0; i < 4; ++i)
+        for (pair<int, int> direction : directions)
         {
-            Point neighbor(p.x + dx[i], p.y + dy[i]);
+            Point neighbor(p.x + direction.first, p.y + direction.second);
             if (neighbor.x >= 0 && neighbor.x < src.cols && neighbor.y >= 0 && neighbor.y < src.rows)
             {
                 if (dst.at<uchar>(neighbor) == 0 &&
