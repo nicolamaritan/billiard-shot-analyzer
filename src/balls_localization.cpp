@@ -126,7 +126,31 @@ void balls_localizer::localize(const Mat &src)
 
     get_bounding_boxes(circles, bounding_boxes);
 
+    // Increase bbox sizes for tracking. Infact, tracking works better if bounding boxes are larger
+    rescale_bounding_boxes(BOUNDING_BOX_RESCALE, MAX_SIZE_BOUNDING_BOX_RESCALE);
+
     show_detection(src);
+}
+
+void balls_localizer::rescale_bounding_boxes(float scale, float max_size)
+{
+    Rect cue_bbox = localization.cue.bounding_box;
+    localization.cue.bounding_box = rescale_bounding_box(cue_bbox, scale, max_size);
+
+    Rect black_bbox = localization.black.bounding_box;
+    localization.cue.bounding_box = rescale_bounding_box(black_bbox, scale, max_size);
+
+    for (ball_localization stripe_loc : localization.stripes)
+    {
+        Rect stripe_bbox = stripe_loc.bounding_box;
+        stripe_loc.bounding_box = rescale_bounding_box(stripe_bbox, scale, max_size);
+    }
+
+    for (ball_localization solid_loc : localization.solids)
+    {
+        Rect solid_bbox = solid_loc.bounding_box;
+        solid_loc.bounding_box = rescale_bounding_box(solid_bbox, scale, max_size);
+    }
 }
 
 void balls_localizer::show_detection(const Mat &src)
@@ -266,7 +290,7 @@ void balls_localizer::filter_near_holes_circles(vector<Vec3f> &circles, const ve
     {
         Point circle_point = Point(static_cast<int>(circle[0]), static_cast<int>(circle[1]));
 
-        // Remove the circle if it is too close to the hole. 
+        // Remove the circle if it is too close to the hole.
         bool keep_circle = true;
         for (Point hole_point : holes_points)
         {
@@ -364,7 +388,7 @@ float balls_localizer::get_white_ratio_in_circle_cue(const Mat &src, const Mat &
     Mat mask = Mat::zeros(src.size(), CV_8U);
     cv::circle(mask, Point(x, y), radius, Scalar(255), FILLED);
     Mat balls_segmentation_mask;
-    bitwise_not(segmentation_mask, balls_segmentation_mask);    // Negate it as the original mask masks out the balls
+    bitwise_not(segmentation_mask, balls_segmentation_mask); // Negate it as the original mask masks out the balls
     bitwise_and(mask, balls_segmentation_mask, mask);
 
     Mat masked_hsv;
@@ -418,7 +442,7 @@ float balls_localizer::get_white_ratio_in_circle_stripes(const Mat &src, const M
     Mat mask = Mat::zeros(src.size(), CV_8U);
     cv::circle(mask, Point(x, y), radius, Scalar(255), FILLED);
     Mat balls_segmentation_mask;
-    bitwise_not(segmentation_mask, balls_segmentation_mask);    // Negate it as the original mask masks out the balls
+    bitwise_not(segmentation_mask, balls_segmentation_mask); // Negate it as the original mask masks out the balls
     bitwise_and(mask, balls_segmentation_mask, mask);
 
     Mat masked_hsv;
@@ -448,7 +472,7 @@ float balls_localizer::get_black_ratio_in_circle(const Mat &src, const Mat &segm
     Mat mask = Mat::zeros(src.size(), CV_8U);
     cv::circle(mask, Point(x, y), radius, Scalar(255), FILLED);
     Mat balls_segmentation_mask;
-    bitwise_not(segmentation_mask, balls_segmentation_mask);    // Negate it as the original mask masks out the balls
+    bitwise_not(segmentation_mask, balls_segmentation_mask); // Negate it as the original mask masks out the balls
     bitwise_and(mask, balls_segmentation_mask, mask);
 
     Mat masked_hsv;
@@ -685,4 +709,21 @@ void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_m
         solid_localization.bounding_box = get_bounding_box(circle);
         localization.solids.push_back(solid_localization);
     }
+}
+
+cv::Rect balls_localizer::rescale_bounding_box(const cv::Rect &bbox, float scale, float max_size)
+{
+    int new_width = static_cast<int>(bbox.width * scale);
+    int new_height = static_cast<int>(bbox.height * scale);
+
+    if (new_width > max_size)
+        new_width = max_size;
+    if (new_height > max_size)
+        new_height = max_size;
+
+    // Calculate the new top-left corner to maintain the center of the bounding box
+    int new_x = bbox.x + (bbox.width - new_width) / 2;
+    int new_y = bbox.y + (bbox.height - new_height) / 2;
+
+    return cv::Rect(new_x, new_y, new_width, new_height);
 }

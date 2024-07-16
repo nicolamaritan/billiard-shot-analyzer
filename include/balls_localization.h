@@ -148,7 +148,7 @@ private:
     cv::Vec3b get_board_color(const cv::Mat &src, float radius);
 
     float mean_squared_bgr_intra_pixel_difference(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
-    void remove_connected_components_by_diameter(cv::Mat& mask, double min_diameter);
+    void remove_connected_components_by_diameter(cv::Mat &mask, double min_diameter);
     float get_white_ratio_in_circle_stripes(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
 
     void find_cue_ball(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
@@ -156,7 +156,14 @@ private:
     void find_stripe_balls(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
     void find_solid_balls(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
 
-    void show_detection(const cv::Mat& src);
+    void show_detection(const cv::Mat &src);
+
+    void scale_circle(cv::Vec3f &circle, float scale, float max_radius);
+    void rescale_bounding_boxes(float scale, float max_size);
+    cv::Rect rescale_bounding_box(const cv::Rect &bbox, float scale, float max_size);
+
+    const float BOUNDING_BOX_RESCALE = 1.2;
+    const float MAX_SIZE_BOUNDING_BOX_RESCALE = 14;
 
     const playing_field_localization playing_field;
     std::vector<cv::Rect> bounding_boxes;
