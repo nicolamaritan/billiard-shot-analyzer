@@ -31,10 +31,6 @@ void balls_localizer::localize(const Mat &src)
     Mat blurred;
     GaussianBlur(src, blurred, Size(FILTER_SIZE, FILTER_SIZE), FILTER_SIGMA, FILTER_SIGMA);
 
-    // Mat mask_bgr;
-    // cvtColor(playing_field_mask, mask_bgr, COLOR_GRAY2BGR);
-    // bitwise_and(masked, mask_bgr, masked);
-
     Mat masked;
     mask_bgr(blurred, masked, playing_field.mask);
 
@@ -47,11 +43,11 @@ void balls_localizer::localize(const Mat &src)
     Mat masked_not_blurred_hsv;
     cvtColor(masked_not_blurred, masked_not_blurred_hsv, COLOR_BGR2HSV);
 
-    vector<Mat> channels;
+    /*vector<Mat> channels;
     split(masked_not_blurred_hsv, channels);
     imshow("0", channels[0]);
     imshow("1", channels[1]);
-    imshow("2", channels[2]);
+    imshow("2", channels[2]);*/
 
     vector<Point> seed_points;
     Mat board_mask;
@@ -122,11 +118,12 @@ void balls_localizer::localize(const Mat &src)
     filter_close_dissimilar_circles(circles, 25, 25, 2);
 
     Mat display = blurred.clone();
-    draw_circles(src, display, circles);
+    //draw_circles(src, display, circles);
 
     find_cue_ball(masked, final_segmentation_mask, circles);
     find_black_ball(masked, final_segmentation_mask, circles);
     find_stripe_balls(masked_not_blurred, final_segmentation_mask, circles);
+    find_solid_balls(masked, final_segmentation_mask, circles);
 
     Vec3f white_ball_circle = localization.cue.circle;
     int white_ball_radius = white_ball_circle[2];
@@ -141,6 +138,26 @@ void balls_localizer::localize(const Mat &src)
         Point black_ball_center = Point(black_ball_circle[0], black_ball_circle[1]);
         circle(display, black_ball_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
         circle(display, black_ball_center, black_ball_radius, Scalar(0, 0, 0), 2, LINE_AA);
+    }
+
+    for (ball_localization stripe_localization : localization.stripes)
+    {
+        Vec3f circle = stripe_localization.circle;
+        int circle_radius = circle[2];
+        Point circle_center = Point(circle[0], circle[1]);
+
+        cv::circle(display, circle_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
+        cv::circle(display, circle_center, circle_radius, Scalar(0, 0, 255), 2, LINE_AA);
+    }
+
+    for (ball_localization solid_localization : localization.solids)
+    {
+        Vec3f circle = solid_localization.circle;
+        int circle_radius = circle[2];
+        Point circle_center = Point(circle[0], circle[1]);
+
+        cv::circle(display, circle_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
+        cv::circle(display, circle_center, circle_radius, Scalar(255, 0, 0), 2, LINE_AA);
     }
 
     get_bounding_boxes(circles, bounding_boxes);
@@ -580,26 +597,34 @@ void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_
                     const float HIGH_THRESHOLD = 0.81;
                     return p.second >= LOW_THRESHOLD && p.second <= HIGH_THRESHOLD; });
 
-    vector<pair<Vec3f, float>> circles_stripes;
+    vector<pair<Vec3f, float>> stripes_circles;
     // Exclude white and black balls, since they may be incorrectly be detected as stripes
-    std::copy_if(circles_white_ratios_filtered.begin(), circles_white_ratios_filtered.end(), std::back_inserter(circles_stripes), [this](pair<Vec3f, float> p)
+    std::copy_if(circles_white_ratios_filtered.begin(), circles_white_ratios_filtered.end(), std::back_inserter(stripes_circles), [this](pair<Vec3f, float> p)
                  { return p.first != this->localization.cue.circle && p.first != this->localization.black.circle; });
 
-    
+    localization.stripes.clear();
+    for (auto pair : stripes_circles)
+    {
+        ball_localization stripe_localization;
+        stripe_localization.circle = pair.first;
+        stripe_localization.bounding_box = get_bounding_box(pair.first);
+        localization.stripes.push_back(stripe_localization);
+    }
+
     /*for (auto p : circles_white_ratios)
     {
         cout << p.first << p.second << endl;
     }
     cout << "------filtered-----" << endl;
 
-    for (auto p : circles_stripes)
+    for (auto p : stripes_circles)
     {
         cout << p.first << p.second << endl;
     }
     cout << "-----------" << endl;
 */
     vector<Vec3f> temp_circles;
-    for (auto t : circles_stripes)
+    for (auto t : stripes_circles)
     {
         temp_circles.push_back(t.first);
     }
@@ -607,9 +632,30 @@ void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_
     Mat temp = src.clone();
     draw_circles(src, temp, temp_circles);
     imshow("temp", temp);
-    
 }
 
 void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
 {
+    vector<Vec3f> solids_circles;
+    // Exclude cue, black and stripes
+    std::copy_if(circles.begin(), circles.end(), std::back_inserter(solids_circles), [this](Vec3f circle)
+                 {
+        if (circle == this->localization.cue.circle)
+            return false;
+        if (circle == this->localization.black.circle)
+            return false;
+        for (ball_localization stripe_localization : this->localization.stripes)
+        {
+            if (circle == stripe_localization.circle)
+                return false;
+        }
+        return true; });
+
+    for (Vec3f circle : solids_circles)
+    {
+        ball_localization solid_localization;
+        solid_localization.circle = circle;
+        solid_localization.bounding_box = get_bounding_box(circle);
+        localization.solids.push_back(solid_localization);
+    }
 }
