@@ -71,8 +71,6 @@ int main()
             vector<Point> current_balls_pos;
             mini.get_balls_pos(multiTracker->getObjects(), current_balls_pos);
 
-            cout << "old balls: " << old_balls_pos << endl << "current: " << current_balls_pos << endl; // TODO remove
-
             mini.draw_minimap(old_balls_pos, current_balls_pos, first_frame, trajectories, pool_table_map);
             old_balls_bounding_boxes = multiTracker->getObjects();
 
