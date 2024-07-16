@@ -1,12 +1,13 @@
 #include "performance_measurement.h"
 #include <iostream>
+#include <fstream>
 
 using namespace cv;
 using namespace std;
 
 float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask, label_id class_id);
 
-void frame_segmentation(const Mat& src, Mat& dst)
+void frame_segmentation(const Mat &src, Mat &dst)
 {
     playing_field_localizer plf_localizer;
     plf_localizer.localize(src);
@@ -29,13 +30,13 @@ void frame_segmentation(const Mat& src, Mat& dst)
     for (ball_localization loc : blls_localization.solids)
     {
         Vec3f loc_circle = loc.circle;
-        circle(segmentation, Point(loc_circle[0], loc_circle[1]), loc_circle[2], Scalar(label_id::solids), FILLED);  
+        circle(segmentation, Point(loc_circle[0], loc_circle[1]), loc_circle[2], Scalar(label_id::solids), FILLED);
     }
 
     for (ball_localization loc : blls_localization.stripes)
     {
         Vec3f loc_circle = loc.circle;
-        circle(segmentation, Point(loc_circle[0], loc_circle[1]), loc_circle[2], Scalar(label_id::stripes), FILLED);  
+        circle(segmentation, Point(loc_circle[0], loc_circle[1]), loc_circle[2], Scalar(label_id::stripes), FILLED);
     }
 
     dst = segmentation;
@@ -57,7 +58,7 @@ float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask,
     if (union_area == 0)
         return 1;
     float intersection_area = static_cast<float>(countNonZero(intersection_class_mask));
-    return  intersection_area / union_area;
+    return intersection_area / union_area;
 }
 
 float evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask)
@@ -75,8 +76,46 @@ float evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, c
     cout << "solids iou: " << iou_solids << endl;
     cout << "stripes iou: " << iou_stripes << endl;
     cout << "playing iou: " << iou_playing_field << endl;
-    cout << "mean iou: " << (iou_background + iou_cue + iou_black + iou_solids + iou_stripes + iou_playing_field) / 6 << endl; 
+    cout << "mean iou: " << (iou_background + iou_cue + iou_black + iou_solids + iou_stripes + iou_playing_field) / 6 << endl;
     cout << "--------------------------" << endl;
 
     return 0;
+}
+
+void load_ground_truth_localization(const string &filename, balls_localization &ground_truth_localization)
+{
+    ifstream file(filename);
+    if (!file.is_open())
+    {
+        cerr << "Could not open the file!" << endl;
+        return;
+    }
+
+    int x, y, width, height, label_id;
+    while (file >> x >> y >> width >> height >> label_id)
+    {
+        ball_localization ball;
+        ball.bounding_box = Rect(x, y, width, height);
+
+        switch (label_id)
+        {
+        case label_id::cue:
+            ground_truth_localization.cue = ball;
+            break;
+        case label_id::black:
+            ground_truth_localization.black = ball;
+            break;
+        case label_id::solids:
+            ground_truth_localization.solids.push_back(ball);
+            break;
+        case label_id::stripes:
+            ground_truth_localization.stripes.push_back(ball);
+            break;
+        default:
+            cerr << "Unknown label_id: " << label_id << endl;
+            break;
+        }
+    }
+
+    file.close();
 }
