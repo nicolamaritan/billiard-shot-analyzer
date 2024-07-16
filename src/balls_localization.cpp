@@ -197,7 +197,6 @@ void balls_localizer::show_detection(const Mat &src)
     }
 
     imshow("display - end of balls_localizer::localize", display);
-    
 }
 
 void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, float neighborhood_distance_threshold, float distance_threshold, float radius_threshold)
@@ -616,17 +615,8 @@ void balls_localizer::find_black_ball(const Mat &src, const Mat &segmentation_ma
     std::sort(circles_black_ratios.begin(), circles_black_ratios.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
               { return a.second > b.second; });
 
-    const float RATIO_THRESHOLD = 0.5;
-    if (circles_black_ratios.at(0).second > RATIO_THRESHOLD)
-    {
-        localization.black.circle = circles_black_ratios.at(0).first;
-        localization.black.bounding_box = get_bounding_box(circles_black_ratios.at(0).first);
-    }
-    else
-    {
-        // No black circle detected
-        localization.black = NO_LOCALIZATION;
-    }
+    localization.black.circle = circles_black_ratios.at(0).first;
+    localization.black.bounding_box = get_bounding_box(circles_black_ratios.at(0).first);
 }
 
 void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)

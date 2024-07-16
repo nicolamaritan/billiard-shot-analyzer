@@ -1,5 +1,5 @@
-#ifndef CLUSTERING_H
-#define CLUSTERING_H
+#ifndef SEGMENTATION_H
+#define SEGMENTATION_H
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
