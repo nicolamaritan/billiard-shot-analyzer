@@ -16,7 +16,7 @@ public:
     void get_balls_pos(const std::vector<cv::Rect2d>& bounding_boxes, std::vector<cv::Point>& balls_centers);
     void draw_initial_minimap(const std::vector<cv::Point> &balls_pos, const cv::Mat &src, cv::Mat &dst);
     void draw_minimap(const std::vector<cv::Point> &old_balls_pos, const std::vector<cv::Point> &balls_pos, const cv::Mat &src, cv::Mat &trajectories, cv::Mat &dst);
-
+    void sort_corners_for_minimap(const std::vector<cv::Point> &corners_src, std::vector<cv::Point> &corners_dst);
 private:
     const std::vector<cv::Point2f> corners_minimap = {cv::Point2f(70, 60), cv::Point2f(924, 60), cv::Point2f(924, 500), cv::Point2f(70, 500)};
     std::vector<cv::Point2f> corners_2f;
