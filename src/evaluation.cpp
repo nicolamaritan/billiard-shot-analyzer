@@ -1,4 +1,3 @@
-#include "frame_segmentation.h"
 #include "performance_measurement.h"
 
 #include <iostream>
@@ -42,8 +41,7 @@ int main()
     for (int i = 0; i < found_table_masks.size(); i++)
     {
         cout << frames_filenames.at(i) << endl;
-        performance_measurement measures;
-        measures.evaluate_playing_field_segmentation(ground_truth_table_masks[i], found_table_masks[i]);
+        evaluate_balls_and_playing_field_segmentation(ground_truth_table_masks[i], found_table_masks[i]);
     }
 
 

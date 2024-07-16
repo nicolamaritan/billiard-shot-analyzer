@@ -4,7 +4,44 @@
 using namespace cv;
 using namespace std;
 
-float performance_measurement::evaluate_class(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask, segmentation_label class_id)
+float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask, label_id class_id);
+
+void frame_segmentation(const Mat& src, Mat& dst)
+{
+    playing_field_localizer plf_localizer;
+    plf_localizer.localize(src);
+    playing_field_localization plf_localization = plf_localizer.get_localization();
+
+    balls_localizer blls_localizer(plf_localization);
+    blls_localizer.localize(src);
+    balls_localization blls_localization = blls_localizer.get_localization();
+
+    Mat segmentation(src.size(), CV_8UC1);
+    segmentation.setTo(Scalar(label_id::background));
+    segmentation.setTo(Scalar(label_id::playing_field), plf_localization.mask);
+
+    Vec3f cue_circle = blls_localization.cue.circle;
+    circle(segmentation, Point(cue_circle[0], cue_circle[1]), cue_circle[2], Scalar(label_id::cue), FILLED);
+
+    Vec3f black_circle = blls_localization.black.circle;
+    circle(segmentation, Point(black_circle[0], black_circle[1]), black_circle[2], Scalar(label_id::black), FILLED);
+
+    for (ball_localization loc : blls_localization.solids)
+    {
+        Vec3f loc_circle = loc.circle;
+        circle(segmentation, Point(loc_circle[0], loc_circle[1]), loc_circle[2], Scalar(label_id::solids), FILLED);  
+    }
+
+    for (ball_localization loc : blls_localization.stripes)
+    {
+        Vec3f loc_circle = loc.circle;
+        circle(segmentation, Point(loc_circle[0], loc_circle[1]), loc_circle[2], Scalar(label_id::stripes), FILLED);  
+    }
+
+    dst = segmentation;
+}
+
+float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask, label_id class_id)
 {
     CV_Assert(found_mask.channels() == 1);
     CV_Assert(ground_truth_mask.channels() == 1);
@@ -23,14 +60,14 @@ float performance_measurement::evaluate_class(const cv::Mat &found_mask, const c
     return  intersection_area / union_area;
 }
 
-float performance_measurement::evaluate_playing_field_segmentation(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask)
+float evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask)
 {
-    float iou_background = evaluate_class(found_mask, ground_truth_mask, segmentation_label::background);
-    float iou_cue = evaluate_class(found_mask, ground_truth_mask, segmentation_label::cue);
-    float iou_black = evaluate_class(found_mask, ground_truth_mask, segmentation_label::black);
-    float iou_solids = evaluate_class(found_mask, ground_truth_mask, segmentation_label::solids);
-    float iou_stripes = evaluate_class(found_mask, ground_truth_mask, segmentation_label::stripes);
-    float iou_playing_field = evaluate_class(found_mask, ground_truth_mask, segmentation_label::playing_field);
+    float iou_background = get_class_iou(found_mask, ground_truth_mask, label_id::background);
+    float iou_cue = get_class_iou(found_mask, ground_truth_mask, label_id::cue);
+    float iou_black = get_class_iou(found_mask, ground_truth_mask, label_id::black);
+    float iou_solids = get_class_iou(found_mask, ground_truth_mask, label_id::solids);
+    float iou_stripes = get_class_iou(found_mask, ground_truth_mask, label_id::stripes);
+    float iou_playing_field = get_class_iou(found_mask, ground_truth_mask, label_id::playing_field);
 
     cout << "background iou: " << iou_background << endl;
     cout << "cue iou: " << iou_cue << endl;
