@@ -31,7 +31,7 @@ void get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Po
     {
         float rho = line[0];
         float theta = line[1];
-        Point pt1, pt2;
+        Point2f pt1, pt2;
         double a = cos(theta), b = sin(theta);
         double x0 = a * rho, y0 = b * rho;
         pt1.x = cvRound(x0 + POINT_X * (-b));

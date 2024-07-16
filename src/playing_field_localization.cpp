@@ -49,8 +49,8 @@ void playing_field_localizer::localize(const Mat &src)
     Mat table = blurred.clone();
     intersections(refined_lines, refined_lines_intersections, table.rows, table.cols);
     draw_pool_table(refined_lines_intersections, table);
-    // imshow("", table);
-    // waitKey(0);
+    //imshow("", table);
+    //waitKey(0);
 
     sort_points_clockwise(refined_lines_intersections);
     playing_field_corners = refined_lines_intersections;

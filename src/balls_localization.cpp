@@ -197,6 +197,7 @@ void balls_localizer::show_detection(const Mat &src)
     }
 
     imshow("display - end of balls_localizer::localize", display);
+    
 }
 
 void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, float neighborhood_distance_threshold, float distance_threshold, float radius_threshold)

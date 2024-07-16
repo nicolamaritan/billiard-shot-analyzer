@@ -40,6 +40,7 @@ public:
     void localize(const cv::Mat &src);
 
     std::vector<cv::Rect> get_bounding_boxes() { return bounding_boxes; };
+    balls_localization get_localization() { return localization; }
 
 private:
     /**

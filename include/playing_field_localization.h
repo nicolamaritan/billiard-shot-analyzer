@@ -23,6 +23,7 @@ public:
      */
     void localize(const cv::Mat &src);
     playing_field_localization get_localization() { return localization; }
+    std::vector<cv::Point> playing_field_corners;
 
 private:
     /**
@@ -109,6 +110,8 @@ private:
      */
     void sort_points_clockwise(std::vector<cv::Point> &points);
 
+    
+
     /**
      * @brief Estimates the locations of holes on a playing field based on the corners of the field.
      *
@@ -125,7 +128,6 @@ private:
 
     void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
 
-    std::vector<cv::Point> playing_field_corners;
     cv::Mat playing_field_mask;
     std::vector<cv::Point> playing_field_hole_points;
     playing_field_localization localization;
