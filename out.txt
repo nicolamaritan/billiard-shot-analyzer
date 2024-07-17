@@ -1,0 +1,546 @@
+20
+20
+import and segmentation done
+./dataset/game1_clip1/frames/frame_first.png
+background iou: 0.973769
+cue iou: 0.682143
+black iou: 0.790909
+solids iou: 0.739953
+stripes iou: 0.745232
+playing iou: 0.964724
+mean iou: 0.816122
+--------------------------
+max_iou: 0.708333; id: 1
+max_iou: 0.678201; id: 2
+max_iou: 0.740741; id: 3
+max_iou: 0.8; id: 3
+max_iou: 0.790123; id: 3
+max_iou: 0.657895; id: 3
+max_iou: 0.753463; id: 3
+max_iou: 0.597107; id: 3
+max_iou: 0.790123; id: 4
+max_iou: 0.790123; id: 4
+max_iou: 0.701299; id: 4
+max_iou: 0.757895; id: 4
+max_iou: 0.701754; id: 4
+max_iou: 0.839506; id: 4
+max_iou: 0.625541; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 6
+stripe tps: 7
+--------------------------
+
+
+./dataset/game1_clip1/frames/frame_last.png
+background iou: 0.979348
+cue iou: 0.811321
+black iou: 0.845794
+solids iou: 0.790007
+stripes iou: 0.768462
+playing iou: 0.972487
+mean iou: 0.861237
+--------------------------
+max_iou: 0.795322; id: 1
+max_iou: 0.823529; id: 2
+max_iou: 0.833333; id: 3
+max_iou: 0.709141; id: 3
+max_iou: 0.743034; id: 3
+max_iou: 0.882353; id: 3
+max_iou: 0.784314; id: 3
+max_iou: 0.542936; id: 3
+max_iou: 0.83045; id: 4
+max_iou: 0.941176; id: 4
+max_iou: 0.740741; id: 4
+max_iou: 0.757895; id: 4
+max_iou: 0.891975; id: 4
+max_iou: 0.639098; id: 4
+max_iou: 0.581717; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 6
+stripe tps: 7
+--------------------------
+
+
+./dataset/game1_clip2/frames/frame_first.png
+background iou: 0.986422
+cue iou: 0.844504
+black iou: 0.72963
+solids iou: 0.763131
+stripes iou: 0.780516
+playing iou: 0.960487
+mean iou: 0.844115
+--------------------------
+max_iou: 0.82438; id: 1
+max_iou: 0.688034; id: 2
+max_iou: 0.783704; id: 3
+max_iou: 0.725694; id: 3
+max_iou: 0.757246; id: 3
+max_iou: 0.645408; id: 3
+max_iou: 0.683432; id: 3
+max_iou: 0.843333; id: 3
+max_iou: 0.814815; id: 4
+max_iou: 0.683432; id: 4
+max_iou: 0.712963; id: 4
+max_iou: 0.665217; id: 4
+max_iou: 0.783476; id: 4
+max_iou: 0.758242; id: 4
+max_iou: 0.805; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 6
+stripe tps: 7
+--------------------------
+
+
+./dataset/game1_clip2/frames/frame_last.png
+background iou: 0.993266
+cue iou: 0.812796
+black iou: 0.732839
+solids iou: 0.715275
+stripes iou: 0.789518
+playing iou: 0.975631
+mean iou: 0.836554
+--------------------------
+max_iou: 0.875; id: 1
+max_iou: 0.717949; id: 2
+max_iou: 0.817778; id: 3
+max_iou: 0.7; id: 3
+max_iou: 0.673469; id: 3
+max_iou: 0.813846; id: 3
+max_iou: 0.763889; id: 3
+max_iou: 0.725275; id: 4
+max_iou: 0.909091; id: 4
+max_iou: 0.745562; id: 4
+max_iou: 0.608974; id: 4
+max_iou: 0.838542; id: 4
+max_iou: 0.819088; id: 4
+max_iou: 0.77037; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 5
+stripe tps: 7
+--------------------------
+
+
+./dataset/game1_clip3/frames/frame_first.png
+background iou: 0.985172
+cue iou: 0.852368
+black iou: 0.743883
+solids iou: 0.827429
+stripes iou: 0.800123
+playing iou: 0.963758
+mean iou: 0.862122
+--------------------------
+max_iou: 0.747412; id: 1
+max_iou: 0.733418; id: 2
+max_iou: 0.802083; id: 3
+max_iou: 0.7; id: 3
+max_iou: 0.763926; id: 4
+max_iou: 0.829082; id: 4
+max_iou: 0.72381; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 2
+stripe tps: 3
+--------------------------
+
+
+./dataset/game1_clip3/frames/frame_last.png
+background iou: 0.99146
+cue iou: 0.824834
+black iou: 0.800434
+solids iou: 0.875283
+stripes iou: 0.798503
+playing iou: 0.978163
+mean iou: 0.878113
+--------------------------
+max_iou: 0.802083; id: 1
+max_iou: 0.77; id: 2
+max_iou: 0.838542; id: 3
+max_iou: 0.791209; id: 4
+max_iou: 0.829082; id: 4
+max_iou: 0.776627; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 1
+stripe tps: 3
+--------------------------
+
+
+./dataset/game1_clip4/frames/frame_first.png
+background iou: 0.979011
+cue iou: 0.829868
+black iou: 0.888073
+solids iou: 0.804149
+stripes iou: 0.762849
+playing iou: 0.945163
+mean iou: 0.868185
+--------------------------
+max_iou: 0.849231; id: 1
+max_iou: 0.854701; id: 2
+max_iou: 0.766957; id: 3
+max_iou: 0.726648; id: 3
+max_iou: 0.860969; id: 3
+max_iou: 0.838542; id: 3
+max_iou: 0.826087; id: 3
+max_iou: 0.665217; id: 3
+max_iou: 0.850592; id: 4
+max_iou: 0.771429; id: 4
+max_iou: 0.704082; id: 4
+max_iou: 0.916667; id: 4
+max_iou: 0.598344; id: 4
+max_iou: 0.729167; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 6
+stripe tps: 6
+--------------------------
+
+
+./dataset/game1_clip4/frames/frame_last.png
+background iou: 0.990944
+cue iou: 0.825188
+black iou: 0.877514
+solids iou: 0.584244
+stripes iou: 0.789057
+playing iou: 0.968988
+mean iou: 0.839323
+--------------------------
+max_iou: 0.753561; id: 1
+max_iou: 0.824176; id: 2
+max_iou: 0.736364; id: 3
+max_iou: 0.673469; id: 3
+max_iou: 0.665217; id: 3
+max_iou: 0.591398; id: 3
+max_iou: 0.707692; id: 3
+max_iou: 0.771429; id: 4
+max_iou: 0.77; id: 4
+max_iou: 0.831758; id: 4
+max_iou: 0.704082; id: 4
+max_iou: 0.875; id: 4
+max_iou: 0.867769; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 5
+stripe tps: 6
+--------------------------
+
+
+./dataset/game2_clip1/frames/frame_first.png
+background iou: 0.983833
+cue iou: 0.860113
+black iou: 0.896175
+solids iou: 0.469154
+stripes iou: 0.489819
+playing iou: 0.972402
+mean iou: 0.778583
+--------------------------
+max_iou: 0.887574; id: 1
+max_iou: 0.888889; id: 2
+max_iou: 0.647619; id: 3
+max_iou: 0.732426; id: 3
+max_iou: 0.557851; id: 3
+max_iou: 0.729167; id: 3
+max_iou: 0.66; id: 3
+max_iou: 0.387097; id: 3
+max_iou: 0.688406; id: 4
+max_iou: 0.666118; id: 3
+max_iou: 0.471575; id: 4
+max_iou: 0.809789; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 5
+stripe tps: 2
+--------------------------
+
+
+./dataset/game2_clip1/frames/frame_last.png
+background iou: 0.980535
+cue iou: 0.777188
+black iou: 0.729045
+solids iou: 0.359191
+stripes iou: 0.458051
+playing iou: 0.967505
+mean iou: 0.711919
+--------------------------
+max_iou: 0.745868; id: 1
+max_iou: 0.746914; id: 2
+max_iou: 0.535714; id: 3
+max_iou: 0.719697; id: 3
+max_iou: 0.839506; id: 3
+max_iou: 0.433333; id: 3
+max_iou: 0.870968; id: 4
+max_iou: 0.590237; id: 4
+max_iou: 0.885813; id: 3
+max_iou: 0.575658; id: 3
+max_iou: 0.422222; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 3
+stripe tps: 2
+--------------------------
+
+
+./dataset/game2_clip2/frames/frame_first.png
+background iou: 0.984199
+cue iou: 0.714706
+black iou: 0
+solids iou: 0.611529
+stripes iou: 0.717666
+playing iou: 0.973597
+mean iou: 0.666949
+--------------------------
+max_iou: 0.655329; id: 1
+max_iou: 0.693333; id: 3
+max_iou: 0.632231; id: 3
+max_iou: 0.666667; id: 3
+max_iou: 0.831758; id: 3
+max_iou: 0.763889; id: 3
+max_iou: 0.769704; id: 4
+max_iou: 0.83004; id: 4
+max_iou: 0.782796; id: 4
+max_iou: 0.613636; id: 4
+max_iou: 0.783476; id: 4
+max_iou: 0.654545; id: 2
+max_iou: 0.694931; id: 4
+cue tps: 1
+black tps: 0
+solid tps: 4
+stripe tps: 6
+--------------------------
+
+
+./dataset/game2_clip2/frames/frame_last.png
+background iou: 0.985413
+cue iou: 0.772446
+black iou: 0.912698
+solids iou: 0.553413
+stripes iou: 0.663903
+playing iou: 0.975605
+mean iou: 0.81058
+--------------------------
+max_iou: 0.714286; id: 1
+max_iou: 0.867769; id: 2
+max_iou: 0.632231; id: 3
+max_iou: 0.793951; id: 3
+max_iou: 0.666667; id: 3
+max_iou: 0.675889; id: 4
+max_iou: 0.758242; id: 4
+max_iou: 0.836957; id: 3
+max_iou: 0.688406; id: 4
+max_iou: 0.709091; id: 4
+max_iou: 0.786325; id: 4
+max_iou: 0.686275; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 3
+stripe tps: 6
+--------------------------
+
+
+./dataset/game3_clip1/frames/frame_first.png
+background iou: 0.98912
+cue iou: 0.932836
+black iou: 0.727536
+solids iou: 0.694934
+stripes iou: 0.74744
+playing iou: 0.956547
+mean iou: 0.841402
+--------------------------
+max_iou: 0.894737; id: 1
+max_iou: 0.728571; id: 2
+max_iou: 0.665; id: 3
+max_iou: 0.615054; id: 3
+max_iou: 0.708128; id: 3
+max_iou: 0.724638; id: 4
+max_iou: 0.6; id: 4
+max_iou: 0.840278; id: 4
+max_iou: 0.714497; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 3
+stripe tps: 4
+--------------------------
+
+
+./dataset/game3_clip1/frames/frame_last.png
+background iou: 0.993873
+cue iou: 0.801512
+black iou: 0.73607
+solids iou: 0.771481
+stripes iou: 0.681035
+playing iou: 0.972611
+mean iou: 0.826097
+--------------------------
+max_iou: 0.781065; id: 1
+max_iou: 0.728571; id: 2
+max_iou: 0.708128; id: 3
+max_iou: 0.847756; id: 3
+max_iou: 0.625; id: 4
+max_iou: 0.548077; id: 4
+max_iou: 0.6688; id: 4
+max_iou: 0.84; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 2
+stripe tps: 4
+--------------------------
+
+
+./dataset/game3_clip2/frames/frame_first.png
+background iou: 0.992808
+cue iou: 0.800926
+black iou: 0.782297
+solids iou: 0.579904
+stripes iou: 0.508412
+playing iou: 0.967717
+mean iou: 0.772011
+--------------------------
+max_iou: 0.76087; id: 1
+max_iou: 0.791667; id: 2
+max_iou: 0.77; id: 4
+max_iou: 0.788538; id: 3
+max_iou: 0.613333; id: 3
+max_iou: 0.833333; id: 3
+max_iou: 0.632231; id: 4
+max_iou: 0.612476; id: 4
+max_iou: 0.554348; id: 4
+max_iou: 0.519231; id: 4
+max_iou: 0.891975; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 3
+stripe tps: 5
+--------------------------
+
+
+./dataset/game3_clip2/frames/frame_last.png
+background iou: 0.993865
+cue iou: 0.644037
+black iou: 0.78043
+solids iou: 0.495082
+stripes iou: 0.495227
+playing iou: 0.970022
+mean iou: 0.729777
+--------------------------
+max_iou: 0.574176; id: 1
+max_iou: 0.791667; id: 2
+max_iou: 0.591398; id: 3
+max_iou: 0.802083; id: 4
+max_iou: 0.757246; id: 3
+max_iou: 0.632231; id: 4
+max_iou: 0.5625; id: 4
+max_iou: 0.845029; id: 4
+max_iou: 0.532174; id: 4
+max_iou: 0.505917; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 2
+stripe tps: 5
+--------------------------
+
+
+./dataset/game4_clip1/frames/frame_first.png
+background iou: 0.985168
+cue iou: 0.628743
+black iou: 0.825939
+solids iou: 0
+stripes iou: 0.596991
+playing iou: 0.966972
+mean iou: 0.667302
+--------------------------
+max_iou: 0.61678; id: 1
+max_iou: 0.85; id: 2
+max_iou: 0.9; id: 4
+max_iou: 0.785124; id: 4
+max_iou: 0.692708; id: 4
+max_iou: 0.83004; id: 4
+max_iou: 0.82438; id: 3
+max_iou: 0.64; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 0
+stripe tps: 5
+--------------------------
+
+
+./dataset/game4_clip1/frames/frame_last.png
+background iou: 0.989813
+cue iou: 0.88785
+black iou: 0.875886
+solids iou: 1
+stripes iou: 0.683756
+playing iou: 0.977221
+mean iou: 0.902421
+--------------------------
+max_iou: 0.814286; id: 1
+max_iou: 0.85; id: 2
+max_iou: 0.628261; id: 4
+max_iou: 0.670807; id: 4
+max_iou: 0.852632; id: 4
+max_iou: 0.882353; id: 4
+max_iou: 0.871542; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 0
+stripe tps: 5
+--------------------------
+
+
+./dataset/game4_clip2/frames/frame_first.png
+background iou: 0.977612
+cue iou: 0.761194
+black iou: 0.789969
+solids iou: 0.492428
+stripes iou: 0.585057
+playing iou: 0.952031
+mean iou: 0.759715
+--------------------------
+max_iou: 0.693878; id: 1
+max_iou: 0.728571; id: 2
+max_iou: 0.944444; id: 3
+max_iou: 0.6375; id: 3
+max_iou: 0.740741; id: 3
+max_iou: 0.68; id: 3
+max_iou: 0.688095; id: 4
+max_iou: 0.706371; id: 4
+max_iou: 0.81; id: 4
+max_iou: 0.745614; id: 3
+max_iou: 0.760526; id: 3
+max_iou: 0.859524; id: 4
+cue tps: 1
+black tps: 1
+solid tps: 4
+stripe tps: 4
+--------------------------
+
+
+./dataset/game4_clip2/frames/frame_last.png
+background iou: 0.989959
+cue iou: 0.853147
+black iou: 0.784375
+solids iou: 0.474453
+stripes iou: 0.514563
+playing iou: 0.976646
+mean iou: 0.765524
+--------------------------
+max_iou: 0.760526; id: 1
+max_iou: 0.728571; id: 2
+max_iou: 0.947368; id: 3
+max_iou: 0.6375; id: 3
+max_iou: 0.661111; id: 3
+max_iou: 0.646199; id: 3
+max_iou: 0.695455; id: 4
+max_iou: 0.745614; id: 3
+max_iou: 0.800554; id: 4
+max_iou: 0.728571; id: 4
+max_iou: 0.847645; id: 3
+cue tps: 1
+black tps: 1
+solid tps: 4
+stripe tps: 3
+--------------------------
+
+

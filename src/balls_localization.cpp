@@ -127,7 +127,7 @@ void balls_localizer::localize(const Mat &src)
     get_bounding_boxes(circles, bounding_boxes);
 
     // Increase bbox sizes for tracking. Infact, tracking works better if bounding boxes are larger
-    rescale_bounding_boxes(BOUNDING_BOX_RESCALE, MAX_SIZE_BOUNDING_BOX_RESCALE);
+    //rescale_bounding_boxes(BOUNDING_BOX_RESCALE, MAX_SIZE_BOUNDING_BOX_RESCALE);
 
     show_detection(src);
 }
@@ -138,7 +138,7 @@ void balls_localizer::rescale_bounding_boxes(float scale, float max_size)
     localization.cue.bounding_box = rescale_bounding_box(cue_bbox, scale, max_size);
 
     Rect black_bbox = localization.black.bounding_box;
-    localization.cue.bounding_box = rescale_bounding_box(black_bbox, scale, max_size);
+    localization.black.bounding_box = rescale_bounding_box(black_bbox, scale, max_size);
 
     for (ball_localization stripe_loc : localization.stripes)
     {
@@ -152,7 +152,7 @@ void balls_localizer::rescale_bounding_boxes(float scale, float max_size)
         solid_loc.bounding_box = rescale_bounding_box(solid_bbox, scale, max_size);
     }
 }
-
+static int counter_im = 0;
 void balls_localizer::show_detection(const Mat &src)
 {
     Mat display = src.clone();
@@ -196,7 +196,13 @@ void balls_localizer::show_detection(const Mat &src)
         cv::circle(display, circle_center, circle_radius, Scalar(255, 0, 0), 2, LINE_AA);
     }
 
+    /*stringstream ss;
+    ss << counter_im;
+    string counter_im_str;
+    ss >> counter_im_str;
     imshow("display - end of balls_localizer::localize", display);
+    imwrite("display"+ counter_im_str +".png", display);
+    counter_im++;*/
 }
 
 void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, float neighborhood_distance_threshold, float distance_threshold, float radius_threshold)
