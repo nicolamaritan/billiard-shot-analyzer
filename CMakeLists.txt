@@ -50,6 +50,11 @@ add_library(performance_measurement
     src/performance_measurement.cpp
 )
 
+add_library(evaluate_dataset
+    include/evaluate_dataset.h
+    src/evaluate_dataset.cpp
+)
+
 add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
@@ -66,11 +71,13 @@ target_link_libraries(${PROJECT_NAME}
     geometry
     segmentation
     minimap
+    evaluate_dataset
 )
 
 target_link_libraries(evaluation
     ${OpenCV_LIBS}
     show_cat
+    evaluate_dataset
     performance_measurement
     playing_field_localization
     balls_localization
