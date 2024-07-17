@@ -71,8 +71,6 @@ void balls_localizer::localize(const Mat &src)
     bitwise_not(shrinked_playing_field_mask, outer_field);
     bitwise_and(color_mask.clone(), outer_field, color_mask);
 
-    // imshow("inrange_sementation_1", inrange_segmentation_mask_board);
-    // imshow("inrange_sementation_2", inrange_segmentation_mask_shadows);
     // Union of the above masks
     bitwise_or(board_mask, shadows_mask, final_segmentation_mask);
     bitwise_or(final_segmentation_mask, color_mask, final_segmentation_mask);
@@ -80,8 +78,6 @@ void balls_localizer::localize(const Mat &src)
     vector<Point> seed_points;
     extract_seed_points(final_segmentation_mask, seed_points);
     region_growing(blurred_masked_hsv, final_segmentation_mask, seed_points, 3, 6, 4);
-
-    // imshow("segmentation_before", segmentation_mask);
 
     const Size CLOSURE_SIZE = Size(3, 3);
     morphologyEx(final_segmentation_mask.clone(), final_segmentation_mask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, CLOSURE_SIZE));

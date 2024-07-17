@@ -110,8 +110,6 @@ private:
      */
     void sort_points_clockwise(std::vector<cv::Point> &points);
 
-    
-
     /**
      * @brief Estimates the locations of holes on a playing field based on the corners of the field.
      *
