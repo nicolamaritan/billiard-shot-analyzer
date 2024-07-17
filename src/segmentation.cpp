@@ -15,7 +15,7 @@ void kmeans(const Mat &src, Mat &dst, int centroids)
     Mat labels, centers;
     const int KMEANS_MAX_COUNT = 10;
     const int KMEANS_EPSILON = 1.0;
-    const int KMEANS_ATTEMPTS = 3;
+    const int KMEANS_ATTEMPTS = 8;
     kmeans(data, centroids, labels, TermCriteria(TermCriteria::MAX_ITER, KMEANS_MAX_COUNT, KMEANS_EPSILON), KMEANS_ATTEMPTS, KMEANS_PP_CENTERS, centers);
 
     // Reshape both to a single row of Vec3f pixels
@@ -36,7 +36,7 @@ void kmeans(const Mat &src, Mat &dst, int centroids)
 void region_growing(const Mat &src, Mat &dst, const vector<Point> &seeds, int threshold_0, int threshold_1, int threshold_2)
 {
     dst = Mat::zeros(src.size(), CV_8UC1); // Initialize the destination image
-    queue<Point> to_grow;                   // Queue for points to be processed
+    queue<Point> to_grow;                  // Queue for points to be processed
 
     for (const Point &seed : seeds)
     {
@@ -77,4 +77,44 @@ void mask_region_growing(const Mat &src, Mat &dst, const vector<Point> &seeds)
     Mat src_bgr;
     cvtColor(src, src_bgr, COLOR_GRAY2BGR);
     region_growing(src_bgr, dst, seeds, 0, 0, 0);
+}
+
+Vec3b get_playing_field_color(const Mat &src, float radius)
+{
+    int center_cols = src.cols / 2;
+    int center_rows = src.rows / 2;
+    vector<Vec3b> pixel_values;
+
+    // Collect all pixel values in a radius 'radius' around the image center.
+    for (int row = -radius; row <= radius; ++row)
+    {
+        for (int col = -radius; col <= radius; ++col)
+        {
+            if (col * col + row * row <= radius * radius)
+            {
+                int current_row = center_rows + row;
+                int current_col = center_cols + col;
+
+                if (current_row >= 0 && current_row < src.rows && current_col >= 0 && current_col < src.cols)
+                {
+                    pixel_values.push_back(src.at<Vec3b>(current_row, current_col));
+                }
+            }
+        }
+    }
+
+    // Return black if no pixel_values are collected
+    if (pixel_values.empty())
+    {
+        return Vec3b(0, 0, 0);
+    }
+
+    /*
+        Sort by norm. In a grayscale context, we would have just considered the pixel intensity.
+        However, now we have 3 components. So we sort the pixel values triplets by their norm.
+    */
+    sort(pixel_values.begin(), pixel_values.end(), [](const Vec3b &a, const Vec3b &b)
+         { return norm(a) < norm(b); });
+
+    return pixel_values[pixel_values.size() / 2];
 }

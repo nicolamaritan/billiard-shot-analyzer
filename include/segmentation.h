@@ -20,9 +20,9 @@ void kmeans(const cv::Mat &src, cv::Mat &dst, int centroids);
 /**
  * @brief Performs region growing segmentation on an image.
  *
- * This function applies region growing segmentation to the input image (`src`) using the provided seed points (`seeds`). 
- * The resulting segmented image is stored in `dst`. The growth of the region is controlled by the threshold parameters 
- * (`threshold_0`, `threshold_1`, `threshold_2`) which define the maximum allowed difference in pixel values for the 
+ * This function applies region growing segmentation to the input image (`src`) using the provided seed points (`seeds`).
+ * The resulting segmented image is stored in `dst`. The growth of the region is controlled by the threshold parameters
+ * (`threshold_0`, `threshold_1`, `threshold_2`) which define the maximum allowed difference in pixel values for the
  * region to grow. The output image (`dst`) will have regions marked based on the similarity to the seed points.
  *
  * @param src The source image to be segmented.
@@ -36,14 +36,26 @@ void region_growing(const cv::Mat &src, cv::Mat &dst, const std::vector<cv::Poin
 
 /**
  * @brief Performs region growing on a given source binary image starting from seed points and produces a binary mask.
- * 
+ *
  * This function initializes a destination image with zeros, then iteratively grows regions from the given seed points.
  * A pixel is added to a region if the color is the same as the current pixel.
- * 
+ *
  * @param src The source image to be segmented.
  * @param dst The destination image where the segmented output is stored.
  * @param seeds A vector of points to be used as seed points for region growing.
  */
 void mask_region_growing(const cv::Mat &src, cv::Mat &dst, const std::vector<cv::Point> &seeds);
+
+/**
+ * @brief Return the estimated board color.
+ *
+ * It computes the color of the board by considering a circle of a given radius around
+ * the center of the image and picking the median value.
+ *
+ * @param src Input image containing the board.
+ * @param radius Radius from the image center in which to compute the board color.
+ * @return the computed color of the board.
+ */
+cv::Vec3b get_playing_field_color(const cv::Mat &src, float radius);
 
 #endif

@@ -1,9 +1,11 @@
+#include "playing_field_localization.h"
+#include "geometry.h"
+#include "segmentation.h"
+
 #include <iostream>
 #include <cmath>
 #include <map>
 #include <limits>
-#include "playing_field_localization.h"
-#include "geometry.h"
 
 using namespace cv;
 using namespace std;
@@ -19,7 +21,7 @@ void playing_field_localizer::localize(const Mat &src)
     segmentation(blurred, segmented);
 
     const int RADIUS = 30;
-    Vec3b board_color = get_board_color(segmented, RADIUS);
+    Vec3b board_color = get_playing_field_color(segmented, RADIUS);
 
     Mat mask;
     inRange(segmented, board_color, board_color, mask);
@@ -67,72 +69,7 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
     hsv_channels[2].setTo(VALUE_UNIFORM);
     merge(hsv_channels, dst);
 
-    // data contains dst data (init with src data) used for kmeans clustering (therefore employs 32-bit float values)
-    Mat data;
-    dst.convertTo(data, CV_32F);
-    data = data.reshape(1, data.total());
-
-    // Image segmentation is performed via kmeans on the hsv img
-    Mat labels, centers;
-    const int NUMBER_OF_CENTERS = 3;
-    const int KMEANS_MAX_COUNT = 10;
-    const int KMEANS_EPSILON = 1.0;
-    const int KMEANS_ATTEMPTS = 8;
-    kmeans(data, NUMBER_OF_CENTERS, labels, TermCriteria(TermCriteria::MAX_ITER, KMEANS_MAX_COUNT, KMEANS_EPSILON), KMEANS_ATTEMPTS, KMEANS_PP_CENTERS, centers);
-
-    // Reshape both to a single row of Vec3f pixels
-    centers = centers.reshape(3, centers.rows);
-    data = data.reshape(3, data.rows);
-
-    // Replace pixel values with their centroids value
-    for (int i = 0; i < data.rows; i++)
-    {
-        int center_id = labels.at<int>(i);
-        data.at<Vec3f>(i) = centers.at<Vec3f>(center_id);
-    }
-
-    dst = data.reshape(3, dst.rows);
-    dst.convertTo(dst, CV_8U);
-}
-
-Vec3b playing_field_localizer::get_board_color(const Mat &src, float radius)
-{
-    int center_cols = src.cols / 2;
-    int center_rows = src.rows / 2;
-    vector<Vec3b> pixel_values;
-
-    // Collect all pixel values in a radius 'radius' around the image center.
-    for (int row = -radius; row <= radius; ++row)
-    {
-        for (int col = -radius; col <= radius; ++col)
-        {
-            if (col * col + row * row <= radius * radius)
-            {
-                int current_row = center_rows + row;
-                int current_col = center_cols + col;
-
-                if (current_row >= 0 && current_row < src.rows && current_col >= 0 && current_col < src.cols)
-                {
-                    pixel_values.push_back(src.at<Vec3b>(current_row, current_col));
-                }
-            }
-        }
-    }
-
-    // Return black if no pixel_values are collected
-    if (pixel_values.empty())
-    {
-        return Vec3b(0, 0, 0);
-    }
-
-    /*
-        Sort by norm. In a grayscale context, we would have just considered the pixel intensity.
-        However, now we have 3 components. So we sort the pixel values triplets by their norm.
-    */
-    sort(pixel_values.begin(), pixel_values.end(), [](const Vec3b &a, const Vec3b &b)
-         { return norm(a) < norm(b); });
-
-    return pixel_values[pixel_values.size() / 2];
+    kmeans(dst.clone(), dst, 3);
 }
 
 void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)

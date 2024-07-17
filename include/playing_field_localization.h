@@ -35,18 +35,6 @@ private:
     void segmentation(const cv::Mat &src, cv::Mat &dst);
 
     /**
-     * @brief Return the estimated board color.
-     *
-     * It computes the color of the board by considering a circle of a given radius around
-     * the center of the image and picking the median value.
-     *
-     * @param src Input image containing the board.
-     * @param radius Radius from the image center in which to compute the board color.
-     * @return the computed color of the board.
-     */
-    cv::Vec3b get_board_color(const cv::Mat &src, float radius);
-
-    /**
      * @brief Finds lines in the input edge-detected image using the Hough Transform.
      *
      * @param edges Input edge-detected binary image.
