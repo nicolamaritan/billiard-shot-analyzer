@@ -51,7 +51,7 @@ float get_iou(const Rect &rect_1, const Rect &rect_2)
     return static_cast<float>(intersection_rect.area()) / static_cast<float>(union_rect.area());
 }
 
-void evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask)
+float evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask)
 {
     float iou_background = get_class_iou(found_mask, ground_truth_mask, label_id::background);
     float iou_cue = get_class_iou(found_mask, ground_truth_mask, label_id::cue);
@@ -59,14 +59,16 @@ void evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, co
     float iou_solids = get_class_iou(found_mask, ground_truth_mask, label_id::solids);
     float iou_stripes = get_class_iou(found_mask, ground_truth_mask, label_id::stripes);
     float iou_playing_field = get_class_iou(found_mask, ground_truth_mask, label_id::playing_field);
+    float mean_iou = (iou_background + iou_cue + iou_black + iou_solids + iou_stripes + iou_playing_field) / 6;
 
-    cout << "background iou: " << iou_background << endl;
+    /*cout << "background iou: " << iou_background << endl;
     cout << "cue iou: " << iou_cue << endl;
     cout << "black iou: " << iou_black << endl;
     cout << "solids iou: " << iou_solids << endl;
     cout << "stripes iou: " << iou_stripes << endl;
     cout << "playing iou: " << iou_playing_field << endl;
-    cout << "mean iou: " << (iou_background + iou_cue + iou_black + iou_solids + iou_stripes + iou_playing_field) / 6 << endl;
+    cout << "mean iou: " << (iou_background + iou_cue + iou_black + iou_solids + iou_stripes + iou_playing_field) / 6 << endl;*/
+    return mean_iou;
 }
 
 match get_match(const ball_localization &predicted, label_id predicted_label, const balls_localization ground_truth)
@@ -159,7 +161,7 @@ float compute_average_precision(std::vector<match> &matches)
     return average_precision;
 }
 
-void evaluate_balls_localization(const balls_localization &predicted, const balls_localization &ground_truth)
+float evaluate_balls_localization(const balls_localization &predicted, const balls_localization &ground_truth)
 {
     match cue_match = get_match(predicted.cue, label_id::cue, ground_truth);
     // Compute precision and recall as follows since we are gauranteed to have one prediction and one ground truth for the cue
@@ -199,11 +201,13 @@ void evaluate_balls_localization(const balls_localization &predicted, const ball
     float stripes_ap = compute_average_precision(stripes_matches);
     float map = (cue_ap + black_ap + solids_ap + stripes_ap) / 4;
 
-    cout << "cue_ap: " << cue_ap << endl;
+    /*cout << "cue_ap: " << cue_ap << endl;
     cout << "black_ap: " << black_ap << endl;
     cout << "solids_ap: " << solids_ap << endl;
     cout << "stripes_ap: " << stripes_ap << endl;
-    cout << "map: " << map << endl;
+    cout << "map: " << map << endl;*/
+
+    return map;
 }
 
 void load_ground_truth_localization(const string &filename, balls_localization &ground_truth_localization)

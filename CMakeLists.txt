@@ -59,6 +59,11 @@ add_library(performance_measurement
     src/performance_measurement.cpp
 )
 
+add_library(dataset_evaluation
+    include/dataset_evaluation.h
+    src/dataset_evaluation.cpp
+)
+
 add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
@@ -75,11 +80,13 @@ target_link_libraries(${PROJECT_NAME}
     geometry
     segmentation
     minimap
+    dataset_evaluation
 )
 
 target_link_libraries(evaluation
     ${OpenCV_LIBS}
     show_cat
+    dataset_evaluation
     performance_measurement
     frame_segmentation
     frame_detection
