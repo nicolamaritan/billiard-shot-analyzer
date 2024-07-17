@@ -44,6 +44,10 @@ add_library(minimap
     src/minimap.cpp
 )
 
+add_library(playing_field_segmentation
+    include/playing_field_segmentation.h
+    src/playing_field_segmentation.cpp
+)
 
 add_library(performance_measurement
     include/performance_measurement.h
@@ -71,6 +75,7 @@ target_link_libraries(${PROJECT_NAME}
 target_link_libraries(evaluation
     ${OpenCV_LIBS}
     show_cat
+    playing_field_segmentation
     performance_measurement
     playing_field_localization
     balls_localization

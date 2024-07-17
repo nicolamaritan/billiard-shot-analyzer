@@ -1,4 +1,5 @@
 #include "performance_measurement.h"
+#include "playing_field_segmentation.h"
 
 #include <iostream>
 
@@ -13,6 +14,20 @@ int main()
     vector<String> frames_filenames;
     vector<balls_localization> predicted_balls_localizations;
     vector<balls_localization> ground_truth_balls_localizations;
+
+    glob("*.png", filenames, true);
+    for (auto filename : filenames)
+    {
+        if (filename.find("masks") == String::npos && (filename.find("first") != String::npos || filename.find("last") != String::npos))
+        {
+            Mat img = imread(filename);
+            Mat segm;
+            playing_field_segmentation(img, segm, true);
+            imshow("yo", segm);
+            waitKey();
+        }
+    }
+    return 0;
 
     glob("*.png", filenames, true);
     for (auto filename : filenames)
