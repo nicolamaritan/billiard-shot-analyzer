@@ -48,7 +48,7 @@ void balls_localizer::localize(const Mat &src)
     Mat final_segmentation_mask;
 
     int RADIUS = 100;
-    const Vec3b board_color_hsv = get_board_color(blurred_masked_hsv, RADIUS);
+    const Vec3b board_color_hsv = get_playing_field_color(blurred_masked_hsv, RADIUS);
     const Vec3b SHADOW_OFFSET = Vec3b(0, 0, 90);
 
     Vec3b shadow_hsv = board_color_hsv - SHADOW_OFFSET;
@@ -508,44 +508,6 @@ float balls_localizer::mean_squared_bgr_intra_pixel_difference(const Mat &src, c
     }
     count /= pow(255, 2) * 3; // Channels value normalization
     return count / countNonZero(mask);
-}
-
-Vec3b balls_localizer::get_board_color(const Mat &src, float radius)
-{
-    int center_cols = src.cols / 2;
-    int center_rows = src.rows / 2;
-    vector<Vec3b> pixel_values;
-
-    // Collect all pixel values in a radius 'radius' around the image center.
-    for (int row = -radius; row <= radius; ++row)
-    {
-        for (int col = -radius; col <= radius; ++col)
-        {
-            if (col * col + row * row <= radius * radius)
-            {
-                int current_row = center_rows + row;
-                int current_col = center_cols + col;
-
-                if (current_row >= 0 && current_row < src.rows && current_col >= 0 && current_col < src.cols)
-                {
-                    pixel_values.push_back(src.at<Vec3b>(current_row, current_col));
-                }
-            }
-        }
-    }
-
-    // Return black if no pixel_values are collected
-    if (pixel_values.empty())
-    {
-        return Vec3b(0, 0, 0);
-    }
-
-    // Sort by norm. In a grayscale context, we would have just considered the pixel intensity.
-    // However, now we have 3 components. So we sort the pixel values triplets by their norm.
-    sort(pixel_values.begin(), pixel_values.end(), [](const Vec3b &a, const Vec3b &b)
-         { return norm(a) < norm(b); });
-
-    return pixel_values[pixel_values.size() / 2];
 }
 
 void balls_localizer::draw_circles(const cv::Mat &src, cv::Mat &dst, std::vector<cv::Vec3f> &circles)

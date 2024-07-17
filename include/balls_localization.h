@@ -183,18 +183,6 @@ private:
     void draw_circles(const cv::Mat &src, cv::Mat &dst, std::vector<cv::Vec3f> &circles);
 
     /**
-     * @brief Return the estimated board color.
-     *
-     * It computes the color of the board by considering a circle of a given radius around
-     * the center of the image and picking the median value.
-     *
-     * @param src Input image containing the board.
-     * @param radius Radius from the image center in which to compute the board color.
-     * @return the computed color of the board.
-     */
-    cv::Vec3b get_board_color(const cv::Mat &src, float radius);
-
-    /**
      * @brief Computes the mean squared difference from white for each pixel within a given circle.
      *
      * This function calculates the mean squared BGR intra-pixel difference for each pixel within a specified circle in the source image.
