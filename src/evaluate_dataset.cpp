@@ -19,6 +19,7 @@ void evaluate(std::string path)
     vector<balls_localization> predicted_balls_localizations;
     vector<balls_localization> ground_truth_balls_localizations;
 
+    // Create the output forder
     namespace fs = std::filesystem;
     fs::create_directories("./output");
 
