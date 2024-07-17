@@ -1,5 +1,5 @@
-#ifndef PLAYING_FIELD_SEGMENTATION_H
-#define PLAYING_FIELD_SEGMENTATION_H
+#ifndef FRAME_SEGMENTATION_H
+#define FRAME_SEGMENTATION_H
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>

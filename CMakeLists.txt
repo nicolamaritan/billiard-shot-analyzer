@@ -49,6 +49,11 @@ add_library(frame_segmentation
     src/frame_segmentation.cpp
 )
 
+add_library(frame_detection
+    include/frame_detection.h
+    src/frame_detection.cpp
+)
+
 add_library(performance_measurement
     include/performance_measurement.h
     src/performance_measurement.cpp
@@ -77,6 +82,7 @@ target_link_libraries(evaluation
     show_cat
     performance_measurement
     frame_segmentation
+    frame_detection
     playing_field_localization
     balls_localization
     geometry

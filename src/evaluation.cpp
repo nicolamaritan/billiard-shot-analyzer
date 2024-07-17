@@ -1,5 +1,6 @@
 #include "performance_measurement.h"
 #include "frame_segmentation.h"
+#include "frame_detection.h"
 
 #include <iostream>
 
@@ -21,9 +22,11 @@ int main()
         if (filename.find("masks") == String::npos && (filename.find("first") != String::npos || filename.find("last") != String::npos))
         {
             Mat img = imread(filename);
-            Mat segm;
-            get_colored_frame_segmentation(img, segm, false);
-            imshow("yo", segm);
+            Mat seg, det;
+            get_colored_frame_segmentation(img, seg, false);
+            get_frame_detection(img, det);
+            imshow("1", seg);
+            imshow("2", det);
             waitKey();
         }
     }
