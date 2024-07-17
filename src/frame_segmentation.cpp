@@ -6,6 +6,16 @@
 using namespace cv;
 using namespace std;
 
+/**
+ * @brief Segments the frame based on color information.
+ *
+ * This function applies color-based segmentation to the input frame, preserving the background if specified.
+ *
+ * @param src The source image to be segmented.
+ * @param dst The destination image where the segmentation result will be stored.
+ * @param frame_segmentation A matrix containing segmentation labels for the frame.
+ * @param preserve_background Boolean flag to indicate if the background should be preserved in the segmentation.
+ */
 void color_segmentation(const cv::Mat &src, cv::Mat &dst, const cv::Mat &frame_segmentation, bool preserve_background);
 
 void get_frame_segmentation(const Mat &src, Mat &dst)
@@ -53,8 +63,7 @@ void get_colored_frame_segmentation(const Mat &src, Mat &dst, bool preserve_back
     Mat frame_segmentation;
     get_frame_segmentation(src, frame_segmentation);
 
-    Mat colored_frame_segmentation;
-    color_segmentation(src, colored_frame_segmentation, frame_segmentation, preserve_background);
+    color_segmentation(src, dst, frame_segmentation, preserve_background);
     
     // Draw yellow lines
     vector<Point> corners = plf_loc.get_localization().corners;
@@ -62,10 +71,8 @@ void get_colored_frame_segmentation(const Mat &src, Mat &dst, bool preserve_back
     {
         const Scalar YELLOW_COLOR = Scalar(0, 255, 255);
         const int LINE_THICKNESS = 3;
-        line(colored_frame_segmentation, corners[i], corners[(i + 1) % corners.size()], YELLOW_COLOR, LINE_THICKNESS);
+        line(dst, corners[i], corners[(i + 1) % corners.size()], YELLOW_COLOR, LINE_THICKNESS);
     }
-
-    dst = colored_frame_segmentation;
 }
 
 void color_segmentation(const cv::Mat &src, cv::Mat &dst, const cv::Mat &frame_segmentation, bool preserve_background)
@@ -92,7 +99,7 @@ void color_segmentation(const cv::Mat &src, cv::Mat &dst, const cv::Mat &frame_s
             // Color based on label id
             uchar pixel_value = frame_segmentation.at<uchar>(i, j);
             if (pixel_value >= MIN_COLOR && pixel_value < MAX_COLOR)
-                dst.at<cv::Vec3b>(i, j) = color_map[pixel_value];
+                dst.at<cv::Vec3b>(i, j) = color_map.at(pixel_value);
         }
     }
 }

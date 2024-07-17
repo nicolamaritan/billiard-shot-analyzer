@@ -5,6 +5,18 @@
 using namespace cv;
 using namespace std;
 
+/**
+ * @brief Draw a transparent rectangle on an image.
+ *
+ * This function draws a filled rectangle with specified color and transparency (alpha value) 
+ * on the given image, and then outlines it with the same color.
+ *
+ * @param src The source image on which the rectangle will be drawn.
+ * @param rect The rectangle to be drawn (specified by a Rect object).
+ * @param color The color of the rectangle (specified by a Scalar object).
+ * @param alpha The transparency level of the rectangle. A value between 0 (completely transparent) 
+ *              and 1 (completely opaque).
+ */
 void draw_transparent_rect(Mat &src, Rect rect, Scalar color, double alpha);
 
 void get_frame_detection(const Mat &src, Mat &dst)
