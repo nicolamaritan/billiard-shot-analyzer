@@ -16,6 +16,13 @@ enum label_id
     playing_field
 };
 
+struct match
+{
+    bool is_true_positive;
+    float confidence;
+};
+typedef struct match match;
+
 float evaluate_balls_localization(const balls_localization &localization, const balls_localization &ground_truth_localization);
 float evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask);
 void frame_segmentation(const cv::Mat &src, cv::Mat &dst);
