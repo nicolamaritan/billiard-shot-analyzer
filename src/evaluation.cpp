@@ -1,5 +1,5 @@
 #include "performance_measurement.h"
-#include "playing_field_segmentation.h"
+#include "frame_segmentation.h"
 
 #include <iostream>
 
@@ -22,7 +22,7 @@ int main()
         {
             Mat img = imread(filename);
             Mat segm;
-            playing_field_segmentation(img, segm, true);
+            get_colored_frame_segmentation(img, segm, false);
             imshow("yo", segm);
             waitKey();
         }
