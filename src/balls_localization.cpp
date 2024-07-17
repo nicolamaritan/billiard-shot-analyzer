@@ -152,7 +152,7 @@ void balls_localizer::rescale_bounding_boxes(float scale, float max_size)
         solid_loc.bounding_box = rescale_bounding_box(solid_bbox, scale, max_size);
     }
 }
-static int counter_im = 0;
+
 void balls_localizer::show_detection(const Mat &src)
 {
     Mat display = src.clone();
@@ -165,14 +165,11 @@ void balls_localizer::show_detection(const Mat &src)
     circle(display, white_ball_center, white_ball_radius, Scalar(255, 255, 255), 2, LINE_AA);
 
     // Display black
-    if (localization.black != NO_LOCALIZATION)
-    {
-        Vec3f black_ball_circle = localization.black.circle;
-        int black_ball_radius = black_ball_circle[2];
-        Point black_ball_center = Point(black_ball_circle[0], black_ball_circle[1]);
-        circle(display, black_ball_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
-        circle(display, black_ball_center, black_ball_radius, Scalar(0, 0, 0), 2, LINE_AA);
-    }
+    Vec3f black_ball_circle = localization.black.circle;
+    int black_ball_radius = black_ball_circle[2];
+    Point black_ball_center = Point(black_ball_circle[0], black_ball_circle[1]);
+    circle(display, black_ball_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
+    circle(display, black_ball_center, black_ball_radius, Scalar(0, 0, 0), 2, LINE_AA);
 
     // Display stripes
     for (ball_localization stripe_localization : localization.stripes)
@@ -195,17 +192,6 @@ void balls_localizer::show_detection(const Mat &src)
         cv::circle(display, circle_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
         cv::circle(display, circle_center, circle_radius, Scalar(255, 0, 0), 2, LINE_AA);
     }
-
-    if (counter_im % 2 == 0)
-    {
-        stringstream ss;
-        ss << counter_im;
-        string counter_im_str;
-        ss >> counter_im_str;
-        imshow("display - end of balls_localizer::localize", display);
-        imwrite("display" + counter_im_str + ".png", display);
-    }
-    counter_im++;
 }
 
 void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, float neighborhood_distance_threshold, float distance_threshold, float radius_threshold)
@@ -423,9 +409,9 @@ void balls_localizer::remove_connected_components_by_diameter(Mat &mask, double 
     cv::Mat labels, stats, centroids;
     int number_labels = cv::connectedComponentsWithStats(mask, labels, stats, centroids, 8, CV_32S);
 
+    // Start from 1 to skip the background
     for (int label = 1; label < number_labels; ++label)
     {
-        // Start from 1 to skip the background
         cv::Mat component = (labels == label);
 
         // Find the minimum enclosing circle
@@ -678,28 +664,6 @@ void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_
         stripe_localization.confidence = pair.second;
         localization.stripes.push_back(stripe_localization);
     }
-
-    /*for (auto p : circles_white_ratios)
-    {
-        cout << p.first << p.second << endl;
-    }
-    cout << "------filtered-----" << endl;
-
-    for (auto p : stripes_circles)
-    {
-        cout << p.first << p.second << endl;
-    }
-    cout << "-----------" << endl;
-*/
-    vector<Vec3f> temp_circles;
-    for (auto t : stripes_circles)
-    {
-        temp_circles.push_back(t.first);
-    }
-
-    Mat temp = src.clone();
-    draw_circles(src, temp, temp_circles);
-    imshow("temp", temp);
 }
 
 void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
@@ -731,7 +695,7 @@ void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_m
     {
         solid_confidence += stripe_localization.confidence;
     }
-    solid_confidence /= (localization.stripes.size() + 2);  // +2 represents cue and black
+    solid_confidence /= (localization.stripes.size() + 2); // +2 represents cue and black
 
     // All the other must be solids
     for (Vec3f circle : solids_circles)
