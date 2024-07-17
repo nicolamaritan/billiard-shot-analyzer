@@ -124,10 +124,6 @@ private:
      */
     void estimate_holes_location(std::vector<cv::Point> &hole_points);
 
-    void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
-
-    cv::Mat playing_field_mask;
-    std::vector<cv::Point> playing_field_hole_points;
     playing_field_localization localization;
 };
 

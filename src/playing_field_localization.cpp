@@ -25,19 +25,12 @@ void playing_field_localizer::localize(const Mat &src)
     inRange(segmented, board_color, board_color, mask);
     segmented.setTo(Scalar(0, 0, 0), mask);
 
-    // imshow("", mask);
-    // waitKey(0);
-
     non_maxima_connected_component_suppression(mask.clone(), mask);
-    // imshow("", mask);
-    // waitKey(0);
 
     const int THRESHOLD_1_CANNY = 50;
     const int THRESHOLD_2_CANNY = 150;
     Mat edges;
     Canny(mask, edges, THRESHOLD_1_CANNY, THRESHOLD_2_CANNY);
-    // imshow("", edges);
-    // waitKey(0);
 
     vector<Vec3f> lines, refined_lines;
     find_lines(edges, lines);
@@ -46,11 +39,7 @@ void playing_field_localizer::localize(const Mat &src)
     draw_lines(edges, refined_lines);
 
     vector<Point> refined_lines_intersections;
-    Mat table = blurred.clone();
-    intersections(refined_lines, refined_lines_intersections, table.rows, table.cols);
-    draw_pool_table(refined_lines_intersections, table);
-    //imshow("", table);
-    //waitKey(0);
+    intersections(refined_lines, refined_lines_intersections, src.rows, src.cols);
 
     sort_points_clockwise(refined_lines_intersections);
     playing_field_corners = refined_lines_intersections;
@@ -58,15 +47,11 @@ void playing_field_localizer::localize(const Mat &src)
 
     vector<Point> hole_points;
     estimate_holes_location(hole_points);
-    playing_field_hole_points = hole_points;
     localization.hole_points = hole_points;
 
-    Mat table_mask(Size(table.cols, table.rows), CV_8U);
+    Mat table_mask(Size(src.cols, src.rows), CV_8U);
     table_mask.setTo(0);
-    fillConvexPoly(table, refined_lines_intersections, Scalar(0, 0, 255));
     fillConvexPoly(table_mask, refined_lines_intersections, 255);
-    playing_field_mask = table_mask;
-
     localization.mask = table_mask;
 }
 
@@ -158,20 +143,6 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
     Mat cdst;
     cvtColor(edges, cdst, COLOR_GRAY2BGR);
     HoughLines(edges, lines, RHO_RESOLUTION, THETA_RESOLUTION * CV_PI / 180, THRESHOLD, 0, 0);
-
-    // Draw the lines
-    for (size_t i = 0; i < lines.size(); i++)
-    {
-        float rho = lines[i][0], theta = lines[i][1];
-        Point pt1, pt2;
-        double a = cos(theta), b = sin(theta);
-        double x0 = a * rho, y0 = b * rho;
-        pt1.x = cvRound(x0 + 1000 * (-b));
-        pt1.y = cvRound(y0 + 1000 * (a));
-        pt2.x = cvRound(x0 - 1000 * (-b));
-        pt2.y = cvRound(y0 - 1000 * (a));
-        line(cdst, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
-    }
 }
 
 /**
@@ -210,6 +181,7 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &li
 {
     Mat src_bgr;
     cvtColor(src, src_bgr, COLOR_GRAY2BGR);
+    const float ARBITRARY_COORDINATE = 1000;    // Arbitrary constant for line plotting
 
     for (size_t i = 0; i < lines.size(); i++)
     {
@@ -217,11 +189,12 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &li
         Point pt1, pt2;
         double a = cos(theta), b = sin(theta);
         double x0 = a * rho, y0 = b * rho;
-        pt1.x = cvRound(x0 + 1000 * (-b));
-        pt1.y = cvRound(y0 + 1000 * (a));
-        pt2.x = cvRound(x0 - 1000 * (-b));
-        pt2.y = cvRound(y0 - 1000 * (a));
-        line(src_bgr, pt1, pt2, Scalar(0, 255, 0), 1, LINE_AA);
+        pt1.x = cvRound(x0 + ARBITRARY_COORDINATE * (-b));
+        pt1.y = cvRound(y0 + ARBITRARY_COORDINATE * (a));
+        pt2.x = cvRound(x0 - ARBITRARY_COORDINATE * (-b));
+        pt2.y = cvRound(y0 - ARBITRARY_COORDINATE * (a));
+        const Scalar RED = Scalar(0, 255, 0);
+        line(src_bgr, pt1, pt2, RED, 1, LINE_AA);
     }
 }
 
@@ -397,55 +370,4 @@ void playing_field_localizer::estimate_holes_location(vector<Point> &hole_points
     hole_points.push_back(static_cast<Point>(top_right_refined));
     hole_points.push_back(static_cast<Point>(bottom_left_refined));
     hole_points.push_back(static_cast<Point>(bottom_right_refined));
-}
-
-void playing_field_localizer::draw_pool_table(vector<Point> inters, Mat &image)
-{
-    if (is_vertical_line({inters[0], inters[1]}) ||
-        is_vertical_line({inters[0], inters[2]}) ||
-        is_vertical_line({inters[0], inters[3]}))
-    {
-        vector<int> x_coord = {inters[0].x, inters[1].x, inters[2].x, inters[3].x};
-        vector<int> y_coord = {inters[0].y, inters[1].y, inters[2].y, inters[3].y};
-
-        int x1 = *min_element(x_coord.begin(), x_coord.end()); // top-left pt. is the leftmost of the 4 points
-        int x2 = *max_element(x_coord.begin(), x_coord.end()); // bottom-right pt. is the rightmost of the 4 points
-        int y1 = *min_element(y_coord.begin(), y_coord.end()); // top-left pt. is the uppermost of the 4 points
-        int y2 = *max_element(y_coord.begin(), y_coord.end()); // bottom-right pt. is the lowermost of the 4 points
-
-        rectangle(image, Point(x1, y1), Point(x2, y2), Scalar(0, 0, 255), 1);
-    }
-
-    else
-    {
-        double m1 = angular_coefficient({inters[0], inters[1]}); // line 1
-        double m2 = angular_coefficient({inters[0], inters[2]}); // line 2
-        double m3 = angular_coefficient({inters[0], inters[3]}); // line 3
-
-        double theta1 = angle_between_lines({inters[0], inters[1]}, {inters[0], inters[2]}); // angle between line 1 and line 2
-        double theta2 = angle_between_lines({inters[0], inters[1]}, {inters[0], inters[3]}); // angle between line 1 and line 3
-        double theta3 = angle_between_lines({inters[0], inters[2]}, {inters[0], inters[3]}); // angle between line 2 and line 3
-
-        if (theta1 >= theta2 && theta1 >= theta3)
-        {
-            line(image, inters[0], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
-            line(image, inters[0], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
-            line(image, inters[3], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
-            line(image, inters[3], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
-        }
-        else if (theta2 >= theta1 && theta2 >= theta3)
-        {
-            line(image, inters[0], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
-            line(image, inters[0], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
-            line(image, inters[2], inters[1], Scalar(0, 0, 255), 1, LINE_AA);
-            line(image, inters[2], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
-        }
-        else
-        {
-            line(image, inters[0], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
-            line(image, inters[0], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
-            line(image, inters[1], inters[2], Scalar(0, 0, 255), 1, LINE_AA);
-            line(image, inters[1], inters[3], Scalar(0, 0, 255), 1, LINE_AA);
-        }
-    }
 }
