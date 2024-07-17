@@ -10,6 +10,7 @@ struct ball_localization
 {
     cv::Vec3f circle;
     cv::Rect bounding_box;
+    float confidence;
 };
 typedef struct ball_localization ball_localization;
 

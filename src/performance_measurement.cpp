@@ -112,17 +112,13 @@ match get_match(const ball_localization &predicted, label_id predicted_label, co
 
     float max_iou = get_iou(predicted.bounding_box, ground_truth.cue.bounding_box);
     label_id max_iou_id = label_id::cue;
-    float max_iou_confidence = 0;
-    //cout << "cue : max_iou_id = " << max_iou_id << endl << "max_iou = " << max_iou << endl;
 
     current_iou = get_iou(predicted.bounding_box, ground_truth.black.bounding_box);
     if (current_iou > max_iou)
     {
         max_iou = current_iou;
         max_iou_id = label_id::black;
-        // TODO confidence
     }
-    //cout << "black : max_iou_id = " << max_iou_id << endl << "max_iou = " << max_iou << endl;
 
     for (ball_localization solid_localization : ground_truth.solids)
     {
@@ -131,10 +127,8 @@ match get_match(const ball_localization &predicted, label_id predicted_label, co
         {
             max_iou = current_iou;
             max_iou_id = label_id::solids;
-            // TODO confidence
         }
     }
-    //cout << "solid : max_iou_id = " << max_iou_id << endl << "max_iou = " << max_iou << endl;
 
     for (ball_localization stripe_localization : ground_truth.stripes)
     {
@@ -143,17 +137,13 @@ match get_match(const ball_localization &predicted, label_id predicted_label, co
         {
             max_iou = current_iou;
             max_iou_id = label_id::stripes;
-            // TODO confidence
         }
     }
-    //cout << "stripe : max_iou_id = " << max_iou_id << endl << "max_iou = " << max_iou << endl;
-
 
     const float IOU_THRESHOLD = 0.5;
     match returned_match;
     returned_match.is_true_positive = (predicted_label == max_iou_id && max_iou > IOU_THRESHOLD);
-    returned_match.confidence = max_iou_confidence;
-    cout << "max_iou: " << max_iou << "; id: " << max_iou_id << endl; 
+    returned_match.confidence = predicted.confidence;
 
     return returned_match;
 }

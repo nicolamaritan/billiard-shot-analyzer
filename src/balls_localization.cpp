@@ -127,7 +127,7 @@ void balls_localizer::localize(const Mat &src)
     get_bounding_boxes(circles, bounding_boxes);
 
     // Increase bbox sizes for tracking. Infact, tracking works better if bounding boxes are larger
-    //rescale_bounding_boxes(BOUNDING_BOX_RESCALE, MAX_SIZE_BOUNDING_BOX_RESCALE);
+    // rescale_bounding_boxes(BOUNDING_BOX_RESCALE, MAX_SIZE_BOUNDING_BOX_RESCALE);
 
     show_detection(src);
 }
@@ -196,13 +196,16 @@ void balls_localizer::show_detection(const Mat &src)
         cv::circle(display, circle_center, circle_radius, Scalar(255, 0, 0), 2, LINE_AA);
     }
 
-    /*stringstream ss;
-    ss << counter_im;
-    string counter_im_str;
-    ss >> counter_im_str;
-    imshow("display - end of balls_localizer::localize", display);
-    imwrite("display"+ counter_im_str +".png", display);
-    counter_im++;*/
+    if (counter_im % 2 == 0)
+    {
+        stringstream ss;
+        ss << counter_im;
+        string counter_im_str;
+        ss >> counter_im_str;
+        imshow("display - end of balls_localizer::localize", display);
+        imwrite("display" + counter_im_str + ".png", display);
+    }
+    counter_im++;
 }
 
 void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, float neighborhood_distance_threshold, float distance_threshold, float radius_threshold)
@@ -521,6 +524,7 @@ float balls_localizer::mean_squared_bgr_intra_pixel_difference(const Mat &src, c
             }
         }
     }
+    count /= pow(255, 2) * 3; // Channels value normalization
     return count / countNonZero(mask);
 }
 
@@ -580,29 +584,44 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
     cvtColor(src, src_hsv, COLOR_BGR2HSV);
 
     // We compute, for each circle, the percentage of "white" pixels. The one with highest percentage is picked as white ball.
-    vector<pair<Vec3f, float>> circles_white_percentages;
+    vector<pair<Vec3f, float>> circles_white_ratios;
     for (Vec3f circle : circles)
     {
-        circles_white_percentages.push_back({circle, get_white_ratio_in_circle_cue(src_hsv, segmentation_mask, circle)});
+        circles_white_ratios.push_back({circle, get_white_ratio_in_circle_cue(src_hsv, segmentation_mask, circle)});
     }
 
     //  Sort by descending order of percentage
-    std::sort(circles_white_percentages.begin(), circles_white_percentages.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
+    std::sort(circles_white_ratios.begin(), circles_white_ratios.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
               { return a.second > b.second; });
 
     Vec3f white_ball_circle;
-    if (circles_white_percentages.at(0).second - circles_white_percentages.at(0).second > 0.1)
-        white_ball_circle = circles_white_percentages.at(0).first;
+    float cue_ball_circle_confidence;
+    const float MAX_DIFFERENCE_THRESHOLD = 0.1;
+    if (circles_white_ratios.at(0).second - circles_white_ratios.at(1).second > MAX_DIFFERENCE_THRESHOLD)
+    {
+        white_ball_circle = circles_white_ratios.at(0).first;
+        cue_ball_circle_confidence = circles_white_ratios.at(0).second;
+    }
     else
     {
-        // Tie break
-        double difference_0 = mean_squared_bgr_intra_pixel_difference(src, segmentation_mask, circles_white_percentages.at(0).first);
-        double difference_1 = mean_squared_bgr_intra_pixel_difference(src, segmentation_mask, circles_white_percentages.at(1).first);
-        white_ball_circle = difference_0 < difference_1 ? circles_white_percentages.at(0).first : circles_white_percentages.at(1).first;
+        // Tie break for very bright balls
+        double difference_0 = mean_squared_bgr_intra_pixel_difference(src, segmentation_mask, circles_white_ratios.at(0).first);
+        double difference_1 = mean_squared_bgr_intra_pixel_difference(src, segmentation_mask, circles_white_ratios.at(1).first);
+        if (difference_0 < difference_1)
+        {
+            white_ball_circle = circles_white_ratios.at(0).first;
+            cue_ball_circle_confidence = circles_white_ratios.at(0).second;
+        }
+        else
+        {
+            white_ball_circle = circles_white_ratios.at(1).first;
+            cue_ball_circle_confidence = circles_white_ratios.at(1).second;
+        }
     }
 
     localization.cue.circle = white_ball_circle;
     localization.cue.bounding_box = get_bounding_box(white_ball_circle);
+    localization.cue.confidence = cue_ball_circle_confidence;
 }
 
 void balls_localizer::find_black_ball(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
@@ -623,6 +642,7 @@ void balls_localizer::find_black_ball(const Mat &src, const Mat &segmentation_ma
 
     localization.black.circle = circles_black_ratios.at(0).first;
     localization.black.bounding_box = get_bounding_box(circles_black_ratios.at(0).first);
+    localization.black.confidence = circles_black_ratios.at(0).second;
 }
 
 void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
@@ -655,6 +675,7 @@ void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_
         ball_localization stripe_localization;
         stripe_localization.circle = pair.first;
         stripe_localization.bounding_box = get_bounding_box(pair.first);
+        stripe_localization.confidence = pair.second;
         localization.stripes.push_back(stripe_localization);
     }
 
@@ -698,12 +719,27 @@ void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_m
         }
         return true; });
 
+    /*
+        Since the classification of a ball being solid depends exclusively on the classification
+        of the other kinds of balls, the confidence of a ball being solid can be estimated as the
+        average of the other confidences.
+    */
+    float solid_confidence = 0;
+    solid_confidence += localization.cue.confidence;
+    solid_confidence += localization.black.confidence;
+    for (ball_localization stripe_localization : localization.stripes)
+    {
+        solid_confidence += stripe_localization.confidence;
+    }
+    solid_confidence /= (localization.stripes.size() + 2);  // +2 represents cue and black
+
     // All the other must be solids
     for (Vec3f circle : solids_circles)
     {
         ball_localization solid_localization;
         solid_localization.circle = circle;
         solid_localization.bounding_box = get_bounding_box(circle);
+        solid_localization.confidence = solid_confidence;
         localization.solids.push_back(solid_localization);
     }
 }

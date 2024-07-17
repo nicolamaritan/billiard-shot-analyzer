@@ -8,7 +8,6 @@ using namespace cv;
 int main()
 {
     vector<String> filenames;
-
     vector<Mat> found_table_masks;
     vector<Mat> ground_truth_table_masks;
     vector<String> frames_filenames;
@@ -55,10 +54,7 @@ int main()
             ground_truth_balls_localizations.push_back(ground_truth);
         }
     }
-    cout << predicted_balls_localizations.size() << endl;
-    cout << ground_truth_balls_localizations.size() << endl;
 
-    cout << "import and segmentation done" << endl;
     for (int i = 0; i < found_table_masks.size(); i++)
     {
         cout << frames_filenames.at(i) << endl;
