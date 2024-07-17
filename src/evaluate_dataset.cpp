@@ -1,8 +1,10 @@
 #include "evaluate_dataset.h"
 #include "performance_measurement.h"
 #include "balls_localization.h"
+
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 using namespace std;
 using namespace cv;
@@ -17,8 +19,11 @@ void evaluate(std::string path)
     vector<balls_localization> predicted_balls_localizations;
     vector<balls_localization> ground_truth_balls_localizations;
 
+    namespace fs = std::filesystem;
+    fs::create_directories("./output");
+
     // Create and open a text file
-    ofstream PerformanceFile("performance.txt");
+    ofstream PerformanceFile("./output/performance.txt");
 
 
     glob(path + "*.png", filenames, true);
