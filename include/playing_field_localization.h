@@ -23,7 +23,6 @@ public:
      */
     void localize(const cv::Mat &src);
     playing_field_localization get_localization() { return localization; }
-    std::vector<cv::Point> playing_field_corners;
 
 private:
     /**

@@ -42,7 +42,6 @@ void playing_field_localizer::localize(const Mat &src)
     intersections(refined_lines, refined_lines_intersections, src.rows, src.cols);
 
     sort_points_clockwise(refined_lines_intersections);
-    playing_field_corners = refined_lines_intersections;
     localization.corners = refined_lines_intersections;
 
     vector<Point> hole_points;
@@ -126,8 +125,10 @@ Vec3b playing_field_localizer::get_board_color(const Mat &src, float radius)
         return Vec3b(0, 0, 0);
     }
 
-    // Sort by norm. In a grayscale context, we would have just considered the pixel intensity.
-    // However, now we have 3 components. So we sort the pixel values triplets by their norm.
+    /*
+        Sort by norm. In a grayscale context, we would have just considered the pixel intensity.
+        However, now we have 3 components. So we sort the pixel values triplets by their norm.
+    */
     sort(pixel_values.begin(), pixel_values.end(), [](const Vec3b &a, const Vec3b &b)
          { return norm(a) < norm(b); });
 
@@ -181,7 +182,7 @@ void playing_field_localizer::draw_lines(const Mat &src, const vector<Vec3f> &li
 {
     Mat src_bgr;
     cvtColor(src, src_bgr, COLOR_GRAY2BGR);
-    const float ARBITRARY_COORDINATE = 1000;    // Arbitrary constant for line plotting
+    const float ARBITRARY_COORDINATE = 1000; // Arbitrary constant for line plotting
 
     for (size_t i = 0; i < lines.size(); i++)
     {
@@ -269,6 +270,11 @@ void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
 
     sort(points.begin(), points.end(), [center](const Point &pt1, const Point &pt2)
          {
+        /*
+            This conditions allow to totally order set of points in clockwise order.
+            In fact, with the expression below, the sort function could loop indefinitely while
+            trying to compare pairs of points.
+        */
         if (pt1.x - center.x >= 0 && pt2.x - center.x < 0)
             return false;
         if (pt1.x - center.x < 0 && pt2.x - center.x >= 0)
@@ -280,62 +286,67 @@ void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
             return pt2.y > pt1.y;
         }
 
-        // Compute cross product between pt1-center and pt2-center. If it is < 0, then pt1 comes first in
-        // clockwise order. If it is > 0, then pt2 comes first.
+        /*
+            Compute cross product between pt1-center and pt2-center. If it is < 0, then pt1 comes first in
+            clockwise order. If it is > 0, then pt2 comes first.
+        */
         int cross_product = (pt1.x - center.x) * (pt2.y - center.y) - (pt2.x - center.x) * (pt1.y - center.y);
         return cross_product > 0; });
 }
 
 void playing_field_localizer::estimate_holes_location(vector<Point> &hole_points)
 {
-    pair<Point, Point> positive_diagonal = {playing_field_corners.at(0), playing_field_corners.at(2)};
-    pair<Point, Point> negative_diagonal = {playing_field_corners.at(1), playing_field_corners.at(3)};
+    vector<Point> corners = localization.corners;
+    pair<Point, Point> positive_diagonal = {corners.at(0), corners.at(2)};
+    pair<Point, Point> negative_diagonal = {corners.at(1), corners.at(3)};
     Point playing_field_center;
     bool is_perspective_view = false;
     intersection(positive_diagonal, negative_diagonal, playing_field_center, 9999, 9999);
 
-    // Computation of long and short edges. Recall playing_field_corners starts from bottom left corner of
-    // the playing field and are sorted clockwise.
-    
+    // Computation of long and short edges.
     pair<Point, Point> short_edge, long_edge_1, long_edge_2;
 
     // If the two angular coefficients have similar absolute value and opposite sign, then we have a perspective view
     if (abs(angular_coefficient(positive_diagonal) + angular_coefficient(negative_diagonal)) < 0.01)
     {
         is_perspective_view = true;
-        long_edge_1 = {playing_field_corners.at(0), playing_field_corners.at(1)};
-        long_edge_2 = {playing_field_corners.at(3), playing_field_corners.at(2)};
-        short_edge = {playing_field_corners.at(3), playing_field_corners.at(0)};
+        long_edge_1 = {corners.at(0), corners.at(1)};
+        long_edge_2 = {corners.at(3), corners.at(2)};
+        short_edge = {corners.at(3), corners.at(0)};
     }
     else
     {
-        if (norm(playing_field_corners.at(0) - playing_field_corners.at(1)) < norm(playing_field_corners.at(1) - playing_field_corners.at(2)))
+        if (norm(corners.at(0) - corners.at(1)) < norm(corners.at(1) - corners.at(2)))
         {
-            short_edge = {playing_field_corners.at(0), playing_field_corners.at(1)};
-            long_edge_1 = {playing_field_corners.at(1), playing_field_corners.at(2)};
-            long_edge_2 = {playing_field_corners.at(3), playing_field_corners.at(0)};
+            short_edge = {corners.at(0), corners.at(1)};
+            long_edge_1 = {corners.at(1), corners.at(2)};
+            long_edge_2 = {corners.at(3), corners.at(0)};
         }
         else
         {
-            short_edge = {playing_field_corners.at(1), playing_field_corners.at(2)};
-            long_edge_1 = {playing_field_corners.at(0), playing_field_corners.at(1)};
-            long_edge_2 = {playing_field_corners.at(2), playing_field_corners.at(3)};
+            short_edge = {corners.at(1), corners.at(2)};
+            long_edge_1 = {corners.at(0), corners.at(1)};
+            long_edge_2 = {corners.at(2), corners.at(3)};
         }
     }
 
-    // A line of the same direction of the short edge intersects the two long
-    // edges in the hole positions. We now find such intersections.
+    /*
+        A line of the same direction of the short edge intersects the two long
+        edges in the hole positions. We now find such intersections.
+    */
     Point short_edge_offset = short_edge.first - short_edge.second;
     Point lateral_hole_1, lateral_hole_2;
     intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_1, lateral_hole_1, 9999, 9999);
     intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_2, lateral_hole_2, 9999, 9999);
 
-    // We now employ float representation of points for precise computation of the refined
-    // holes points. In fact, using cv::Point we obtain non negligible truncating errors.
-    Point2f bottom_left = playing_field_corners.at(0);
-    Point2f top_left = playing_field_corners.at(1);
-    Point2f top_right = playing_field_corners.at(2);
-    Point2f bottom_right = playing_field_corners.at(3);
+    /*
+        We now employ float representation of points for precise computation of the refined
+        holes points. In fact, using cv::Point we obtain non negligible truncating errors.
+    */
+    Point2f bottom_left = corners.at(0);
+    Point2f top_left = corners.at(1);
+    Point2f top_right = corners.at(2);
+    Point2f bottom_right = corners.at(3);
 
     Point2f playing_field_center_float = static_cast<Point2f>(playing_field_center);
     Point2f lateral_hole_1_float = static_cast<Point2f>(lateral_hole_1);
