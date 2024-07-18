@@ -27,5 +27,13 @@ private:
     std::vector<cv::Point2f> corners_2f;
     cv::Mat projection_matrix;
     const int BALL_RADIUS = 10;
+    const int THICKNESS = 2;
+    const cv::Scalar SOLID_BALL_COLOR = cv::Scalar(255, 180, 160);
+    const cv::Scalar STRIPE_BALL_COLOR = cv::Scalar(179, 179, 255);
+    const cv::Scalar BLACK_BALL_COLOR = cv::Scalar(70, 70, 70);
+    const cv::Scalar CUE_BALL_COLOR = cv::Scalar(255, 255, 255);
+    const cv::Scalar CONTOUR_COLOR = cv::Scalar(0, 0, 0);
+    const int GAP = 10;
+
 };
 #endif

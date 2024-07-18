@@ -64,6 +64,7 @@ void minimap::draw_dashed_line(Mat &img, Point pt1, Point pt2, Scalar color, int
 
 bool minimap::is_rectangular_pool_table(const vector<Point> &pool_corners)
 {
+	const double EPS = 0.1;
     // Calculate the squared lengths of the four sides
     double d1 = norm(pool_corners[0] - pool_corners[1]);
     double d2 = norm(pool_corners[1] - pool_corners[2]);
@@ -75,8 +76,8 @@ bool minimap::is_rectangular_pool_table(const vector<Point> &pool_corners)
     double diag2 = norm(pool_corners[1] - pool_corners[3]);
 
     // Check if opposite sides are equal and diagonals are equal
-    bool sides_equal = (d1 == d3) && (d2 == d4);
-    bool diagonals_equal = (diag1 == diag2);
+    bool sides_equal = (abs(d1-d3) <= EPS) && (abs(d2 - d4) <= EPS);
+    bool diagonals_equal = abs(diag1 - diag2) <= EPS;
 
     return sides_equal && diagonals_equal;
 }
@@ -86,7 +87,7 @@ bool minimap::is_rectangular_pool_table(const vector<Point> &pool_corners)
 void minimap::sort_corners_for_minimap(const vector<Point> &corners_src, vector<Point> &corners_dst)
 {
 	int min_index = 0;
-	const double EPS = 0.01;
+	const int EPS = 1;
 	
 	if(is_rectangular_pool_table(corners_src))
 	{
@@ -187,7 +188,8 @@ void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const balls_l
 		vector<Point2f> ball_pos_dst;
 		vector<Point2f> ball_pos_src = {balls_pos_2f.at(solids_indeces.at(i))}; 
 		perspectiveTransform(ball_pos_src, ball_pos_dst, projection_matrix);
-		circle(dst, ball_pos_dst.at(0), 10, Scalar(255, 0, 0), FILLED);
+		circle(dst, ball_pos_dst.at(0), BALL_RADIUS, SOLID_BALL_COLOR, FILLED);
+		circle(dst, ball_pos_dst.at(0), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
 	}
 
 	for (int i = 0; i < stripes_indeces.size(); i++)
@@ -196,7 +198,8 @@ void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const balls_l
 		vector<Point2f> ball_pos_dst;
 		vector<Point2f> ball_pos_src = {balls_pos_2f.at(stripes_indeces.at(i))};
 		perspectiveTransform(ball_pos_src, ball_pos_dst, projection_matrix);
-		circle(dst, ball_pos_dst.at(0), 10, Scalar(0, 0, 255), FILLED);
+		circle(dst, ball_pos_dst.at(0), BALL_RADIUS, STRIPE_BALL_COLOR, FILLED);
+		circle(dst, ball_pos_dst.at(0), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
 	}
 	
 	if(balls.black != NO_LOCALIZATION)
@@ -204,14 +207,15 @@ void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const balls_l
 		vector<Point2f> black_ball_pos_dst;
 		vector<Point2f> black_ball_pos_src = {balls_pos_2f.at(black_index)};
 		perspectiveTransform(black_ball_pos_src, black_ball_pos_dst, projection_matrix);
-		circle(dst, black_ball_pos_dst.at(0), 10, Scalar(0, 0, 0), FILLED);
+		circle(dst, black_ball_pos_dst.at(0), BALL_RADIUS, BLACK_BALL_COLOR, FILLED);
+		circle(dst, black_ball_pos_dst.at(0), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
 	}
 
 	vector<Point2f> cue_ball_pos_dst;
 	vector<Point2f> cue_ball_pos_src = {balls_pos_2f.at(cue_index)};
 	perspectiveTransform(cue_ball_pos_src, cue_ball_pos_dst, projection_matrix);
-	circle(dst, cue_ball_pos_dst.at(0), 10, Scalar(0, 0, 0), 1);
-
+	circle(dst, cue_ball_pos_dst.at(0), BALL_RADIUS, CUE_BALL_COLOR, FILLED);
+	circle(dst, cue_ball_pos_dst.at(0), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
 
 }
 
@@ -252,7 +256,7 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 			// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
 			const float DELTA_MOVEMENT = 2;
 			if (norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
-				draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
+				draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
 		}	
 		solids_balls_pos_minimap.push_back(ball_pos_dst.at(0));
 	}
@@ -272,7 +276,7 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 		{
 			// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
 			if (norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
-				draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
+				draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
 		}
 		stripes_balls_pos_minimap.push_back(ball_pos_dst.at(0));
 	}
@@ -288,7 +292,7 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 		if(balls_pos_2f.at(black_index) != Point2f(0,0))
 		{
 			if (norm(black_ball_pos_dst.at(0) - old_black_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
-				draw_dashed_line(trajectories, old_black_ball_pos_dst.at(0), black_ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
+				draw_dashed_line(trajectories, old_black_ball_pos_dst.at(0), black_ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
 		}
 		black_ball_pos_minimap = black_ball_pos_dst.at(0);
 	}
@@ -301,7 +305,7 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 	perspectiveTransform(cue_ball_pos_src, cue_ball_pos_dst, projection_matrix);
 	perspectiveTransform(old_cue_ball_pos_src, old_cue_ball_pos_dst, projection_matrix);
 	if (norm(cue_ball_pos_dst.at(0) - old_cue_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
-		draw_dashed_line(trajectories, old_cue_ball_pos_dst.at(0), cue_ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
+		draw_dashed_line(trajectories, old_cue_ball_pos_dst.at(0), cue_ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
 
 	cue_ball_pos_minimap = cue_ball_pos_dst.at(0);
 
@@ -311,23 +315,28 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 	// Draw solid balls
 	for(int i = 0; i < solids_indeces.size(); i++)
 	{
-		circle(dst, solids_balls_pos_minimap.at(i), BALL_RADIUS, Scalar(255, 0, 0), FILLED);
+		circle(dst, solids_balls_pos_minimap.at(i), BALL_RADIUS, SOLID_BALL_COLOR, FILLED);
+		circle(dst, solids_balls_pos_minimap.at(i), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
 	}
 
 	// Draw stripe  balls
 	for(int i = 0; i < stripes_indeces.size(); i++)
 	{
-		circle(dst, stripes_balls_pos_minimap.at(i), BALL_RADIUS, Scalar(0, 0, 255), FILLED);
+		circle(dst, stripes_balls_pos_minimap.at(i), BALL_RADIUS, STRIPE_BALL_COLOR, FILLED);
+		circle(dst, stripes_balls_pos_minimap.at(i), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
 	}
 
 	// Draw black ball
 	if(black_index != -1)
-		circle(dst, black_ball_pos_minimap, BALL_RADIUS, Scalar(0, 0, 0), FILLED);
+	{
+		circle(dst, black_ball_pos_minimap, BALL_RADIUS, BLACK_BALL_COLOR, FILLED);
+		circle(dst, black_ball_pos_minimap, BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
+	}
 
-	const int EPS = 2;
 	// Draw cue ball
-	circle(dst, cue_ball_pos_minimap, BALL_RADIUS, Scalar(0, 0, 0), 1);
-	circle(dst, cue_ball_pos_minimap, BALL_RADIUS-EPS, Scalar(255, 255, 255), FILLED);
+	circle(dst, cue_ball_pos_minimap, BALL_RADIUS, CUE_BALL_COLOR, FILLED);
+	circle(dst, cue_ball_pos_minimap, BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
+	
 
 }
 
