@@ -1,4 +1,4 @@
-#include "video_generation.h"
+#include "video_builder.h"
 #include "minimap.h"
 #include "playing_field_localization.h"
 #include "balls_localization.h"
@@ -16,7 +16,7 @@
 using namespace cv;
 using namespace std;
 
-void video_generator::generate_video(vector<Mat> output_frames, string output_filename)
+void video_builder::build_video(vector<Mat> output_frames, string output_filename)
 {
     VideoWriter output_video;
     output_video.open(output_filename, input_video_codec, input_video_fps, input_video_size, true);
@@ -31,7 +31,7 @@ void video_generator::generate_video(vector<Mat> output_frames, string output_fi
     }
 }
 
-void video_generator::generate_videos(string dataset_path)
+void video_builder::build_videos(string dataset_path)
 {
     vector<String> filenames;
     glob(dataset_path + "*.mp4", filenames, true);
@@ -42,7 +42,7 @@ void video_generator::generate_videos(string dataset_path)
 
     for (String filename : filenames)
     {
-        clear_video_info();
+        clear_input_video_info();
 
         build_output_frames(filename, output_frames);
 
@@ -51,13 +51,13 @@ void video_generator::generate_videos(string dataset_path)
         output_path /= fs::path(filename).filename();
 
         cout << "Creating " << output_path.string() << "." << endl;
-        generate_video(output_frames, output_path.string());
+        build_video(output_frames, output_path.string());
 
         break;  // TODO remove
     }
 }
 
-void video_generator::build_output_frames(string filename, vector<Mat> &output_frames)
+void video_builder::build_output_frames(string filename, vector<Mat> &output_frames)
 {
     VideoCapture input_video(filename);
     if (!input_video.isOpened())
@@ -119,7 +119,7 @@ void video_generator::build_output_frames(string filename, vector<Mat> &output_f
     }
 }
 
-void video_generator::build_output_frame(const Mat &frame, const Mat &minimap, Mat &dst)
+void video_builder::build_output_frame(const Mat &frame, const Mat &minimap, Mat &dst)
 {
     dst = frame.clone();
 
@@ -141,7 +141,7 @@ void video_generator::build_output_frame(const Mat &frame, const Mat &minimap, M
     resized_minimap.copyTo(dst(Rect(x_offset, y_offset, resized_minimap.cols, resized_minimap.rows)));
 }
 
-void video_generator::clear_video_info()
+void video_builder::clear_input_video_info()
 {
     output_frames.clear();
     input_video_fps = -1;

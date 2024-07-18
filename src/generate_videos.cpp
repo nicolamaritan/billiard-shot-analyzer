@@ -1,7 +1,7 @@
-#include "video_generation.h"
+#include "video_builder.h"
 
 int main(int argc, char** argv)
 {
-    video_generator generator;
-    generator.generate_videos("./dataset/");
+    video_builder builder;
+    builder.build_videos("./dataset/");
 }
