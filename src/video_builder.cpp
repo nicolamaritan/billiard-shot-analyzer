@@ -15,6 +15,7 @@
 
 using namespace cv;
 using namespace std;
+namespace fs = std::filesystem;
 
 void video_builder::build_video(vector<Mat> output_frames, string output_filename)
 {
@@ -36,8 +37,9 @@ void video_builder::build_videos(string dataset_path)
     vector<String> filenames;
     glob(dataset_path + "*.mp4", filenames, true);
 
-    namespace fs = std::filesystem;
     fs::path output_directory("output");
+    fs::path videos_directory("videos");
+    output_directory /= videos_directory;
     fs::create_directories(output_directory);
 
     for (String filename : filenames)
