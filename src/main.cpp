@@ -3,7 +3,6 @@
 #include "playing_field_localization.h"
 #include "balls_localization.h"
 #include "minimap.h"
-#include "show_cat.h"
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>

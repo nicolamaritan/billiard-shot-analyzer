@@ -14,11 +14,6 @@ project(sport_video_analysis_for_biliard_matches
 find_package(OpenCV REQUIRED)
 include_directories(include ${OpenCV_INCLUDE_DIRS}) 
 
-add_library(show_cat
-    include/show_cat.h
-    src/show_cat.cpp
-)
-
 add_library(playing_field_localization
     include/playing_field_localization.h
     src/playing_field_localization.cpp
@@ -92,7 +87,6 @@ add_executable(generate_videos
 
 target_link_libraries(${PROJECT_NAME}
     ${OpenCV_LIBS}
-    show_cat
     playing_field_localization
     balls_localization
     geometry
@@ -103,7 +97,6 @@ target_link_libraries(${PROJECT_NAME}
 
 target_link_libraries(generate_performance
     ${OpenCV_LIBS}
-    show_cat
     dataset_evaluation
     performance_measurement
     frame_segmentation
@@ -128,7 +121,6 @@ target_link_libraries(generate_videos
 
 target_link_libraries(generate_masks_and_detection
     ${OpenCV_LIBS}
-    show_cat
     dataset_evaluation
     performance_measurement
     frame_segmentation
