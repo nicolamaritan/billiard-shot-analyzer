@@ -59,6 +59,8 @@
         "list": "cpp",
         "set": "cpp",
         "fstream": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "codecvt": "cpp",
+        "cinttypes": "cpp"
     }
 }
