@@ -56,9 +56,7 @@ int main()
         int black_index;
         int cue_index;
         mini.get_balls_pos(multiTracker->getObjects(), initial_balls_pos);
-        cout<< "AO" << endl;
         mini.draw_initial_minimap(initial_balls_pos, balls_loc.get_localization(), solids_indeces, stripes_indeces, black_index, cue_index, first_frame, pool_table_map);
-        cout<< "AAAAA" << endl;
         imshow("initial minimap", pool_table_map);
         vector<Rect2d> old_balls_bounding_boxes = multiTracker->getObjects();
 

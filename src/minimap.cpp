@@ -200,6 +200,10 @@ void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const balls_l
 
 void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Point> &balls_pos, const std::vector<int> &solids_indeces, const std::vector<int> &stripes_indeces, const int black_index, const int cue_index, const Mat &src, Mat &trajectories, Mat &dst)
 {
+
+	cout<<old_balls_pos<<endl;
+	cout<<balls_pos<<endl;
+	cout<<"-------------------------------\n";
 	const float DELTA_MOVEMENT = 2;
 	// Fill balls positions in minimap
 	vector<Point2f> solids_balls_pos_minimap;
@@ -228,11 +232,13 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 		perspectiveTransform(ball_pos_src, ball_pos_dst, projection_matrix);
 		perspectiveTransform(old_ball_pos_src, old_ball_pos_dst, projection_matrix);
 
-		// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
-		const float DELTA_MOVEMENT = 2;
-		if (norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
-			draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
-		
+		if(balls_pos_2f.at(solids_indeces.at(i)) != Point2f(0,0))
+		{
+			// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
+			const float DELTA_MOVEMENT = 2;
+			if (norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
+				draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
+		}	
 		solids_balls_pos_minimap.push_back(ball_pos_dst.at(0));
 	}
 
@@ -247,10 +253,12 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 		perspectiveTransform(ball_pos_src, ball_pos_dst, projection_matrix);
 		perspectiveTransform(old_ball_pos_src, old_ball_pos_dst, projection_matrix);
 
-		// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
-		if (norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
-			draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
-
+		if(balls_pos_2f.at(stripes_indeces.at(i)) != Point2f(0,0))
+		{
+			// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
+			if (norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
+				draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
+		}
 		stripes_balls_pos_minimap.push_back(ball_pos_dst.at(0));
 	}
 	
@@ -262,9 +270,11 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 		vector<Point2f> old_black_ball_pos_src = {old_balls_pos_2f.at(black_index)};
 		perspectiveTransform(black_ball_pos_src, black_ball_pos_dst, projection_matrix);
 		perspectiveTransform(old_black_ball_pos_src, old_black_ball_pos_dst, projection_matrix);
-		if (norm(black_ball_pos_dst.at(0) - old_black_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
-			draw_dashed_line(trajectories, old_black_ball_pos_dst.at(0), black_ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
-
+		if(balls_pos_2f.at(black_index) != Point2f(0,0))
+		{
+			if (norm(black_ball_pos_dst.at(0) - old_black_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
+				draw_dashed_line(trajectories, old_black_ball_pos_dst.at(0), black_ball_pos_dst.at(0), Scalar(0, 0, 0), 2, "dotted", 10);
+		}
 		black_ball_pos_minimap = black_ball_pos_dst.at(0);
 	}
 
