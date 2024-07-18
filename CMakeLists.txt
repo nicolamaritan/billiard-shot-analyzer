@@ -44,12 +44,21 @@ add_library(minimap
     src/minimap.cpp
 )
 
+add_library(video_generation
+    include/video_generation.h
+    src/video_generation.cpp
+)
+
 add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
 
 add_executable(evaluation
 	src/evaluation.cpp
+)
+
+add_executable(generate_videos
+	src/generate_videos.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -69,4 +78,14 @@ target_link_libraries(evaluation
     balls_localization
     geometry
     segmentation
+)
+
+target_link_libraries(generate_videos
+    video_generation
+    ${OpenCV_LIBS}
+    playing_field_localization
+    balls_localization
+    geometry
+    segmentation
+    minimap
 )
