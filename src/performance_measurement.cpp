@@ -6,11 +6,41 @@
 using namespace cv;
 using namespace std;
 
-float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask, label_id class_id);
-float get_class_iou(const ball_localization &localization, const ball_localization &ground_truth_localization);
-float get_class_iou(const ball_localization &localization, const vector<ball_localization> &ground_truth_localizations);
+/**
+ * @brief Calculate the Intersection over Union (IoU) for a specific class between two masks.
+ * 
+ * @param predicted_mask The predicted mask.
+ * @param ground_truth_mask The ground truth mask.
+ * @param class_id The class ID for which to calculate the IoU.
+ * @return The IoU value for the specified class.
+ */
+float get_class_iou(const cv::Mat &predicted_mask, const cv::Mat &ground_truth_mask, label_id class_id);
+
+/**
+ * @brief Get the match type and confidence for a predicted ball localization against the ground truth.
+ * 
+ * @param predicted The predicted ball localization.
+ * @param predicted_label The predicted label ID.
+ * @param ground_truth The ground truth balls localization.
+ * @return The match result.
+ */
 match get_match(const ball_localization &predicted, label_id predicted_label, const balls_localization ground_truth);
+
+/**
+ * @brief Calculate the Intersection over Union (IoU) between two rectangles.
+ * 
+ * @param rect_1 The first rectangle.
+ * @param rect_2 The second rectangle.
+ * @return The IoU value.
+ */
 float get_iou(const Rect &rect_1, const Rect &rect_2);
+
+/**
+ * @brief Compute the average precision from a set of matches.
+ * 
+ * @param matches A vector of match results.
+ * @return The average precision value.
+ */
 float compute_average_precision(std::vector<match> &matches);
 
 void get_balls_localization(const Mat &src, balls_localization &localization)
@@ -45,10 +75,8 @@ float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask,
 
 float get_iou(const Rect &rect_1, const Rect &rect_2)
 {
-    // cout << "computing iou of " << rect_1 << " and " << rect_2 << endl;
     Rect intersection_rect = rect_1 & rect_2;
     Rect union_rect = rect_1 | rect_2;
-    // cout << "intersection area " << intersection_rect.area() << "; union area " << union_rect.area() << endl;
     return static_cast<float>(intersection_rect.area()) / static_cast<float>(union_rect.area());
 }
 
@@ -91,8 +119,6 @@ float evaluate_balls_localization_dataset(const std::vector<balls_localization> 
     float ap_black = compute_average_precision(black_matches);
     float ap_solid = compute_average_precision(solids_matches);
     float ap_stripe = compute_average_precision(stripes_matches);
-
-    //cout << ap_cue << endl << ap_black << endl << ap_solid << endl << ap_stripe << endl;
 
     return (ap_cue + ap_black + ap_solid + ap_stripe) / 4;
 }
