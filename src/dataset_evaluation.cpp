@@ -10,9 +10,9 @@
 
 using namespace std;
 using namespace cv;
+namespace fs = std::filesystem;
 
-
-void evaluate(std::string path)
+void evaluate(std::string dataset_path)
 {
     vector<String> filenames;
     vector<Mat> predicted_table_masks;
@@ -21,11 +21,10 @@ void evaluate(std::string path)
     vector<balls_localization> predicted_balls_localizations;
     vector<balls_localization> ground_truth_balls_localizations;
 
-    namespace fs = std::filesystem;
     fs::create_directories("./output");
     ofstream performance_file("./output/performance.txt");
 
-    glob(path + "*.png", filenames, true);
+    glob(dataset_path + "*.png", filenames, true);
 
     for (auto filename : filenames)
     {
@@ -55,7 +54,7 @@ void evaluate(std::string path)
 
     // Bounding box load
     vector<String> txt_filenames;
-    glob(path + "*.txt", txt_filenames, true);
+    glob(dataset_path + "*.txt", txt_filenames, true);
     for (auto txt_filename : txt_filenames)
     {
         if (txt_filename.find("bounding_boxes") != String::npos && (txt_filename.find("first") != String::npos || txt_filename.find("last") != String::npos))

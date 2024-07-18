@@ -68,8 +68,12 @@ add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
 
-add_executable(evaluation
-	src/evaluation.cpp
+add_executable(generate_performance
+	src/generate_performance.cpp
+)
+
+add_executable(generate_masks_and_detection
+	src/generate_masks_and_detection.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -83,7 +87,20 @@ target_link_libraries(${PROJECT_NAME}
     dataset_evaluation
 )
 
-target_link_libraries(evaluation
+target_link_libraries(generate_performance
+    ${OpenCV_LIBS}
+    show_cat
+    dataset_evaluation
+    performance_measurement
+    frame_segmentation
+    frame_detection
+    playing_field_localization
+    balls_localization
+    geometry
+    segmentation
+)
+
+target_link_libraries(generate_masks_and_detection
     ${OpenCV_LIBS}
     show_cat
     dataset_evaluation
