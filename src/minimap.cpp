@@ -60,6 +60,29 @@ void minimap::draw_dashed_line(Mat &img, Point pt1, Point pt2, Scalar color, int
 	}
 }
 
+bool minimap::is_rectangular_pool_table(const vector<Point> &pool_corners)
+{
+	if (pool_corners.size() != 4)
+        return false;
+
+    // Calculate the squared lengths of the four sides
+    double d1 = norm(pool_corners[0] - pool_corners[1]);
+    double d2 = norm(pool_corners[1] - pool_corners[2]);
+    double d3 = norm(pool_corners[2] - pool_corners[3]);
+    double d4 = norm(pool_corners[3] - pool_corners[0]);
+
+    // Calculate the squared lengths of the two diagonals
+    double diag1 = norm(pool_corners[0] - pool_corners[2]);
+    double diag2 = norm(pool_corners[1] - pool_corners[3]);
+
+    // Check if opposite sides are equal and diagonals are equal
+    bool sides_equal = (d1 == d3) && (d2 == d4);
+    bool diagonals_equal = (diag1 == diag2);
+
+    return sides_equal && diagonals_equal;
+}
+
+
 
 void minimap::sort_corners_for_minimap(const vector<Point> &corners_src, vector<Point> &corners_dst)
 {
@@ -67,8 +90,7 @@ void minimap::sort_corners_for_minimap(const vector<Point> &corners_src, vector<
 	//double min_y = corners_src.at(0).y;
 	const double EPS = 0.01;
 	
-	if((corners_src.at(0).x == corners_src.at(1).x &&  corners_src.at(0).y == corners_src.at(3).y)
-	   || (corners_src.at(0).y == corners_src.at(1).y &&  corners_src.at(0).x == corners_src.at(3).x))
+	if(is_rectangular_pool_table(corners_src))
 	{
 		for (int i = 1; i < corners_src.size(); i++)
 		{
@@ -94,7 +116,6 @@ void minimap::sort_corners_for_minimap(const vector<Point> &corners_src, vector<
 					min_index = i;
 			}
 		}
-		cout << corners_src.at(min_index).x << endl;
 	}
 
 	for (int i = 0; i < corners_src.size(); i++)

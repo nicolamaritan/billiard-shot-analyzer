@@ -18,6 +18,7 @@ public:
     void draw_minimap(const std::vector<cv::Point> &old_balls_pos, const std::vector<cv::Point> &balls_pos, const std::vector<int> &solids_indeces, const std::vector<int> &stripes_indeces, const int black_index, const int cue_index, const cv::Mat &src, cv::Mat &trajectories, cv::Mat &dst);
     //void draw_initial_minimap(const std::vector<cv::Point> &balls_pos, const cv::Mat &src, cv::Mat &dst);
     //void draw_minimap(const std::vector<cv::Point> &old_balls_pos, const std::vector<cv::Point> &balls_pos, const cv::Mat &src, cv::Mat &trajectories, cv::Mat &dst);
+    bool is_rectangular_pool_table(const std::vector<cv::Point>& pool_corners);
     void sort_corners_for_minimap(const std::vector<cv::Point> &corners_src, std::vector<cv::Point> &corners_dst);
 private:
     const std::vector<cv::Point2f> corners_minimap = {cv::Point2f(75, 510), cv::Point2f(75, 55), cv::Point2f(935, 55), cv::Point2f(935, 510)};
