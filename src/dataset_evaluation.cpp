@@ -71,8 +71,10 @@ void evaluate(std::string path)
         performance_file << frames_filenames.at(i) << endl;
         performance_file << "mIoU: " << evaluate_balls_and_playing_field_segmentation(predicted_table_masks[i], ground_truth_table_masks[i]) << endl;
         performance_file << "mAP: " << evaluate_balls_localization(predicted_balls_localizations[i], ground_truth_balls_localizations[i]) << endl;
-        performance_file << endl << endl;
+        performance_file << endl;
     }
+
+    performance_file << "Dataset mAP: " << evaluate_balls_localization_dataset(predicted_balls_localizations, ground_truth_balls_localizations);
 
     performance_file.close();
 }

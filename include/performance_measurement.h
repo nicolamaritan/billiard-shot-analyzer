@@ -19,8 +19,10 @@ struct match
 };
 typedef struct match match;
 
-float evaluate_balls_localization(const balls_localization &localization, const balls_localization &ground_truth_localization);
-float evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask);
+float evaluate_balls_localization_dataset(const std::vector<balls_localization> &predicted_localizations, const std::vector<balls_localization> &ground_truth_localizations);
+float evaluate_balls_and_playing_field_segmentation_dataset(const std::vector<cv::Mat> &predicted_masks, const std::vector<cv::Mat> &ground_truth_masks);
+float evaluate_balls_localization(const balls_localization &predicted_localization, const balls_localization &ground_truth_localization);
+float evaluate_balls_and_playing_field_segmentation(const cv::Mat &predicted_mask, const cv::Mat &ground_truth_mask);
 void get_balls_localization(const cv::Mat &src, balls_localization &localization);
 void load_ground_truth_localization(const std::string &filename, balls_localization &ground_truth_localization);
 

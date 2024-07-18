@@ -11,6 +11,7 @@ float get_class_iou(const ball_localization &localization, const ball_localizati
 float get_class_iou(const ball_localization &localization, const vector<ball_localization> &ground_truth_localizations);
 match get_match(const ball_localization &predicted, label_id predicted_label, const balls_localization ground_truth);
 float get_iou(const Rect &rect_1, const Rect &rect_2);
+float compute_average_precision(std::vector<match> &matches);
 
 void get_balls_localization(const Mat &src, balls_localization &localization)
 {
@@ -49,6 +50,51 @@ float get_iou(const Rect &rect_1, const Rect &rect_2)
     Rect union_rect = rect_1 | rect_2;
     // cout << "intersection area " << intersection_rect.area() << "; union area " << union_rect.area() << endl;
     return static_cast<float>(intersection_rect.area()) / static_cast<float>(union_rect.area());
+}
+
+float evaluate_balls_and_playing_field_segmentation_dataset(const std::vector<Mat> &predicted_masks, const std::vector<Mat> &ground_truth_masks)
+{
+    return 0;
+}
+
+float evaluate_balls_localization_dataset(const std::vector<balls_localization> &predicted_localizations, const std::vector<balls_localization> &ground_truth_localizations)
+{
+    CV_Assert(predicted_localizations.size() == ground_truth_localizations.size());
+
+    vector<match> cue_matches;
+    vector<match> black_matches;
+    vector<match> solids_matches;
+    vector<match> stripes_matches;
+
+    for (int i = 0; i < predicted_localizations.size(); i++)
+    {
+        match cue_match = get_match(predicted_localizations.at(i).cue, label_id::cue, ground_truth_localizations.at(i));
+        cue_matches.push_back(cue_match);
+
+        match black_match = get_match(predicted_localizations.at(i).black, label_id::black, ground_truth_localizations.at(i));
+        black_matches.push_back(black_match);
+
+        for (ball_localization solid_loc : predicted_localizations.at(i).solids)
+        {
+            match solid_match = get_match(solid_loc, label_id::solids, ground_truth_localizations.at(i));
+            solids_matches.push_back(solid_match);
+        }
+
+        for (ball_localization stripes_loc : predicted_localizations.at(i).stripes)
+        {
+            match stripe_match = get_match(stripes_loc, label_id::stripes, ground_truth_localizations.at(i));
+            stripes_matches.push_back(stripe_match);
+        }
+    }
+
+    float ap_cue = compute_average_precision(cue_matches);
+    float ap_black = compute_average_precision(black_matches);
+    float ap_solid = compute_average_precision(solids_matches);
+    float ap_stripe = compute_average_precision(stripes_matches);
+
+    //cout << ap_cue << endl << ap_black << endl << ap_solid << endl << ap_stripe << endl;
+
+    return (ap_cue + ap_black + ap_solid + ap_stripe) / 4;
 }
 
 float evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask)
