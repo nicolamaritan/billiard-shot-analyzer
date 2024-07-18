@@ -18,40 +18,6 @@ using namespace cv;
 using namespace std;
 namespace fs = std::filesystem;
 
-void video_builder::build_video_from_output_frames(const vector<Mat> &output_frames, const string &output_filename)
-{
-    VideoWriter output_video;
-    output_video.open(output_filename, input_video_codec, input_video_fps, input_video_size, true);
-    if (!output_video.isOpened())
-    {
-        cerr << "Could not open the output video for write." << endl;
-        return;
-    }
-    for (Mat output_frame : output_frames)
-    {
-        output_video << output_frame;
-    }
-}
-
-void video_builder::build_video(const string &filename)
-{
-    vector<String> filenames;
-
-    fs::path output_directory("output");
-    fs::path videos_directory("videos");
-    output_directory /= videos_directory;
-    fs::create_directories(output_directory);
-
-    clear_input_video_info();
-    build_output_frames(filename, output_frames);
-
-    fs::path output_path;
-    output_path /= output_directory;
-    output_path /= fs::path(filename).filename();
-
-    cout << "Creating " << output_path.string() << "." << endl;
-    build_video_from_output_frames(output_frames, output_path.string());
-}
 
 void video_builder::build_videos(const string &dataset_path)
 {
@@ -78,22 +44,29 @@ void video_builder::build_videos(const string &dataset_path)
     }
 }
 
-Rect video_builder::rescale_bounding_box(const Rect &bbox, float scale, int max_size)
+
+
+void video_builder::build_video(const string &filename)
 {
-    int new_width = static_cast<int>(bbox.width * scale);
-    int new_height = static_cast<int>(bbox.height * scale);
+    vector<String> filenames;
 
-    if (new_width > max_size)
-        new_width = max_size;
-    if (new_height > max_size)
-        new_height = max_size;
+    fs::path output_directory("output");
+    fs::path videos_directory("videos");
+    output_directory /= videos_directory;
+    fs::create_directories(output_directory);
 
-    // Calculate the new top-left corner to maintain the center of the bounding box
-    int new_x = bbox.x + (bbox.width - new_width) / 2;
-    int new_y = bbox.y + (bbox.height - new_height) / 2;
+    clear_input_video_info();
+    build_output_frames(filename, output_frames);
 
-    return cv::Rect(new_x, new_y, new_width, new_height);
+    fs::path output_path;
+    output_path /= output_directory;
+    output_path /= fs::path(filename).filename();
+
+    cout << "Creating " << output_path.string() << "." << endl;
+    build_video_from_output_frames(output_frames, output_path.string());
 }
+
+
 
 void video_builder::build_output_frames(const string &filename, vector<Mat> &output_frames)
 {
@@ -168,6 +141,8 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
     }
 }
 
+
+
 void video_builder::build_output_frame(const Mat &frame, const Mat &minimap, Mat &dst)
 {
     dst = frame.clone();
@@ -190,9 +165,47 @@ void video_builder::build_output_frame(const Mat &frame, const Mat &minimap, Mat
     resized_minimap.copyTo(dst(Rect(x_offset, y_offset, resized_minimap.cols, resized_minimap.rows)));
 }
 
+
+
+void video_builder::build_video_from_output_frames(const vector<Mat> &output_frames, const string &output_filename)
+{
+    VideoWriter output_video;
+    output_video.open(output_filename, input_video_codec, input_video_fps, input_video_size, true);
+    if (!output_video.isOpened())
+    {
+        cerr << "Could not open the output video for write." << endl;
+        return;
+    }
+    for (Mat output_frame : output_frames)
+    {
+        output_video << output_frame;
+    }
+}
+
+
+
 void video_builder::clear_input_video_info()
 {
     output_frames.clear();
     input_video_fps = -1;
     input_video_size = Size(-1, -1);
+}
+
+
+
+Rect video_builder::rescale_bounding_box(const Rect &bbox, float scale, int max_size)
+{
+    int new_width = static_cast<int>(bbox.width * scale);
+    int new_height = static_cast<int>(bbox.height * scale);
+
+    if (new_width > max_size)
+        new_width = max_size;
+    if (new_height > max_size)
+        new_height = max_size;
+
+    // Calculate the new top-left corner to maintain the center of the bounding box
+    int new_x = bbox.x + (bbox.width - new_width) / 2;
+    int new_y = bbox.y + (bbox.height - new_height) / 2;
+
+    return cv::Rect(new_x, new_y, new_width, new_height);
 }

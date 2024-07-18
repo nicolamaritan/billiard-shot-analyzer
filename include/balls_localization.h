@@ -304,12 +304,12 @@ private:
      */
     cv::Rect rescale_bounding_box(const cv::Rect &bbox, float scale, float max_size);
 
-    const float BOUNDING_BOX_RESCALE = 1.2;
-    const float MAX_SIZE_BOUNDING_BOX_RESCALE = 14;
+    const float BOUNDING_BOX_RESCALE = 1.2;     // A scaling factor to rescale bounding boxes for better tracking.
+    const float MAX_SIZE_BOUNDING_BOX_RESCALE = 14; // The maximum size limit for bounding box rescaling.
 
-    const playing_field_localization playing_field;
-    std::vector<cv::Rect> bounding_boxes;
-    balls_localization localization;
+    const playing_field_localization playing_field; //  An instance of playing_field_localization, which represents the playing field's localization data.
+    std::vector<cv::Rect> bounding_boxes;       // A vector of cv::Rect objects storing the bounding boxes of detected balls.
+    balls_localization localization;        // An instance of balls_localization, which contains the localization data of detected balls.
 };
 
 #endif
