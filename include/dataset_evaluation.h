@@ -1,3 +1,4 @@
+// Author: Eddie Carraro
 #ifndef EVALUATE_DATASET_H
 #define EVALUATE_DATASET_H
 
@@ -9,6 +10,6 @@
  *
  * @param dataset_path A string representing the directory path containing the images and ground truth files.
  */
-void evaluate(std::string dataset_path);
+void evaluate(const std::string& dataset_path);
 
 #endif

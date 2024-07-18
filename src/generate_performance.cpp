@@ -1,3 +1,4 @@
+// Author: Eddie Carraro
 #include "performance_measurement.h"
 #include "frame_segmentation.h"
 #include "frame_detection.h"

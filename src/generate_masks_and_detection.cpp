@@ -37,6 +37,7 @@ int main(int argc, char **argv)
 
     vector<String> filenames;
     get_frame_files(dataset_path, filenames);
+
     for (auto filename : filenames)
     {
         Mat frame = imread(filename);
@@ -56,6 +57,7 @@ int main(int argc, char **argv)
         const string SEGMENTATION_BACKGROUND_PRESERVED_FILENAME = "_segmentation_background_preserved"; 
         const string DETECTION_FILENAME = "_detection"; 
 
+        // Compute output images
         get_colored_frame_segmentation(frame, frame_segmentation, false);
         get_colored_frame_segmentation(frame, frame_segmentation_background_preserved, true);
         get_frame_detection(frame, frame_detection);
