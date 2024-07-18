@@ -3,13 +3,29 @@
 #ifndef MINIMAP_H
 #define MINIMAP_H
 
-#include <opencv2/features2d.hpp>
 #include "playing_field_localization.h"
 #include "balls_localization.h"
 
+#include <opencv2/features2d.hpp>
+
+/**
+ * @brief Class for handling operations related to generating and drawing a minimap view.
+ * 
+ * The minimap class provides functionality to transform and draw a bird's-eye view of a playing field,
+ * including placing and updating positions of balls on the minimap.
+ */
 class minimap
 {
 public:
+    /**
+     * @brief Constructor for the minimap class.
+     *
+     * Initializes the minimap object by setting up the projection matrix for perspective transformation
+     * based on the provided playing field corners.
+     *
+     * @param playing_field A structure containing the corners of the playing field.
+     * @param balls A structure containing the localization information of balls on the playing field.
+     */
     minimap(playing_field_localization playing_field, balls_localization balls);
 
     void draw_dashed_line(cv::Mat &img, cv::Point pt1, cv::Point pt2,

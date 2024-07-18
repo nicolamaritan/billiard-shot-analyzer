@@ -4,6 +4,12 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
+/**
+ * @brief Structure to store localization information of the playing field.
+ *
+ * This structure holds the corners of the playing field, a mask representing the playing field area,
+ * and the positions of the holes (pockets) on the playing field.
+ */
 struct playing_field_localization
 {
     std::vector<cv::Point> corners;
@@ -13,6 +19,12 @@ struct playing_field_localization
 
 typedef struct playing_field_localization playing_field_localization;
 
+/**
+ * @brief Class for localizing the playing field.
+ *
+ * This class provides methods to localize the playing field, including segmentation, line detection,
+ * line refinement, and hole position estimation.
+ */
 class playing_field_localizer
 {
 public:
@@ -111,7 +123,7 @@ private:
      */
     void estimate_holes_location(std::vector<cv::Point> &hole_points);
 
-    playing_field_localization localization;
+    playing_field_localization localization;    // The localization information of the playing field.
 };
 
 #endif

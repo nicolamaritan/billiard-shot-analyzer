@@ -25,6 +25,8 @@ minimap::minimap(playing_field_localization playing_field, balls_localization ba
 	projection_matrix = getPerspectiveTransform(corners_2f, corners_minimap);
 }
 
+
+
 void minimap::draw_dashed_line(Mat &img, Point pt1, Point pt2, Scalar color, int thickness, string style, int gap)
 {
 	float dx = pt1.x - pt2.x;
@@ -62,69 +64,6 @@ void minimap::draw_dashed_line(Mat &img, Point pt1, Point pt2, Scalar color, int
 	}
 }
 
-bool minimap::is_rectangular_pool_table(const vector<Point> &pool_corners)
-{
-	const double EPS = 0.1;
-    // Calculate the squared lengths of the four sides
-    double d1 = norm(pool_corners[0] - pool_corners[1]);
-    double d2 = norm(pool_corners[1] - pool_corners[2]);
-    double d3 = norm(pool_corners[2] - pool_corners[3]);
-    double d4 = norm(pool_corners[3] - pool_corners[0]);
-
-    // Calculate the squared lengths of the two diagonals
-    double diag1 = norm(pool_corners[0] - pool_corners[2]);
-    double diag2 = norm(pool_corners[1] - pool_corners[3]);
-
-    // Check if opposite sides are equal and diagonals are equal
-    bool sides_equal = (abs(d1-d3) <= EPS) && (abs(d2 - d4) <= EPS);
-    bool diagonals_equal = abs(diag1 - diag2) <= EPS;
-
-    return sides_equal && diagonals_equal;
-}
-
-
-
-void minimap::sort_corners_for_minimap(const vector<Point> &corners_src, vector<Point> &corners_dst)
-{
-	int min_index = 0;
-	const int EPS = 1;
-	
-	if(is_rectangular_pool_table(corners_src))
-	{
-		for (int i = 1; i < corners_src.size(); i++)
-		{
-			if(corners_src.at(i).y > corners_src.at(min_index).y)
-				min_index = i;
-			else if(abs(corners_src.at(i).y - corners_src.at(min_index).y) <= EPS)
-			{
-				if(corners_src.at(i).x < corners_src.at(min_index).x)
-					min_index = i;
-			}
-		}
-
-	}
-	else
-	{
-		for (int i = 1; i < corners_src.size(); i++)
-		{
-			if(corners_src.at(i).y < corners_src.at(min_index).y)
-				min_index = i;
-			else if(abs(corners_src.at(i).y - corners_src.at(min_index).y) <= EPS)
-			{
-				if(corners_src.at(i).x < corners_src.at(min_index).x)
-					min_index = i;
-			}
-		}
-	}
-
-	for (int i = 0; i < corners_src.size(); i++)
-	{
-		corners_dst.push_back(corners_src.at((min_index+i)%corners_src.size()));
-	}
-
-}
-
-
 
 void minimap::get_balls_pos(const vector<Rect2d> &bounding_boxes, vector<Point> &balls_pos)
 {
@@ -133,6 +72,7 @@ void minimap::get_balls_pos(const vector<Rect2d> &bounding_boxes, vector<Point> 
 		balls_pos.push_back(Point(bounding_box.x + bounding_box.width / 2, bounding_box.y + bounding_box.height / 2));
 	}
 }
+
 
 
 void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const balls_localization &balls, vector<int> &solids_indeces, vector<int> &stripes_indeces, int &black_index, int &cue_index, const Mat &src, Mat &dst)
@@ -337,6 +277,70 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 	circle(dst, cue_ball_pos_minimap, BALL_RADIUS, CUE_BALL_COLOR, FILLED);
 	circle(dst, cue_ball_pos_minimap, BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
 	
+
+}
+
+
+
+bool minimap::is_rectangular_pool_table(const vector<Point> &pool_corners)
+{
+	const double EPS = 0.1;
+    // Calculate the squared lengths of the four sides
+    double d1 = norm(pool_corners[0] - pool_corners[1]);
+    double d2 = norm(pool_corners[1] - pool_corners[2]);
+    double d3 = norm(pool_corners[2] - pool_corners[3]);
+    double d4 = norm(pool_corners[3] - pool_corners[0]);
+
+    // Calculate the squared lengths of the two diagonals
+    double diag1 = norm(pool_corners[0] - pool_corners[2]);
+    double diag2 = norm(pool_corners[1] - pool_corners[3]);
+
+    // Check if opposite sides are equal and diagonals are equal
+    bool sides_equal = (abs(d1-d3) <= EPS) && (abs(d2 - d4) <= EPS);
+    bool diagonals_equal = abs(diag1 - diag2) <= EPS;
+
+    return sides_equal && diagonals_equal;
+}
+
+
+
+void minimap::sort_corners_for_minimap(const vector<Point> &corners_src, vector<Point> &corners_dst)
+{
+	int min_index = 0;
+	const int EPS = 1;
+	
+	if(is_rectangular_pool_table(corners_src))
+	{
+		for (int i = 1; i < corners_src.size(); i++)
+		{
+			if(corners_src.at(i).y > corners_src.at(min_index).y)
+				min_index = i;
+			else if(abs(corners_src.at(i).y - corners_src.at(min_index).y) <= EPS)
+			{
+				if(corners_src.at(i).x < corners_src.at(min_index).x)
+					min_index = i;
+			}
+		}
+
+	}
+	else
+	{
+		for (int i = 1; i < corners_src.size(); i++)
+		{
+			if(corners_src.at(i).y < corners_src.at(min_index).y)
+				min_index = i;
+			else if(abs(corners_src.at(i).y - corners_src.at(min_index).y) <= EPS)
+			{
+				if(corners_src.at(i).x < corners_src.at(min_index).x)
+					min_index = i;
+			}
+		}
+	}
+
+	for (int i = 0; i < corners_src.size(); i++)
+	{
+		corners_dst.push_back(corners_src.at((min_index+i)%corners_src.size()));
+	}
 
 }
 

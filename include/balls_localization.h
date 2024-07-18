@@ -27,6 +27,9 @@ bool operator==(const ball_localization &lhs, const ball_localization &rhs);
  */
 bool operator!=(const ball_localization &lhs, const ball_localization &rhs);
 
+/**
+ * @brief 
+ */
 const ball_localization NO_LOCALIZATION = {cv::Vec3f(-1, -1, -1), cv::Rect(-1, -1, -1, -1), 0.0};
 
 /**
@@ -286,7 +289,6 @@ private:
      * @param scale The factor by which to scale the bounding boxes.
      * @param max_size The maximum allowable size for the width and height of the bounding boxes.
      */
-
     void rescale_bounding_boxes(float scale, float max_size);
 
     /**
