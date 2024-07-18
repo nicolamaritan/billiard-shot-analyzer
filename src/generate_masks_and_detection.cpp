@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <filesystem>
+#include <iostream>
 
 using namespace std;
 using namespace cv;
@@ -12,12 +13,27 @@ namespace fs = std::filesystem;
 
 int main(int argc, char **argv)
 {
-    string dataset_path = "./dataset/";
+    if (argc < 2)
+    {
+        cerr << "Wrong number of parameters. Insert the dataset location." << endl;
+        return 1;
+    }
+
+    string dataset_path = static_cast<string>(argv[1]);
+    if (!fs::is_directory(dataset_path))
+    {
+        cerr << "Dataset directory not found." << endl;
+        return 1;
+    }
+
+    // Add OS separator if not inserted
+    if (dataset_path.back() != fs::path::preferred_separator)
+        dataset_path = dataset_path + fs::path::preferred_separator;
 
     fs::path output_directory("output");
     fs::path masks_and_detection_directory("masks_and_detection");
     output_directory /= masks_and_detection_directory;
-    fs::create_directories(output_directory);   // ./output/masks_and_detection
+    fs::create_directories(output_directory);   // .{dataset}/output/masks_and_detection
 
     vector<String> filenames;
     get_frame_files(dataset_path, filenames);
