@@ -54,6 +54,11 @@ add_library(frame_detection
     src/frame_detection.cpp
 )
 
+add_library(file_loading
+    include/file_loading.h
+    src/file_loading.cpp
+)
+
 add_library(performance_measurement
     include/performance_measurement.h
     src/performance_measurement.cpp
@@ -98,6 +103,7 @@ target_link_libraries(generate_performance
     balls_localization
     geometry
     segmentation
+    file_loading
 )
 
 target_link_libraries(generate_masks_and_detection
@@ -111,4 +117,5 @@ target_link_libraries(generate_masks_and_detection
     balls_localization
     geometry
     segmentation
+    file_loading
 )
