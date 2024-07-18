@@ -1,3 +1,4 @@
+// Author: Francesco Boscolo Meneguolo 2119969
 
 #include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
@@ -12,6 +13,7 @@
 
 using namespace cv;
 using namespace std;
+
 
 minimap::minimap(playing_field_localization playing_field, balls_localization balls)
 {
@@ -62,9 +64,6 @@ void minimap::draw_dashed_line(Mat &img, Point pt1, Point pt2, Scalar color, int
 
 bool minimap::is_rectangular_pool_table(const vector<Point> &pool_corners)
 {
-	if (pool_corners.size() != 4)
-        return false;
-
     // Calculate the squared lengths of the four sides
     double d1 = norm(pool_corners[0] - pool_corners[1]);
     double d2 = norm(pool_corners[1] - pool_corners[2]);
@@ -87,7 +86,6 @@ bool minimap::is_rectangular_pool_table(const vector<Point> &pool_corners)
 void minimap::sort_corners_for_minimap(const vector<Point> &corners_src, vector<Point> &corners_dst)
 {
 	int min_index = 0;
-	//double min_y = corners_src.at(0).y;
 	const double EPS = 0.01;
 	
 	if(is_rectangular_pool_table(corners_src))
@@ -221,10 +219,6 @@ void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const balls_l
 
 void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Point> &balls_pos, const std::vector<int> &solids_indeces, const std::vector<int> &stripes_indeces, const int black_index, const int cue_index, const Mat &src, Mat &trajectories, Mat &dst)
 {
-
-	cout<<old_balls_pos<<endl;
-	cout<<balls_pos<<endl;
-	cout<<"-------------------------------\n";
 	const float DELTA_MOVEMENT = 2;
 	// Fill balls positions in minimap
 	vector<Point2f> solids_balls_pos_minimap;
@@ -314,20 +308,26 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 	
 	dst = trajectories.clone();
 
+	// Draw solid balls
 	for(int i = 0; i < solids_indeces.size(); i++)
 	{
-		circle(dst, solids_balls_pos_minimap.at(i), 10, Scalar(255, 0, 0), FILLED);
+		circle(dst, solids_balls_pos_minimap.at(i), BALL_RADIUS, Scalar(255, 0, 0), FILLED);
 	}
 
+	// Draw stripe  balls
 	for(int i = 0; i < stripes_indeces.size(); i++)
 	{
-		circle(dst, stripes_balls_pos_minimap.at(i), 10, Scalar(0, 0, 255), FILLED);
+		circle(dst, stripes_balls_pos_minimap.at(i), BALL_RADIUS, Scalar(0, 0, 255), FILLED);
 	}
 
+	// Draw black ball
 	if(black_index != -1)
-		circle(dst, black_ball_pos_minimap, 10, Scalar(0, 0, 0), FILLED);
+		circle(dst, black_ball_pos_minimap, BALL_RADIUS, Scalar(0, 0, 0), FILLED);
 
-	circle(dst, cue_ball_pos_minimap, 10, Scalar(0, 0, 0), 1);
+	const int EPS = 2;
+	// Draw cue ball
+	circle(dst, cue_ball_pos_minimap, BALL_RADIUS, Scalar(0, 0, 0), 1);
+	circle(dst, cue_ball_pos_minimap, BALL_RADIUS-EPS, Scalar(255, 255, 255), FILLED);
 
 }
 

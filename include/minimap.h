@@ -1,3 +1,5 @@
+// Author: Francesco Boscolo Meneguolo 2119969
+
 #ifndef MINIMAP_H
 #define MINIMAP_H
 
@@ -21,8 +23,9 @@ public:
     bool is_rectangular_pool_table(const std::vector<cv::Point>& pool_corners);
     void sort_corners_for_minimap(const std::vector<cv::Point> &corners_src, std::vector<cv::Point> &corners_dst);
 private:
-    const std::vector<cv::Point2f> corners_minimap = {cv::Point2f(75, 510), cv::Point2f(75, 55), cv::Point2f(935, 55), cv::Point2f(935, 510)};
+    const std::vector<cv::Point2f> corners_minimap = {cv::Point2f(75, 520), cv::Point2f(75, 55), cv::Point2f(940, 55), cv::Point2f(940, 520)};
     std::vector<cv::Point2f> corners_2f;
     cv::Mat projection_matrix;
+    const int BALL_RADIUS = 10;
 };
 #endif
