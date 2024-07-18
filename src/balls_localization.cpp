@@ -138,7 +138,7 @@ void balls_localizer::rescale_bounding_boxes(float scale, float max_size)
     localization.cue.bounding_box = rescale_bounding_box(cue_bbox, scale, max_size);
 
     Rect black_bbox = localization.black.bounding_box;
-    localization.cue.bounding_box = rescale_bounding_box(black_bbox, scale, max_size);
+    localization.black.bounding_box = rescale_bounding_box(black_bbox, scale, max_size);
 
     for (ball_localization stripe_loc : localization.stripes)
     {

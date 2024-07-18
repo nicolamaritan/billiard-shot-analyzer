@@ -51,9 +51,13 @@ int main()
         minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization());
 
         vector<Point> initial_balls_pos;
+        vector<int> solids_indeces;
+        vector<int> stripes_indeces;
+        int black_index;
+        int cue_index;
         mini.get_balls_pos(multiTracker->getObjects(), initial_balls_pos);
-        mini.draw_initial_minimap(initial_balls_pos, first_frame, pool_table_map);
-        imshow("minimap", pool_table_map);
+        mini.draw_initial_minimap(initial_balls_pos, balls_loc.get_localization(), solids_indeces, stripes_indeces, black_index, cue_index, first_frame, pool_table_map);
+        imshow("initial minimap", pool_table_map);
         vector<Rect2d> old_balls_bounding_boxes = multiTracker->getObjects();
 
         while (cap.read(frame))
@@ -71,11 +75,11 @@ int main()
             vector<Point> current_balls_pos;
             mini.get_balls_pos(multiTracker->getObjects(), current_balls_pos);
 
-            mini.draw_minimap(old_balls_pos, current_balls_pos, first_frame, trajectories, pool_table_map);
+            mini.draw_minimap(old_balls_pos, current_balls_pos, solids_indeces, stripes_indeces, black_index, cue_index, frame, trajectories, pool_table_map);
             old_balls_bounding_boxes = multiTracker->getObjects();
 
             imshow("MultiTracker", frame);
-            imshow("Map", pool_table_map);
+            imshow("Minimap", pool_table_map);
             waitKey();
 
             if (waitKey(1) == 'q')
