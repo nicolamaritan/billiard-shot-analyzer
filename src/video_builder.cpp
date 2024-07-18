@@ -54,8 +54,6 @@ void video_builder::build_videos(string dataset_path)
 
         cout << "Creating " << output_path.string() << "." << endl;
         build_video(output_frames, output_path.string());
-
-        break;  // TODO remove
     }
 }
 
