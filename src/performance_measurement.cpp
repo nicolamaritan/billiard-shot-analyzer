@@ -8,7 +8,7 @@ using namespace std;
 
 /**
  * @brief Calculate the Intersection over Union (IoU) for a specific class between two masks.
- * 
+ *
  * @param predicted_mask The predicted mask.
  * @param ground_truth_mask The ground truth mask.
  * @param class_id The class ID for which to calculate the IoU.
@@ -18,7 +18,7 @@ float get_class_iou(const cv::Mat &predicted_mask, const cv::Mat &ground_truth_m
 
 /**
  * @brief Get the match type and confidence for a predicted ball localization against the ground truth.
- * 
+ *
  * @param predicted The predicted ball localization.
  * @param predicted_label The predicted label ID.
  * @param ground_truth The ground truth balls localization.
@@ -28,7 +28,7 @@ match get_match(const ball_localization &predicted, label_id predicted_label, co
 
 /**
  * @brief Calculate the Intersection over Union (IoU) between two rectangles.
- * 
+ *
  * @param rect_1 The first rectangle.
  * @param rect_2 The second rectangle.
  * @return The IoU value.
@@ -37,7 +37,7 @@ float get_iou(const Rect &rect_1, const Rect &rect_2);
 
 /**
  * @brief Compute the average precision from a set of matches.
- * 
+ *
  * @param matches A vector of match results.
  * @return The average precision value.
  */
@@ -119,6 +119,35 @@ float evaluate_balls_localization_dataset(const std::vector<balls_localization> 
     float ap_black = compute_average_precision(black_matches);
     float ap_solid = compute_average_precision(solids_matches);
     float ap_stripe = compute_average_precision(stripes_matches);
+
+    int predicted_number_of_stripes = 0;
+    int predicted_number_of_solids = 0;
+    for (balls_localization loc : predicted_localizations)
+    {
+        predicted_number_of_solids += loc.solids.size();
+        predicted_number_of_stripes += loc.stripes.size();
+    }
+    
+    int ground_truth_number_of_solids = 0;
+    int ground_truth_number_of_stripes = 0;
+    for (balls_localization loc : predicted_localizations)
+    {
+        ground_truth_number_of_solids += loc.solids.size();
+        ground_truth_number_of_stripes += loc.stripes.size();
+    }
+
+    // Handle cases in which it does not detect any item of a class and there are indeed no items of the class
+    float solids_ap = 0;
+    if (predicted_number_of_solids == 0 && ground_truth_number_of_solids == 0)
+        solids_ap = 1;
+    else
+        solids_ap = compute_average_precision(solids_matches);
+
+    float stripes_ap = 0;
+    if (predicted_number_of_stripes == 0 && ground_truth_number_of_stripes == 0)
+        stripes_ap = 1;
+    else
+        stripes_ap = compute_average_precision(stripes_matches);
 
     return (ap_cue + ap_black + ap_solid + ap_stripe) / 4;
 }
@@ -269,15 +298,21 @@ float evaluate_balls_localization(const balls_localization &predicted, const bal
     */
     float cue_ap = cue_tps;
     float black_ap = black_tps;
-    float solids_ap = compute_average_precision(solids_matches);
-    float stripes_ap = compute_average_precision(stripes_matches);
-    float map = (cue_ap + black_ap + solids_ap + stripes_ap) / 4;
 
-    /*cout << "cue_ap: " << cue_ap << endl;
-    cout << "black_ap: " << black_ap << endl;
-    cout << "solids_ap: " << solids_ap << endl;
-    cout << "stripes_ap: " << stripes_ap << endl;
-    cout << "map: " << map << endl;*/
+    // Handle cases in which it does not detect any item of a class and there are indeed no items of the class
+    float solids_ap = 0;
+    if (predicted.solids.size() == 0 && ground_truth.solids.size() == 0)
+        solids_ap = 1;
+    else
+        solids_ap = compute_average_precision(solids_matches);
+
+    float stripes_ap = 0;
+    if (predicted.stripes.size() == 0 && ground_truth.stripes.size() == 0)
+        stripes_ap = 1;
+    else
+        stripes_ap = compute_average_precision(stripes_matches);
+
+    float map = (cue_ap + black_ap + solids_ap + stripes_ap) / 4;
 
     return map;
 }
