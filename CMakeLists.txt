@@ -49,12 +49,41 @@ add_library(video_builder
     src/video_builder.cpp
 )
 
+add_library(frame_segmentation
+    include/frame_segmentation.h
+    src/frame_segmentation.cpp
+)
+
+add_library(frame_detection
+    include/frame_detection.h
+    src/frame_detection.cpp
+)
+
+add_library(file_loading
+    include/file_loading.h
+    src/file_loading.cpp
+)
+
+add_library(performance_measurement
+    include/performance_measurement.h
+    src/performance_measurement.cpp
+)
+
+add_library(dataset_evaluation
+    include/dataset_evaluation.h
+    src/dataset_evaluation.cpp
+)
+
 add_executable(${PROJECT_NAME}
 	src/main.cpp
 )
 
-add_executable(evaluation
-	src/evaluation.cpp
+add_executable(generate_performance
+	src/generate_performance.cpp
+)
+
+add_executable(generate_masks_and_detection
+	src/generate_masks_and_detection.cpp
 )
 
 add_executable(generate_videos
@@ -69,23 +98,45 @@ target_link_libraries(${PROJECT_NAME}
     geometry
     segmentation
     minimap
+    dataset_evaluation
 )
 
-target_link_libraries(evaluation
+target_link_libraries(generate_performance
     ${OpenCV_LIBS}
     show_cat
+    dataset_evaluation
+    performance_measurement
+    frame_segmentation
+    frame_detection
     playing_field_localization
     balls_localization
     geometry
     segmentation
+    file_loading
 )
 
 target_link_libraries(generate_videos
     video_builder
     ${OpenCV_LIBS}
+    file_loading
     playing_field_localization
     balls_localization
     geometry
     segmentation
     minimap
+)
+
+target_link_libraries(generate_masks_and_detection
+    ${OpenCV_LIBS}
+    show_cat
+    dataset_evaluation
+    performance_measurement
+    frame_segmentation
+    frame_detection
+    playing_field_localization
+    balls_localization
+    geometry
+    segmentation
+    minimap
+    file_loading
 )

@@ -23,7 +23,6 @@ public:
      */
     void localize(const cv::Mat &src);
     playing_field_localization get_localization() { return localization; }
-    std::vector<cv::Point> playing_field_corners;
 
 private:
     /**
@@ -34,18 +33,6 @@ private:
      * @param dst The segmented image.
      */
     void segmentation(const cv::Mat &src, cv::Mat &dst);
-
-    /**
-     * @brief Return the estimated board color.
-     *
-     * It computes the color of the board by considering a circle of a given radius around
-     * the center of the image and picking the median value.
-     *
-     * @param src Input image containing the board.
-     * @param radius Radius from the image center in which to compute the board color.
-     * @return the computed color of the board.
-     */
-    cv::Vec3b get_board_color(const cv::Mat &src, float radius);
 
     /**
      * @brief Finds lines in the input edge-detected image using the Hough Transform.
@@ -110,8 +97,6 @@ private:
      */
     void sort_points_clockwise(std::vector<cv::Point> &points);
 
-    
-
     /**
      * @brief Estimates the locations of holes on a playing field based on the corners of the field.
      *
@@ -126,10 +111,6 @@ private:
      */
     void estimate_holes_location(std::vector<cv::Point> &hole_points);
 
-    void draw_pool_table(std::vector<cv::Point> inters, cv::Mat &image);
-
-    cv::Mat playing_field_mask;
-    std::vector<cv::Point> playing_field_hole_points;
     playing_field_localization localization;
 };
 
