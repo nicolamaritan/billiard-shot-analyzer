@@ -185,6 +185,8 @@ private:
      */
     void draw_circles(const cv::Mat &src, cv::Mat &dst, std::vector<cv::Vec3f> &circles);
 
+    float distance_from_middle_hue(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
+
     /**
      * @brief Computes the mean squared difference from white for each pixel within a given circle.
      *

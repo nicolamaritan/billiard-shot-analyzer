@@ -10,8 +10,8 @@
 
 /**
  * @brief Class for handling operations related to generating and drawing a minimap view.
- * 
- * The minimap class provides functionality to transform and draw a bird's-eye view of a playing field,
+ *
+ * The minimap class provides functionality to transform and draw a top down view of a playing field,
  * including placing and updating positions of balls on the minimap.
  */
 class minimap
@@ -23,68 +23,46 @@ public:
      * Initializes the minimap object by setting up the projection matrix for perspective transformation
      * based on the provided playing field corners.
      *
-     * @param playing_field A structure containing the corners of the playing field.
+     * @param playing_field A structure localization information of the playing field.
      * @param balls A structure containing the localization information of balls on the playing field.
+     * @param tracker_bboxes Vector containing the tracker bounding boxes of the initial detection.
      */
-    minimap(playing_field_localization playing_field, balls_localization balls);
+    minimap(const playing_field_localization &plf_localization, const balls_localization &blls_localization, const std::vector<cv::Rect2d> &tracker_bboxes);
 
     /**
-     * @brief Draws a dashed line on the given image.
-     * @param img The image on which to draw the line.
-     * @param pt1 The starting point of the line.
-     * @param pt2 The ending point of the line.
-     * @param color The color of the line.
-     * @param thickness The thickness of the line.
-     * @param style The style of the line, either "dotted" or "dashed".
-     * @param gap The gap between the segments of the line.
+     * @brief Draws the initial minimap with the positions of the balls.
+     * @param dst The destination image where the minimap will be drawn.
      */
-    void draw_dashed_line(cv::Mat &img, cv::Point pt1, cv::Point pt2,
-                          cv::Scalar color, int thickness, std::string style,
-                          int gap);
+    void draw_initial_minimap(cv::Mat &dst);
+    
+    /**
+     * @brief Draws the minimap, updating ball positions and their trajectories.
+     * @param dst The destination image where the minimap will be drawn.
+     */
+    void draw_minimap(cv::Mat &dst);
 
+    void update(const std::vector<cv::Rect2d> &updated_balls_bboxes);
+
+private:
     /**
      * @brief Computes the positions of the balls based on their bounding boxes.
      * @param bounding_boxes The bounding boxes of the balls.
      * @param balls_pos The computed positions of the balls.
      */
-    void get_balls_pos(const std::vector<cv::Rect2d>& bounding_boxes, std::vector<cv::Point>& balls_centers);
-
-    /**
-     * @brief Draws the initial minimap with the positions of the balls.
-     * @param balls_pos The positions of the balls.
-     * @param balls The balls localization data.
-     * @param solids_indeces The indices of solid balls.
-     * @param stripes_indeces The indices of stripe balls.
-     * @param black_index The index of the black ball.
-     * @param cue_index The index of the cue ball.
-     * @param src The source image.
-     * @param dst The destination image where the minimap will be drawn.
-     */
-    void draw_initial_minimap(const std::vector<cv::Point> &balls_pos, const balls_localization &balls, std::vector<int> &solids_indeces, std::vector<int> &stripes_indeces, int &black_index, int &cue_index, const cv::Mat &src, cv::Mat &dst);
-
-    /**
-     * @brief Draws the minimap, updating ball positions and their trajectories.
-     * @param old_balls_pos The previous positions of the balls.
-     * @param balls_pos The current positions of the balls.
-     * @param solids_indeces The indices of solid balls.
-     * @param stripes_indeces The indices of stripe balls.
-     * @param black_index The index of the black ball.
-     * @param cue_index The index of the cue ball.
-     * @param src The source image.
-     * @param trajectories The image showing ball trajectories.
-     * @param dst The destination image where the minimap will be drawn.
-     */
-    void draw_minimap(const std::vector<cv::Point> &old_balls_pos, const std::vector<cv::Point> &balls_pos, const std::vector<int> &solids_indeces, const std::vector<int> &stripes_indeces, const int black_index, const int cue_index, const cv::Mat &src, cv::Mat &trajectories, cv::Mat &dst);
-
-    //void draw_initial_minimap(const std::vector<cv::Point> &balls_pos, const cv::Mat &src, cv::Mat &dst);
-    //void draw_minimap(const std::vector<cv::Point> &old_balls_pos, const std::vector<cv::Point> &balls_pos, const cv::Mat &src, cv::Mat &trajectories, cv::Mat &dst);
+    void get_balls_pos(const std::vector<cv::Rect2d> &bounding_boxes, std::vector<cv::Point> &balls_centers);
+    
+    void load_balls_indeces(const std::vector<cv::Point> &balls_pos);
 
     /**
      * @brief Checks if the pool table is rectangular based on the given corners.
      * @param pool_corners The corners of the pool table.
      * @return True if the pool table is rectangular, false otherwise.
      */
-    bool is_rectangular_pool_table(const std::vector<cv::Point>& pool_corners);
+    bool is_rectangular_pool_table(const std::vector<cv::Point> &pool_corners);
+    
+    bool is_inside_playing_field(const cv::Point2f ball_position);
+    
+    bool is_inside_hole(const cv::Point2f ball_position);
 
     /**
      * @brief Sorts the corners of the playing field for the minimap.
@@ -93,46 +71,51 @@ public:
      */
     void sort_corners_for_minimap(const std::vector<cv::Point> &corners_src, std::vector<cv::Point> &corners_dst);
 
-private:
+    /**
+     * @brief Draws a dotted line on the given image.
+     * @param img The image on which to draw the line.
+     * @param pt1 The starting point of the line.
+     * @param pt2 The ending point of the line.
+     * @param color The color of the line.
+     * @param thickness The thickness of the line.
+     * @param gap The gap between the segments of the line.
+     */
+    void draw_dotted_line(cv::Mat &img, cv::Point pt1, cv::Point pt2, cv::Scalar color, int thickness, int gap);
 
-    /**
-     * @brief Coordinates of the four corners of the minimap.
-     * 
-     * These coordinates represent the corners of the minimap where the playing field will be projected.
-     */
-    const std::vector<cv::Point2f> corners_minimap = {cv::Point2f(75, 520), cv::Point2f(75, 55), cv::Point2f(940, 55), cv::Point2f(940, 520)};
-    
-    /**
-     * @brief Vector to store the corners of the playing field after sorting and transforming.
-     * 
-     * This vector is resized in the constructor of the minimap class and is used to store the
-     * transformed corners of the playing field for use in perspective transformation.
-     */
-    std::vector<cv::Point2f> corners_2f;
-    
-    /**
-     * @brief Matrix to store the perspective transformation matrix.
-     * 
-     * This matrix is computed using cv::getPerspectiveTransform to map the playing field coordinates
-     * to the minimap coordinates.
-     */
-    cv::Mat projection_matrix;
-    
-    const int BALL_RADIUS = 10;     // Radius of the balls drawn on the minimap.
-    
-    const int THICKNESS = 2;        // Thickness of the contour lines drawn around the balls on the minimap.
-    
+    const int X1 = 75;
+    const int X2 = 940;
+    const int Y1 = 59;
+    const int Y2 = 520;
+    const std::vector<cv::Point2f> corners_minimap = {cv::Point2f(X1, Y2), cv::Point2f(X1, Y1), cv::Point2f(X2, Y1), cv::Point2f(X2, Y2)}; // These coordinates represent the corners of the minimap where the playing field will be projected.
+    const cv::Point2f UPPER_LEFT_HOLE = cv::Point2f(83, 73);
+    const cv::Point2f UPPER_MIDDLE_HOLE = cv::Point2f(510, 63);
+    const cv::Point2f UPPER_RIGHT_HOLE = cv::Point2f(940, 73);
+    const cv::Point2f BOTTOM_LEFT_HOLE = cv::Point2f(83, 505);
+    const cv::Point2f BOTTOM_MIDDLE_HOLE = cv::Point2f(510, 513);
+    const cv::Point2f BOTTOM_RIGHT_HOLE = cv::Point2f(949, 505);
+    const int HOLE_RADIUS = 17;
+    const int BALL_RADIUS = 10;                                     // Radius of the balls drawn on the minimap.
+    const int THICKNESS = 2;                                        // Thickness of the contour lines drawn around the balls on the minimap.
     const cv::Scalar SOLID_BALL_COLOR = cv::Scalar(255, 180, 160);  // Color used for solid balls.
-    
     const cv::Scalar STRIPE_BALL_COLOR = cv::Scalar(179, 179, 255); // Color used for striped balls.
-    
     const cv::Scalar BLACK_BALL_COLOR = cv::Scalar(70, 70, 70);     // Color used for the black ball.
-    
     const cv::Scalar CUE_BALL_COLOR = cv::Scalar(255, 255, 255);    // Color used for the cue ball.
-    
-    const cv::Scalar CONTOUR_COLOR = cv::Scalar(0, 0, 0);       // Color used for the contours of the balls.
-    
-    const int GAP = 10;         // Gap size for dashed lines.
-
+    const cv::Scalar CONTOUR_COLOR = cv::Scalar(0, 0, 0);           // Color used for the contours of the balls.
+    const int GAP = 10;                                             // Gap size for dashed lines.
+    const cv::Point2f INVALID_POSITION = cv::Point2f(0, 0);
+    const std::string IMAGES_DIRECTORY = "images";
+    const std::string MINIMAP_IMAGE_FILENAME = "pool_table.png";
+    std::vector<cv::Point2f> corners_2f;
+    cv::Mat projection_matrix;
+    playing_field_localization playing_field;
+    balls_localization balls;
+    int cue_index;
+    int black_index;
+    std::vector<int> solids_indeces;
+    std::vector<int> stripes_indeces;
+    std::vector<cv::Point> current_balls_pos;
+    std::vector<cv::Point> old_balls_pos;
+    cv::Mat empty_minimap;
+    cv::Mat trajectories;
 };
 #endif

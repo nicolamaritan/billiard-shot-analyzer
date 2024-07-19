@@ -1,3 +1,4 @@
+// Author: Nicola Maritan 2121717
 #include "frame_segmentation.h"
 #include "balls_localization.h"
 #include "playing_field_localization.h"
@@ -18,8 +19,6 @@ using namespace std;
  */
 void color_segmentation(const cv::Mat &src, cv::Mat &dst, const cv::Mat &frame_segmentation, bool preserve_background);
 
-
-
 void get_colored_frame_segmentation(const Mat &src, Mat &dst, bool preserve_background)
 {
     playing_field_localizer plf_loc;
@@ -31,7 +30,7 @@ void get_colored_frame_segmentation(const Mat &src, Mat &dst, bool preserve_back
     get_frame_segmentation(src, frame_segmentation);
 
     color_segmentation(src, dst, frame_segmentation, preserve_background);
-    
+
     // Draw yellow lines
     vector<Point> corners = plf_loc.get_localization().corners;
     for (size_t i = 0; i < corners.size(); i++)
@@ -41,39 +40,6 @@ void get_colored_frame_segmentation(const Mat &src, Mat &dst, bool preserve_back
         line(dst, corners[i], corners[(i + 1) % corners.size()], YELLOW_COLOR, LINE_THICKNESS);
     }
 }
-
-
-
-void color_segmentation(const cv::Mat &src, cv::Mat &dst, const cv::Mat &frame_segmentation, bool preserve_background)
-{
-    dst = src.clone();
-
-    // BGR color mapping
-    vector<cv::Vec3b> color_map(6);
-    color_map.at(0) = cv::Vec3b(128, 128, 128); // Gray
-    color_map.at(1) = cv::Vec3b(255, 255, 255); // White
-    color_map.at(2) = cv::Vec3b(0, 0, 0);       // Black
-    color_map.at(3) = cv::Vec3b(0, 0, 255);     // Red
-    color_map.at(4) = cv::Vec3b(255, 0, 0);     // Blue
-    color_map.at(5) = cv::Vec3b(0, 255, 0);     // Green
-
-    // background id is excluded when preserve_color is true
-    const int MIN_COLOR = preserve_background ? 1 : 0;
-    const int MAX_COLOR = 6;
-
-    for (int i = 0; i < frame_segmentation.rows; i++)
-    {
-        for (int j = 0; j < frame_segmentation.cols; j++)
-        {
-            // Color based on label id
-            uchar pixel_value = frame_segmentation.at<uchar>(i, j);
-            if (pixel_value >= MIN_COLOR && pixel_value < MAX_COLOR)
-                dst.at<cv::Vec3b>(i, j) = color_map.at(pixel_value);
-        }
-    }
-}
-
-
 
 void get_frame_segmentation(const Mat &src, Mat &dst)
 {
@@ -108,4 +74,33 @@ void get_frame_segmentation(const Mat &src, Mat &dst)
     }
 
     dst = segmentation;
+}
+
+void color_segmentation(const cv::Mat &src, cv::Mat &dst, const cv::Mat &frame_segmentation, bool preserve_background)
+{
+    dst = src.clone();
+
+    // BGR color mapping
+    vector<cv::Vec3b> color_map(6);
+    color_map.at(0) = cv::Vec3b(128, 128, 128); // Gray
+    color_map.at(1) = cv::Vec3b(255, 255, 255); // White
+    color_map.at(2) = cv::Vec3b(0, 0, 0);       // Black
+    color_map.at(3) = cv::Vec3b(0, 0, 255);     // Red
+    color_map.at(4) = cv::Vec3b(255, 0, 0);     // Blue
+    color_map.at(5) = cv::Vec3b(0, 255, 0);     // Green
+
+    // background id is excluded when preserve_color is true
+    const int MIN_COLOR = preserve_background ? 1 : 0;
+    const int MAX_COLOR = 6;
+
+    for (int i = 0; i < frame_segmentation.rows; i++)
+    {
+        for (int j = 0; j < frame_segmentation.cols; j++)
+        {
+            // Color based on label id
+            uchar pixel_value = frame_segmentation.at<uchar>(i, j);
+            if (pixel_value >= MIN_COLOR && pixel_value < MAX_COLOR)
+                dst.at<cv::Vec3b>(i, j) = color_map.at(pixel_value);
+        }
+    }
 }

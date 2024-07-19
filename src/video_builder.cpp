@@ -1,4 +1,4 @@
-// Author: Nicola Maritan
+// Author: Nicola Maritan 2121717
 #include "video_builder.h"
 #include "minimap.h"
 #include "playing_field_localization.h"
@@ -22,7 +22,8 @@ namespace fs = std::filesystem;
 void video_builder::build_videos(const string &dataset_path)
 {
     vector<String> filenames;
-    glob(dataset_path + "*.mp4", filenames, true);
+    const string MP4_EXTENSION = "*.mp4";
+    glob(dataset_path + MP4_EXTENSION, filenames, true);
 
     fs::path output_directory("output");
     fs::path videos_directory("videos");
@@ -31,16 +32,17 @@ void video_builder::build_videos(const string &dataset_path)
 
     for (String filename : filenames)
     {
+        fs::path output_path;
+        output_path /= output_directory;
+        output_path /= fs::path(filename).filename();
+        cout << "Generating " << output_path.string() << "..." << endl;
+
         clear_input_video_info();
 
         build_output_frames(filename, output_frames);
 
-        fs::path output_path;
-        output_path /= output_directory;
-        output_path /= fs::path(filename).filename();
-
-        cout << "Creating " << output_path.string() << "." << endl;
         build_video_from_output_frames(output_frames, output_path.string());
+        cout << "Generated " << output_path.string() << "." << endl;
     }
 }
 
@@ -79,7 +81,7 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
     input_video_size = Size(static_cast<int>(input_video.get(CAP_PROP_FRAME_WIDTH)),
                             static_cast<int>(input_video.get(CAP_PROP_FRAME_HEIGHT)));
 
-    Mat first_frame, frame;
+    Mat first_frame;
     input_video.read(first_frame);
     playing_field_localizer pl_field_loc;
     pl_field_loc.localize(first_frame);
@@ -106,36 +108,21 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
         multi_tracker->add(legacy::TrackerCSRT::create(), first_frame, rescale_bounding_box(bbox, BOUNDING_BOX_RESCALE, MAX_BOUNDING_BOX_SIZE));
     }
 
-    // Load minimap
-    const string MINIMAP_IMAGE_FILENAME = "pool_table.png";
-    Mat pool_table_map = imread(MINIMAP_IMAGE_FILENAME);
-    Mat trajectories = pool_table_map.clone();
-    minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization());
+    minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization(), multi_tracker->getObjects());
+    Mat pool_table_map;
 
-    vector<Point> initial_balls_pos;
-    vector<int> solids_indeces;
-    vector<int> stripes_indeces;
-    int black_index;
-    int cue_index;
-    mini.get_balls_pos(multi_tracker->getObjects(), initial_balls_pos);
-    mini.draw_initial_minimap(initial_balls_pos, balls_loc.get_localization(), solids_indeces, stripes_indeces, black_index, cue_index, first_frame, pool_table_map);
-    vector<Rect2d> old_balls_bounding_boxes = multi_tracker->getObjects();
+    Mat output_frame;
+    mini.draw_initial_minimap(pool_table_map);
+    build_output_frame(first_frame, pool_table_map, output_frame);
+    output_frames.push_back(output_frame);
 
+    Mat frame;
     while (input_video.read(frame))
     {
-
         multi_tracker->update(frame);
+        mini.update(multi_tracker->getObjects());
+        mini.draw_minimap(pool_table_map);
 
-        vector<Point> old_balls_pos;
-        mini.get_balls_pos(old_balls_bounding_boxes, old_balls_pos);
-
-        vector<Point> current_balls_pos;
-        mini.get_balls_pos(multi_tracker->getObjects(), current_balls_pos);
-
-        mini.draw_minimap(old_balls_pos, current_balls_pos, solids_indeces, stripes_indeces, black_index, cue_index, frame, trajectories, pool_table_map);
-        old_balls_bounding_boxes = multi_tracker->getObjects();
-
-        Mat output_frame;
         build_output_frame(frame, pool_table_map, output_frame);
         output_frames.push_back(output_frame);
     }

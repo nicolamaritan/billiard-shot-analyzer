@@ -69,10 +69,6 @@ add_library(dataset_evaluation
     src/dataset_evaluation.cpp
 )
 
-add_executable(${PROJECT_NAME}
-	src/main.cpp
-)
-
 add_executable(generate_performance
 	src/generate_performance.cpp
 )
@@ -83,16 +79,6 @@ add_executable(generate_masks_and_detection
 
 add_executable(generate_videos
 	src/generate_videos.cpp
-)
-
-target_link_libraries(${PROJECT_NAME}
-    ${OpenCV_LIBS}
-    playing_field_localization
-    balls_localization
-    geometry
-    segmentation
-    minimap
-    dataset_evaluation
 )
 
 target_link_libraries(generate_performance
