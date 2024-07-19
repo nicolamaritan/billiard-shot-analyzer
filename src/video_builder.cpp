@@ -133,34 +133,16 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
         multi_tracker->add(legacy::TrackerCSRT::create(), first_frame, rescale_bounding_box(bbox, BOUNDING_BOX_RESCALE, MAX_BOUNDING_BOX_SIZE));
     }
 
-    // Load minimap
-    const string MINIMAP_IMAGE_FILENAME = "pool_table.png";
-    Mat pool_table_map = imread(MINIMAP_IMAGE_FILENAME);
-    Mat trajectories = pool_table_map.clone();
-    minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization());
+    minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization(), multi_tracker->getObjects());
+    Mat pool_table_map;
 
-    vector<Point> initial_balls_pos;
-    vector<int> solids_indeces;
-    vector<int> stripes_indeces;
-    int black_index;
-    int cue_index;
-    mini.get_balls_pos(multi_tracker->getObjects(), initial_balls_pos);
-    mini.draw_initial_minimap(initial_balls_pos, balls_loc.get_localization(), solids_indeces, stripes_indeces, black_index, cue_index, first_frame, pool_table_map);
-    vector<Rect2d> old_balls_bounding_boxes = multi_tracker->getObjects();
+    mini.draw_initial_minimap(pool_table_map);
 
     while (input_video.read(frame))
     {
-
         multi_tracker->update(frame);
-
-        vector<Point> old_balls_pos;
-        mini.get_balls_pos(old_balls_bounding_boxes, old_balls_pos);
-
-        vector<Point> current_balls_pos;
-        mini.get_balls_pos(multi_tracker->getObjects(), current_balls_pos);
-
-        mini.draw_minimap(old_balls_pos, current_balls_pos, solids_indeces, stripes_indeces, black_index, cue_index, frame, trajectories, pool_table_map);
-        old_balls_bounding_boxes = multi_tracker->getObjects();
+        mini.update(multi_tracker->getObjects());
+        mini.draw_minimap(pool_table_map);
 
         Mat output_frame;
         build_output_frame(frame, pool_table_map, output_frame);

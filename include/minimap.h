@@ -10,19 +10,25 @@
 class minimap
 {
 public:
-    minimap(playing_field_localization playing_field, balls_localization balls);
+    minimap(const playing_field_localization &plf_localization, const balls_localization &blls_localization, const std::vector<cv::Rect2d> &tracker_bboxes);
 
-    void draw_dashed_line(cv::Mat &img, cv::Point pt1, cv::Point pt2,
-                          cv::Scalar color, int thickness, std::string style,
-                          int gap);
-    void get_balls_pos(const std::vector<cv::Rect2d>& bounding_boxes, std::vector<cv::Point>& balls_centers);
-    void draw_initial_minimap(const std::vector<cv::Point> &balls_pos, const balls_localization &balls, std::vector<int> &solids_indeces, std::vector<int> &stripes_indeces, int &black_index, int &cue_index, const cv::Mat &src, cv::Mat &dst);
-    void draw_minimap(const std::vector<cv::Point> &old_balls_pos, const std::vector<cv::Point> &balls_pos, const std::vector<int> &solids_indeces, const std::vector<int> &stripes_indeces, const int black_index, const int cue_index, const cv::Mat &src, cv::Mat &trajectories, cv::Mat &dst);
-    bool is_rectangular_pool_table(const std::vector<cv::Point>& pool_corners);
+    void draw_dashed_line(cv::Mat &img, cv::Point pt1, cv::Point pt2, cv::Scalar color, int thickness, std::string style, int gap);
+    void draw_initial_minimap(cv::Mat &dst);
+    void update(const std::vector<cv::Rect2d> &updated_balls_bboxes);
+    void draw_minimap(cv::Mat &dst);
+    bool is_rectangular_pool_table(const std::vector<cv::Point> &pool_corners);
     bool is_inside_playing_field(const cv::Point2f ball_position);
     bool is_inside_hole(const cv::Point2f ball_position);
     void sort_corners_for_minimap(const std::vector<cv::Point> &corners_src, std::vector<cv::Point> &corners_dst);
+
 private:
+    const std::string MINIMAP_IMAGE_FILENAME = "pool_table.png";
+    cv::Mat empty_minimap;
+    cv::Mat trajectories;
+
+    void get_balls_pos(const std::vector<cv::Rect2d> &bounding_boxes, std::vector<cv::Point> &balls_centers);
+    void load_balls_indeces(const std::vector<cv::Point> &balls_pos);
+
     const int X1 = 75;
     const int X2 = 940;
     const int Y1 = 59;
@@ -47,5 +53,14 @@ private:
     const int GAP = 10;
     const cv::Point2f INVALID_POSITION = cv::Point2f(0, 0);
 
+    playing_field_localization playing_field;
+    balls_localization balls;
+    int cue_index;
+    int black_index;
+    std::vector<int> solids_indeces;
+    std::vector<int> stripes_indeces;
+    std::vector<cv::Point> current_balls_pos;
+    std::vector<cv::Point> old_balls_pos;
+    
 };
 #endif
