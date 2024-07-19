@@ -3,7 +3,6 @@
 #ifndef MINIMAP_H
 #define MINIMAP_H
 
-#include <opencv2/features2d.hpp>
 #include "playing_field_localization.h"
 #include "balls_localization.h"
 
@@ -11,23 +10,18 @@ class minimap
 {
 public:
     minimap(const playing_field_localization &plf_localization, const balls_localization &blls_localization, const std::vector<cv::Rect2d> &tracker_bboxes);
-
-    void draw_dashed_line(cv::Mat &img, cv::Point pt1, cv::Point pt2, cv::Scalar color, int thickness, std::string style, int gap);
     void draw_initial_minimap(cv::Mat &dst);
     void update(const std::vector<cv::Rect2d> &updated_balls_bboxes);
     void draw_minimap(cv::Mat &dst);
+
+private:
+    void get_balls_pos(const std::vector<cv::Rect2d> &bounding_boxes, std::vector<cv::Point> &balls_centers);
+    void load_balls_indeces(const std::vector<cv::Point> &balls_pos);
     bool is_rectangular_pool_table(const std::vector<cv::Point> &pool_corners);
     bool is_inside_playing_field(const cv::Point2f ball_position);
     bool is_inside_hole(const cv::Point2f ball_position);
     void sort_corners_for_minimap(const std::vector<cv::Point> &corners_src, std::vector<cv::Point> &corners_dst);
-
-private:
-    const std::string MINIMAP_IMAGE_FILENAME = "pool_table.png";
-    cv::Mat empty_minimap;
-    cv::Mat trajectories;
-
-    void get_balls_pos(const std::vector<cv::Rect2d> &bounding_boxes, std::vector<cv::Point> &balls_centers);
-    void load_balls_indeces(const std::vector<cv::Point> &balls_pos);
+    void draw_dotted_line(cv::Mat &img, cv::Point pt1, cv::Point pt2, cv::Scalar color, int thickness, int gap);
 
     const int X1 = 75;
     const int X2 = 940;
@@ -52,7 +46,6 @@ private:
     const cv::Scalar CONTOUR_COLOR = cv::Scalar(0, 0, 0);
     const int GAP = 10;
     const cv::Point2f INVALID_POSITION = cv::Point2f(0, 0);
-
     playing_field_localization playing_field;
     balls_localization balls;
     int cue_index;
@@ -61,6 +54,9 @@ private:
     std::vector<int> stripes_indeces;
     std::vector<cv::Point> current_balls_pos;
     std::vector<cv::Point> old_balls_pos;
-    
+    const std::string IMAGES_DIRECTORY = "images";
+    const std::string MINIMAP_IMAGE_FILENAME = "pool_table.png";
+    cv::Mat empty_minimap;
+    cv::Mat trajectories;
 };
 #endif

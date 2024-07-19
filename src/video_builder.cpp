@@ -1,4 +1,4 @@
-// Author: Nicola Maritan
+// Author: Nicola Maritan 2121717
 #include "video_builder.h"
 #include "minimap.h"
 #include "playing_field_localization.h"
@@ -56,7 +56,8 @@ void video_builder::build_video(const string &filename)
 void video_builder::build_videos(const string &dataset_path)
 {
     vector<String> filenames;
-    glob(dataset_path + "*.mp4", filenames, true);
+    const string MP4_EXTENSION = "*.mp4";
+    glob(dataset_path + MP4_EXTENSION, filenames, true);
 
     fs::path output_directory("output");
     fs::path videos_directory("videos");
@@ -68,7 +69,7 @@ void video_builder::build_videos(const string &dataset_path)
         fs::path output_path;
         output_path /= output_directory;
         output_path /= fs::path(filename).filename();
-        cout << "Generating " << output_path.string() << "." << endl;
+        cout << "Generating " << output_path.string() << "..." << endl;
 
         clear_input_video_info();
 

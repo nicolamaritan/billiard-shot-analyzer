@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         const string SEGMENTATION_BACKGROUND_PRESERVED_FILENAME = "_segmentation_background_preserved"; 
         const string DETECTION_FILENAME = "_detection"; 
 
-        cout << "Generating masks and detections in " << clip_game_directory.string() << endl;
+        cout << "Generating masks and detections in " << clip_game_directory.string() << "..." << endl;
 
         // Compute output images
         get_colored_frame_segmentation(frame, frame_segmentation, false);

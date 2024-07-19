@@ -1,18 +1,10 @@
 // Author: Francesco Boscolo Meneguolo 2119969
-
-#include <opencv2/features2d.hpp>
-#include <opencv2/imgproc.hpp>
-
 #include "minimap.h"
-
-#include <iostream>
-#include <cmath>
-#include <map>
-#include <queue>
-#include <cassert>
+#include <filesystem>
 
 using namespace cv;
 using namespace std;
+namespace fs = std::filesystem;
 
 minimap::minimap(const playing_field_localization &plf_localization, const balls_localization &blls_localization, const std::vector<cv::Rect2d> &tracker_bboxes)
 	: playing_field{plf_localization}, balls{blls_localization}
@@ -27,11 +19,12 @@ minimap::minimap(const playing_field_localization &plf_localization, const balls
 			  { return static_cast<Point2f>(point); });
 	projection_matrix = getPerspectiveTransform(corners_2f, corners_minimap);
 
-	empty_minimap = imread(MINIMAP_IMAGE_FILENAME);
+	fs::path MINIMAP_PATH = fs::path(IMAGES_DIRECTORY) / fs::path(MINIMAP_IMAGE_FILENAME);
+	empty_minimap = imread(MINIMAP_PATH.string());
 	trajectories = empty_minimap.clone();
 };
 
-void minimap::draw_dashed_line(Mat &img, Point pt1, Point pt2, Scalar color, int thickness, string style, int gap)
+void minimap::draw_dotted_line(Mat &img, Point pt1, Point pt2, Scalar color, int thickness, int gap)
 {
 	float dx = pt1.x - pt2.x;
 	float dy = pt1.y - pt2.y;
@@ -46,26 +39,8 @@ void minimap::draw_dashed_line(Mat &img, Point pt1, Point pt2, Scalar color, int
 		to_draw.push_back(Point{x, y});
 	}
 
-	if (style == "dotted")
-	{
-		for (int i = 0; i < to_draw.size(); i++)
-		{
-			circle(img, to_draw.at(i), thickness, color, FILLED);
-		}
-	}
-	else
-	{
-		Point start = to_draw.at(0);
-		Point end = to_draw.at(0);
-
-		for (int i = 0; i < to_draw.size(); i++)
-		{
-			start = end;
-			end = to_draw.at(i);
-			if (i % 2 == 1)
-				line(img, start, end, color, thickness);
-		}
-	}
+	for (int i = 0; i < to_draw.size(); i++)
+		circle(img, to_draw.at(i), thickness, color, FILLED);
 }
 
 bool minimap::is_rectangular_pool_table(const vector<Point> &pool_corners)
@@ -136,9 +111,7 @@ void minimap::get_balls_pos(const vector<Rect2d> &bounding_boxes, vector<Point> 
 {
 	balls_pos.clear();
 	for (Rect2d bounding_box : bounding_boxes)
-	{
 		balls_pos.push_back(Point(bounding_box.x + bounding_box.width / 2, bounding_box.y + bounding_box.height / 2));
-	}
 }
 
 bool minimap::is_inside_hole(const cv::Point2f ball_position)
@@ -236,7 +209,7 @@ void minimap::draw_minimap(Mat &dst)
 			// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
 			const float DELTA_MOVEMENT = 2;
 			if (norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT && (is_inside_playing_field(solids_balls_pos_minimap.at(i)) && !is_inside_hole(solids_balls_pos_minimap.at(i))))
-				draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
+				draw_dotted_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, GAP);
 		}
 	}
 
@@ -259,7 +232,7 @@ void minimap::draw_minimap(Mat &dst)
 		{
 			// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
 			if (norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT && (is_inside_playing_field(stripes_balls_pos_minimap.at(i)) && !is_inside_hole(stripes_balls_pos_minimap.at(i))))
-				draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
+				draw_dotted_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, GAP);
 		}
 	}
 
@@ -273,7 +246,7 @@ void minimap::draw_minimap(Mat &dst)
 	if (current_balls_pos_2f.at(black_index) != INVALID_POSITION)
 	{
 		if (norm(black_ball_pos_dst.at(0) - old_black_ball_pos_dst.at(0)) > DELTA_MOVEMENT && (is_inside_playing_field(black_ball_pos_minimap) && !is_inside_hole(black_ball_pos_minimap)))
-			draw_dashed_line(trajectories, old_black_ball_pos_dst.at(0), black_ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
+			draw_dotted_line(trajectories, old_black_ball_pos_dst.at(0), black_ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, GAP);
 	}
 
 	vector<Point2f> cue_ball_pos_dst;
@@ -283,7 +256,7 @@ void minimap::draw_minimap(Mat &dst)
 	perspectiveTransform(cue_ball_pos_src, cue_ball_pos_dst, projection_matrix);
 	perspectiveTransform(old_cue_ball_pos_src, old_cue_ball_pos_dst, projection_matrix);
 	if (norm(cue_ball_pos_dst.at(0) - old_cue_ball_pos_dst.at(0)) > DELTA_MOVEMENT)
-		draw_dashed_line(trajectories, old_cue_ball_pos_dst.at(0), cue_ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
+		draw_dotted_line(trajectories, old_cue_ball_pos_dst.at(0), cue_ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, GAP);
 
 	cue_ball_pos_minimap = cue_ball_pos_dst.at(0);
 
