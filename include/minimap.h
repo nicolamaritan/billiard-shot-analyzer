@@ -34,7 +34,7 @@ private:
     const cv::Point2f BOTTOM_LEFT_HOLE = cv::Point2f(83, 505);
     const cv::Point2f BOTTOM_MIDDLE_HOLE = cv::Point2f(510, 513);
     const cv::Point2f BOTTOM_RIGHT_HOLE = cv::Point2f(949, 505);
-    const int HOLE_RADIUS = 21;
+    const int HOLE_RADIUS = 17;
     std::vector<cv::Point2f> corners_2f;
     cv::Mat projection_matrix;
     const int BALL_RADIUS = 10;

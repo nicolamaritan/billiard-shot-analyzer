@@ -82,11 +82,6 @@ bool minimap::is_rectangular_pool_table(const vector<Point> &pool_corners)
     return sides_equal && diagonals_equal;
 }
 
-bool minimap::is_inside_playing_field(const Point2f ball_position)
-{
-	const int EPS = 4;
-	return (ball_position.x > X1+EPS && ball_position.x < X2-EPS) && (ball_position.y > Y1+EPS && ball_position.y < Y2-EPS);
-}
 
 void minimap::sort_corners_for_minimap(const vector<Point> &corners_src, vector<Point> &corners_dst)
 {
@@ -151,9 +146,16 @@ bool minimap::is_inside_hole(const cv::Point2f ball_position)
 }
 
 
+bool minimap::is_inside_playing_field(const Point2f ball_position)
+{
+	const int EPS = 4;
+	return !is_inside_hole(ball_position) && (ball_position.x > X1+EPS && ball_position.x < X2-EPS) && (ball_position.y > Y1+EPS && ball_position.y < Y2-EPS);
+}
+
+
+
 void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const balls_localization &balls, vector<int> &solids_indeces, vector<int> &stripes_indeces, int &black_index, int &cue_index, const Mat &src, Mat &dst)
 {
-	black_index = -1;
 	vector<Point> copy_balls_pos(balls_pos.size());
 	copy(balls_pos.begin(), balls_pos.end(), copy_balls_pos.begin());
 	for(int i = 0; i < balls.solids.size(); i++)
@@ -175,15 +177,14 @@ void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const balls_l
 		stripes_indeces.push_back(distance(copy_balls_pos.begin(), it_stripes));
 	}
 
-	if(balls.black != NO_LOCALIZATION)
-	{
-		vector<Point>::iterator it_black;
-		int x_black = balls.black.bounding_box.x + balls.black.bounding_box.width/2;
-		int y_black = balls.black.bounding_box.y + balls.black.bounding_box.height/2;
-		Point black_ball_pos = Point(x_black, y_black);
-		it_black = find(copy_balls_pos.begin(), copy_balls_pos.end(), black_ball_pos);
-		black_index = distance(copy_balls_pos.begin(), it_black);
-	}
+
+	vector<Point>::iterator it_black;
+	int x_black = balls.black.bounding_box.x + balls.black.bounding_box.width/2;
+	int y_black = balls.black.bounding_box.y + balls.black.bounding_box.height/2;
+	Point black_ball_pos = Point(x_black, y_black);
+	it_black = find(copy_balls_pos.begin(), copy_balls_pos.end(), black_ball_pos);
+	black_index = distance(copy_balls_pos.begin(), it_black);
+
 
 	vector<Point>::iterator it_cue;
 	int x_cue = balls.cue.bounding_box.x + balls.cue.bounding_box.width/2;
@@ -218,14 +219,13 @@ void minimap::draw_initial_minimap(const vector<Point> &balls_pos, const balls_l
 		circle(dst, ball_pos_dst.at(0), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
 	}
 	
-	if(balls.black != NO_LOCALIZATION)
-	{
-		vector<Point2f> black_ball_pos_dst;
-		vector<Point2f> black_ball_pos_src = {balls_pos_2f.at(black_index)};
-		perspectiveTransform(black_ball_pos_src, black_ball_pos_dst, projection_matrix);
-		circle(dst, black_ball_pos_dst.at(0), BALL_RADIUS, BLACK_BALL_COLOR, FILLED);
-		circle(dst, black_ball_pos_dst.at(0), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
-	}
+
+	vector<Point2f> black_ball_pos_dst;
+	vector<Point2f> black_ball_pos_src = {balls_pos_2f.at(black_index)};
+	perspectiveTransform(black_ball_pos_src, black_ball_pos_dst, projection_matrix);
+	circle(dst, black_ball_pos_dst.at(0), BALL_RADIUS, BLACK_BALL_COLOR, FILLED);
+	circle(dst, black_ball_pos_dst.at(0), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
+	
 
 	vector<Point2f> cue_ball_pos_dst;
 	vector<Point2f> cue_ball_pos_src = {balls_pos_2f.at(cue_index)};
@@ -269,13 +269,9 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 
 		solids_balls_pos_minimap.push_back(ball_pos_dst.at(0));
 
-		if(balls_pos_2f.at(solids_indeces.at(i)) != INVALID_POSITION)
-		{
-			// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
-			const float DELTA_MOVEMENT = 2;
-			if(norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT && (is_inside_playing_field(solids_balls_pos_minimap.at(i)) && !is_inside_hole(solids_balls_pos_minimap.at(i))))
-				draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
-		}	
+		// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
+		if(balls_pos_2f.at(solids_indeces.at(i)) != INVALID_POSITION && norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT && is_inside_playing_field(solids_balls_pos_minimap.at(i)))
+			draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
 	}
 
 	for(int i = 0; i < stripes_indeces.size(); i++)
@@ -291,28 +287,25 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 
 		stripes_balls_pos_minimap.push_back(ball_pos_dst.at(0));
 
-		if(balls_pos_2f.at(stripes_indeces.at(i)) != INVALID_POSITION)
+		if(balls_pos_2f.at(stripes_indeces.at(i)) != INVALID_POSITION && norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT && is_inside_playing_field(stripes_balls_pos_minimap.at(i)))
 		{
 			// Drawing trajectories for balls that moved more than DELTA_MOVEMENT
-			if(norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT && (is_inside_playing_field(stripes_balls_pos_minimap.at(i)) && !is_inside_hole(stripes_balls_pos_minimap.at(i))))
-				draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
+			draw_dashed_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
 		}
 	}
 	
-	if(black_index != -1)
+
+	vector<Point2f> black_ball_pos_dst;
+	vector<Point2f> black_ball_pos_src = {balls_pos_2f.at(black_index)};
+	vector<Point2f> old_black_ball_pos_dst;
+	vector<Point2f> old_black_ball_pos_src = {old_balls_pos_2f.at(black_index)};
+	perspectiveTransform(black_ball_pos_src, black_ball_pos_dst, projection_matrix);
+	perspectiveTransform(old_black_ball_pos_src, old_black_ball_pos_dst, projection_matrix);
+	black_ball_pos_minimap = black_ball_pos_dst.at(0);
+	if(balls_pos_2f.at(black_index) != INVALID_POSITION)
 	{
-		vector<Point2f> black_ball_pos_dst;
-		vector<Point2f> black_ball_pos_src = {balls_pos_2f.at(black_index)};
-		vector<Point2f> old_black_ball_pos_dst;
-		vector<Point2f> old_black_ball_pos_src = {old_balls_pos_2f.at(black_index)};
-		perspectiveTransform(black_ball_pos_src, black_ball_pos_dst, projection_matrix);
-		perspectiveTransform(old_black_ball_pos_src, old_black_ball_pos_dst, projection_matrix);
-		black_ball_pos_minimap = black_ball_pos_dst.at(0);
-		if(balls_pos_2f.at(black_index) != INVALID_POSITION)
-		{
-			if(norm(black_ball_pos_dst.at(0) - old_black_ball_pos_dst.at(0)) > DELTA_MOVEMENT && (is_inside_playing_field(black_ball_pos_minimap) && !is_inside_hole(black_ball_pos_minimap)))
-				draw_dashed_line(trajectories, old_black_ball_pos_dst.at(0), black_ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
-		}
+		if(norm(black_ball_pos_dst.at(0) - old_black_ball_pos_dst.at(0)) > DELTA_MOVEMENT && (is_inside_playing_field(black_ball_pos_minimap) && !is_inside_hole(black_ball_pos_minimap)))
+			draw_dashed_line(trajectories, old_black_ball_pos_dst.at(0), black_ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, "dotted", GAP);
 	}
 
 
@@ -333,7 +326,7 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 	// Draw solid balls
 	for(int i = 0; i < solids_indeces.size(); i++)
 	{
-		if(is_inside_playing_field(solids_balls_pos_minimap.at(i)) && !is_inside_hole(solids_balls_pos_minimap.at(i)))
+		if(is_inside_playing_field(solids_balls_pos_minimap.at(i)))
 		{
 			circle(dst, solids_balls_pos_minimap.at(i), BALL_RADIUS, SOLID_BALL_COLOR, FILLED);
 			circle(dst, solids_balls_pos_minimap.at(i), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
@@ -343,7 +336,7 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 	// Draw stripe  balls
 	for(int i = 0; i < stripes_indeces.size(); i++)
 	{
-		if(is_inside_playing_field(stripes_balls_pos_minimap.at(i)) && !is_inside_hole(stripes_balls_pos_minimap.at(i)))
+		if(is_inside_playing_field(stripes_balls_pos_minimap.at(i)))
 		{
 			circle(dst, stripes_balls_pos_minimap.at(i), BALL_RADIUS, STRIPE_BALL_COLOR, FILLED);
 			circle(dst, stripes_balls_pos_minimap.at(i), BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
@@ -351,13 +344,10 @@ void minimap::draw_minimap(const vector<Point> &old_balls_pos, const vector<Poin
 	}
 
 	// Draw black ball
-	if(black_index != -1)
+	if(is_inside_playing_field(black_ball_pos_minimap))
 	{
-		if(is_inside_playing_field(black_ball_pos_minimap) && !is_inside_hole(black_ball_pos_minimap))
-		{
-			circle(dst, black_ball_pos_minimap, BALL_RADIUS, BLACK_BALL_COLOR, FILLED);
-			circle(dst, black_ball_pos_minimap, BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
-		}
+		circle(dst, black_ball_pos_minimap, BALL_RADIUS, BLACK_BALL_COLOR, FILLED);
+		circle(dst, black_ball_pos_minimap, BALL_RADIUS, CONTOUR_COLOR, THICKNESS);
 	}
 
 	// Draw cue ball
