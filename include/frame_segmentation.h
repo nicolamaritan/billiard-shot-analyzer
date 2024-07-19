@@ -4,6 +4,10 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
+/**
+ * @enum label_id
+ * @brief identificators for the different types of balls.
+ */
 enum label_id
 {
     background,

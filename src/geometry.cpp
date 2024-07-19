@@ -1,5 +1,6 @@
-#include <limits>
 #include "geometry.h"
+
+#include <limits>
 
 using namespace std;
 using namespace cv;
