@@ -57,15 +57,18 @@ int main(int argc, char **argv)
         const string SEGMENTATION_BACKGROUND_PRESERVED_FILENAME = "_segmentation_background_preserved"; 
         const string DETECTION_FILENAME = "_detection"; 
 
+        cout << "Generating masks and detections in " << clip_game_directory.string() << endl;
+
         // Compute output images
         get_colored_frame_segmentation(frame, frame_segmentation, false);
-        //get_colored_frame_segmentation(frame, frame_segmentation_background_preserved, true);
-        //get_frame_detection(frame, frame_detection);
+        get_colored_frame_segmentation(frame, frame_segmentation_background_preserved, true);
+        get_frame_detection(frame, frame_detection);
 
         // Save files
         imwrite(clip_game_directory.string() + SEGMENTATION_FILENAME, frame_segmentation);
-        //imwrite(clip_game_directory.string() + SEGMENTATION_BACKGROUND_PRESERVED_FILENAME, frame_segmentation_background_preserved);
-        //imwrite(clip_game_directory.string() + DETECTION_FILENAME, frame_detection);
+        imwrite(clip_game_directory.string() + SEGMENTATION_BACKGROUND_PRESERVED_FILENAME, frame_segmentation_background_preserved);
+        imwrite(clip_game_directory.string() + DETECTION_FILENAME, frame_detection);
+        cout << "Generated masks and detections in " << clip_game_directory.string() << endl;
     }
 
     return 0;

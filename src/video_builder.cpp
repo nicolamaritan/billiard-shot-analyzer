@@ -65,16 +65,17 @@ void video_builder::build_videos(const string &dataset_path)
 
     for (String filename : filenames)
     {
+        fs::path output_path;
+        output_path /= output_directory;
+        output_path /= fs::path(filename).filename();
+        cout << "Generating " << output_path.string() << "." << endl;
+
         clear_input_video_info();
 
         build_output_frames(filename, output_frames);
 
-        fs::path output_path;
-        output_path /= output_directory;
-        output_path /= fs::path(filename).filename();
-
-        cout << "Creating " << output_path.string() << "." << endl;
         build_video_from_output_frames(output_frames, output_path.string());
+        cout << "Generated " << output_path.string() << "." << endl;
     }
 }
 
@@ -106,7 +107,7 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
     input_video_size = Size(static_cast<int>(input_video.get(CAP_PROP_FRAME_WIDTH)),
                             static_cast<int>(input_video.get(CAP_PROP_FRAME_HEIGHT)));
 
-    Mat first_frame, frame;
+    Mat first_frame;
     input_video.read(first_frame);
     playing_field_localizer pl_field_loc;
     pl_field_loc.localize(first_frame);
@@ -136,19 +137,18 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
     minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization(), multi_tracker->getObjects());
     Mat pool_table_map;
 
+    Mat output_frame;
     mini.draw_initial_minimap(pool_table_map);
-    imshow("first frame", first_frame);
-    imshow(filename, pool_table_map);
-    waitKey();
-    return;
+    build_output_frame(first_frame, pool_table_map, output_frame);
+    output_frames.push_back(output_frame);
 
+    Mat frame;
     while (input_video.read(frame))
     {
         multi_tracker->update(frame);
         mini.update(multi_tracker->getObjects());
         mini.draw_minimap(pool_table_map);
 
-        Mat output_frame;
         build_output_frame(frame, pool_table_map, output_frame);
         output_frames.push_back(output_frame);
     }

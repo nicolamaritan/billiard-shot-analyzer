@@ -375,14 +375,6 @@ float balls_localizer::get_white_ratio_in_circle_cue(const Mat &src, const Mat &
     int y = cvRound(circle[1]);
     int radius = cvRound(circle[2]);
 
-    Mat src_hsv;
-    cvtColor(src, src_hsv, COLOR_BGR2HSV);
-    vector<Mat> channels;
-    split(src, channels);
-    imshow("H", channels[0]);
-    imshow("S", channels[1]);
-    imshow("V", channels[2]);
-
     // Create as mask as the intersection of the circle mask and of the ball segmentation mask
     Mat mask = Mat::zeros(src.size(), CV_8U);
     cv::circle(mask, Point(x, y), radius, Scalar(255), FILLED);
@@ -564,9 +556,6 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
     Vec3f white_ball_circle;
     float cue_ball_circle_confidence;
     const float MAX_DIFFERENCE_THRESHOLD = 0.1;
-    cout << "top 2 cues" << endl;
-    cout << circles_white_ratios.at(0).second << endl;
-    cout << circles_white_ratios.at(1).second << endl;
 
     if (circles_white_ratios.at(0).second - circles_white_ratios.at(1).second > MAX_DIFFERENCE_THRESHOLD)
     {
@@ -575,8 +564,12 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
     }
     else
     {
-        cout << "tiebreak" << endl;
-        // Tie break for very bright balls
+        /*
+            Tie break for very bright balls. In general, the white ball contains shadows pixels similar
+            to the board color due to light reflection. For this reason, in general, the hue of the cue
+            ball in the shadowed parts will be near the table color hue. So we pick the ball with hue nearer
+            to the middle hue, that is 128.
+        */
         double difference_0 = distance_from_middle_hue(src, segmentation_mask, circles_white_ratios.at(0).first);
         double difference_1 = distance_from_middle_hue(src, segmentation_mask, circles_white_ratios.at(1).first);
 
@@ -592,12 +585,6 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
         }
     }
 
-    Mat src_clone = src.clone();
-    circle(src_clone, Point(circles_white_ratios.at(0).first[0], circles_white_ratios.at(0).first[1]), circles_white_ratios.at(0).first[2], Scalar(0, 0, 255), 2);
-    circle(src_clone, Point(circles_white_ratios.at(1).first[0], circles_white_ratios.at(1).first[1]), circles_white_ratios.at(1).first[2], Scalar(255, 0, 0), 2);
-    circle(src_clone, Point(white_ball_circle[0], white_ball_circle[1]), white_ball_circle[2], Scalar(255, 255, 255), 4);
-    imshow("", src_clone);
-    waitKey();
     localization.cue.circle = white_ball_circle;
     localization.cue.bounding_box = get_bounding_box(white_ball_circle);
     localization.cue.confidence = cue_ball_circle_confidence;

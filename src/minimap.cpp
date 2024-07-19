@@ -17,7 +17,6 @@ using namespace std;
 minimap::minimap(const playing_field_localization &plf_localization, const balls_localization &blls_localization, const std::vector<cv::Rect2d> &tracker_bboxes)
 	: playing_field{plf_localization}, balls{blls_localization}
 {
-	cout << "cue position" << balls.cue.circle << endl << endl;
 	get_balls_pos(tracker_bboxes, current_balls_pos);
 	load_balls_indeces(current_balls_pos);
 
