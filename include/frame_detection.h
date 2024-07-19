@@ -1,3 +1,4 @@
+// Author: Nicola Maritan 2121717
 #ifndef FRAME_DETECTION_H
 #define FRAME_DETECTION_H
 

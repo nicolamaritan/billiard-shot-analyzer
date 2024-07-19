@@ -1,3 +1,4 @@
+// Author: Nicola Maritan 2121717
 #include "frame_segmentation.h"
 #include "balls_localization.h"
 #include "playing_field_localization.h"
@@ -84,8 +85,8 @@ void color_segmentation(const cv::Mat &src, cv::Mat &dst, const cv::Mat &frame_s
     color_map.at(0) = cv::Vec3b(128, 128, 128); // Gray
     color_map.at(1) = cv::Vec3b(255, 255, 255); // White
     color_map.at(2) = cv::Vec3b(0, 0, 0);       // Black
-    color_map.at(3) = cv::Vec3b(0, 0, 255);     // Red
-    color_map.at(4) = cv::Vec3b(255, 0, 0);     // Blue
+    color_map.at(3) = cv::Vec3b(255, 0, 0);     // Blue
+    color_map.at(4) = cv::Vec3b(0, 0, 255);     // Red
     color_map.at(5) = cv::Vec3b(0, 255, 0);     // Green
 
     // background id is excluded when preserve_color is true

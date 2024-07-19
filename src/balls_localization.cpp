@@ -522,7 +522,7 @@ void balls_localizer::draw_circles(const cv::Mat &src, cv::Mat &dst, std::vector
     }
 }
 
-float distance_from_middle_hue(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
+float balls_localizer::distance_from_middle_hue(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
     Mat mask = Mat::zeros(src.size(), CV_8U);
     cv::circle(mask, Point(cvRound(circle[0]), cvRound(circle[1])), cvRound(circle[2]), Scalar(255), FILLED);
