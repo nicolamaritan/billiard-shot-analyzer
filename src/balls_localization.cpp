@@ -375,6 +375,14 @@ float balls_localizer::get_white_ratio_in_circle_cue(const Mat &src, const Mat &
     int y = cvRound(circle[1]);
     int radius = cvRound(circle[2]);
 
+    Mat src_hsv;
+    cvtColor(src, src_hsv, COLOR_BGR2HSV);
+    vector<Mat> channels;
+    split(src, channels);
+    imshow("H", channels[0]);
+    imshow("S", channels[1]);
+    imshow("V", channels[2]);
+
     // Create as mask as the intersection of the circle mask and of the ball segmentation mask
     Mat mask = Mat::zeros(src.size(), CV_8U);
     cv::circle(mask, Point(x, y), radius, Scalar(255), FILLED);
@@ -386,7 +394,7 @@ float balls_localizer::get_white_ratio_in_circle_cue(const Mat &src, const Mat &
     src.copyTo(masked_hsv, mask);
 
     Mat white_mask;
-    const Vec3b WHITE_HSV_LOWERBOUND = Vec3b(20, 0, 180);
+    const Vec3b WHITE_HSV_LOWERBOUND = Vec3b(20, 0, 140);
     const Vec3b WHITE_HSV_UPPERBOUND = Vec3b(110, 100, 255);
     inRange(masked_hsv, WHITE_HSV_LOWERBOUND, WHITE_HSV_UPPERBOUND, white_mask);
 
@@ -522,6 +530,21 @@ void balls_localizer::draw_circles(const cv::Mat &src, cv::Mat &dst, std::vector
     }
 }
 
+float distance_from_middle_hue(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
+{
+    Mat mask = Mat::zeros(src.size(), CV_8U);
+    cv::circle(mask, Point(cvRound(circle[0]), cvRound(circle[1])), cvRound(circle[2]), Scalar(255), FILLED);
+    Mat balls_segmentation_mask;
+    bitwise_not(segmentation_mask, balls_segmentation_mask);
+    bitwise_and(mask, balls_segmentation_mask, mask);
+
+    vector<Mat> channels;
+    split(src, channels);
+
+    const float MIDDLE_HUE = 128;
+    return abs(mean(channels[0], mask)[0] - MIDDLE_HUE);
+}
+
 void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
 {
     Mat src_hsv;
@@ -541,6 +564,10 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
     Vec3f white_ball_circle;
     float cue_ball_circle_confidence;
     const float MAX_DIFFERENCE_THRESHOLD = 0.1;
+    cout << "top 2 cues" << endl;
+    cout << circles_white_ratios.at(0).second << endl;
+    cout << circles_white_ratios.at(1).second << endl;
+
     if (circles_white_ratios.at(0).second - circles_white_ratios.at(1).second > MAX_DIFFERENCE_THRESHOLD)
     {
         white_ball_circle = circles_white_ratios.at(0).first;
@@ -548,10 +575,12 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
     }
     else
     {
+        cout << "tiebreak" << endl;
         // Tie break for very bright balls
-        double difference_0 = mean_squared_bgr_intra_pixel_difference(src, segmentation_mask, circles_white_ratios.at(0).first);
-        double difference_1 = mean_squared_bgr_intra_pixel_difference(src, segmentation_mask, circles_white_ratios.at(1).first);
-        if (difference_0 < difference_1)
+        double difference_0 = distance_from_middle_hue(src, segmentation_mask, circles_white_ratios.at(0).first);
+        double difference_1 = distance_from_middle_hue(src, segmentation_mask, circles_white_ratios.at(1).first);
+
+        if (difference_0 > difference_1)
         {
             white_ball_circle = circles_white_ratios.at(0).first;
             cue_ball_circle_confidence = circles_white_ratios.at(0).second;
@@ -563,6 +592,12 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
         }
     }
 
+    Mat src_clone = src.clone();
+    circle(src_clone, Point(circles_white_ratios.at(0).first[0], circles_white_ratios.at(0).first[1]), circles_white_ratios.at(0).first[2], Scalar(0, 0, 255), 2);
+    circle(src_clone, Point(circles_white_ratios.at(1).first[0], circles_white_ratios.at(1).first[1]), circles_white_ratios.at(1).first[2], Scalar(255, 0, 0), 2);
+    circle(src_clone, Point(white_ball_circle[0], white_ball_circle[1]), white_ball_circle[2], Scalar(255, 255, 255), 4);
+    imshow("", src_clone);
+    waitKey();
     localization.cue.circle = white_ball_circle;
     localization.cue.bounding_box = get_bounding_box(white_ball_circle);
     localization.cue.confidence = cue_ball_circle_confidence;

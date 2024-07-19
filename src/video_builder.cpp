@@ -137,6 +137,10 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
     Mat pool_table_map;
 
     mini.draw_initial_minimap(pool_table_map);
+    imshow("first frame", first_frame);
+    imshow(filename, pool_table_map);
+    waitKey();
+    return;
 
     while (input_video.read(frame))
     {
