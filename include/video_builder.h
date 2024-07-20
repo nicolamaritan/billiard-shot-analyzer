@@ -2,8 +2,10 @@
 #ifndef VIDEO_BUILDER_H
 #define VIDEO_BUILDER_H
 
-#include <string>
 #include <opencv2/core.hpp>
+
+#include <string>
+#include <filesystem>
 
 class video_builder
 {
@@ -16,13 +18,6 @@ public:
      */
     void build_videos(const std::string &dataset_path);
 
-    /**
-     * @brief Processes an input video file of a game and produces an output video with the minimap, saved as file.
-     *
-     * @param filename The name of the input video file.
-     */
-    void build_video(const std::string &filename);
-
 private:
     /**
      * @brief Builds output frames from an input video file.
@@ -30,7 +25,7 @@ private:
      * @param filename The name of the input video file.
      * @param output_frames A vector to store the output frames.
      */
-    void build_output_frames(const std::string &video_filename, std::vector<cv::Mat> &output_frames);
+    void build_output_frames(const std::string &video_filename, std::vector<cv::Mat> &output_frames, std::vector<cv::Mat> &bboxes_output_frames);
 
     /**
      * @brief Combines a video frame and a minimap into a single output frame.
@@ -64,10 +59,17 @@ private:
      */
     cv::Rect rescale_bounding_box(const cv::Rect &bbox, float scale, int max_size);
 
-    std::vector<cv::Mat> output_frames; // Vector to store output frames
-    double input_video_fps;             // Frame rate of the input video
-    cv::Size input_video_size;          // Size of the input video frames
-    int input_video_codec;              // Codec used for the input video
+    std::vector<cv::Mat> output_frames;        // Vector to store output frames
+    std::vector<cv::Mat> bboxes_output_frames; // Vector to store output frames for bboxes video
+    double input_video_fps;                    // Frame rate of the input video
+    cv::Size input_video_size;                 // Size of the input video frames
+    int input_video_codec;                     // Codec used for the input video
+
+    std::filesystem::path output_directory = std::filesystem::path("output");
+    std::filesystem::path videos_directory = std::filesystem::path("videos");
+    std::filesystem::path last_frames_minimap_directory = std::filesystem::path("last_frame_minimaps");
+    std::filesystem::path minimap_directory = std::filesystem::path("minimap");
+    std::filesystem::path bboxes_directory = std::filesystem::path("bboxes");
 };
 
 #endif
