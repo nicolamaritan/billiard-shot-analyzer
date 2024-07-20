@@ -39,6 +39,11 @@ add_library(minimap
     src/minimap.cpp
 )
 
+add_library(bounding_boxes_drawer
+    include/bounding_boxes_drawer.h
+    src/bounding_boxes_drawer.cpp
+)
+
 add_library(video_builder
     include/video_builder.h
     src/video_builder.cpp
@@ -103,6 +108,7 @@ target_link_libraries(generate_videos
     geometry
     segmentation
     minimap
+    bounding_boxes_drawer
 )
 
 target_link_libraries(generate_masks_and_detection
@@ -116,5 +122,6 @@ target_link_libraries(generate_masks_and_detection
     geometry
     segmentation
     minimap
+    bounding_boxes_drawer
     file_loading
 )
