@@ -45,6 +45,7 @@ void evaluate(const string& dataset_path)
         predicted_balls_localizations.push_back(localization);
     }
 
+    // Load ground truth masks
     get_mask_files(dataset_path, filenames);
     for (auto filename : filenames)
     {
@@ -52,6 +53,7 @@ void evaluate(const string& dataset_path)
         ground_truth_table_masks.push_back(mask);
     }
 
+    // Load ground truth bounding boxes
     get_bounding_boxes_files(dataset_path, filenames);
     for (auto filename : filenames)
     {
@@ -72,6 +74,7 @@ void evaluate(const string& dataset_path)
         performance_file << endl;
     }
 
-    performance_file << "Dataset mAP: " << evaluate_balls_localization_dataset(predicted_balls_localizations, ground_truth_balls_localizations);
+    performance_file << "Dataset mAP: " << evaluate_balls_localization_dataset(predicted_balls_localizations, ground_truth_balls_localizations) << endl;
+    performance_file << "Dataset mIoU: " << evaluate_balls_and_playing_field_segmentation_dataset(predicted_table_masks, ground_truth_table_masks) << endl;
     performance_file.close();
 }

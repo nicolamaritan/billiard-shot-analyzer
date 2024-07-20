@@ -8,7 +8,7 @@ using namespace cv;
 using namespace std;
 
 /**
- * @brief Calculate the Intersection over Union (IoU) for a specific class between two masks.
+ * @brief Calculate the Intersection over Union for a specific class between two masks.
  *
  * @param predicted_mask The predicted mask.
  * @param ground_truth_mask The ground truth mask.
@@ -17,7 +17,15 @@ using namespace std;
  */
 float get_class_iou(const cv::Mat &predicted_mask, const cv::Mat &ground_truth_mask, label_id class_id);
 
-
+/**
+ * @brief Calculate the Intersection over Union for a specific class given a set of masks.
+ *
+ * @param predicted_masks Vector of predicted masks.
+ * @param ground_truth_masks Vector of ground truth masks.
+ * @param class_id The class ID for which to calculate the IoU.
+ * @return The IoU value for the specified class.
+ */
+float get_class_iou(const std::vector<Mat> &predicted_masks, const std::vector<Mat> &ground_truth_masks, label_id class_id);
 
 /**
  * @brief Get the match type and confidence for a predicted ball localization against the ground truth.
@@ -29,8 +37,6 @@ float get_class_iou(const cv::Mat &predicted_mask, const cv::Mat &ground_truth_m
  */
 match get_match(const ball_localization &predicted, label_id predicted_label, const balls_localization ground_truth);
 
-
-
 /**
  * @brief Calculate the Intersection over Union (IoU) between two rectangles.
  *
@@ -40,17 +46,13 @@ match get_match(const ball_localization &predicted, label_id predicted_label, co
  */
 float get_iou(const Rect &rect_1, const Rect &rect_2);
 
-
-
 /**
  * @brief Compute the average precision from a set of matches.
  *
  * @param matches A vector of match results.
  * @return The average precision value.
  */
-float compute_average_precision(std::vector<match> &matches);
-
-
+float compute_average_precision(std::vector<match> &matches, int total_ground_truths);
 
 float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask, label_id class_id)
 {
@@ -64,6 +66,7 @@ float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask,
     bitwise_or(found_class_mask, ground_truth_class_mask, union_class_mask);
     bitwise_and(found_class_mask, ground_truth_class_mask, intersection_class_mask);
 
+    // If there is no mask in the ground truth and we correctly detect no mask, iou is 1
     float union_area = static_cast<float>(countNonZero(union_class_mask));
     if (union_area == 0)
         return 1;
@@ -71,7 +74,15 @@ float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask,
     return intersection_area / union_area;
 }
 
+float get_class_iou(const std::vector<Mat> &predicted_masks, const std::vector<Mat> &ground_truth_masks, label_id class_id)
+{
+    // Compute IoU on the dataset for a given class
+    float sum_of_class_ious = 0;
+    for (int i = 0; i < predicted_masks.size(); i++)
+        sum_of_class_ious += get_class_iou(predicted_masks.at(i), ground_truth_masks.at(i), class_id);
 
+    return sum_of_class_ious / predicted_masks.size();
+}
 
 float get_iou(const Rect &rect_1, const Rect &rect_2)
 {
@@ -80,14 +91,13 @@ float get_iou(const Rect &rect_1, const Rect &rect_2)
     return static_cast<float>(intersection_rect.area()) / static_cast<float>(union_rect.area());
 }
 
-
-
 match get_match(const ball_localization &predicted, label_id predicted_label, const balls_localization ground_truth)
 {
     float current_iou = 0;
-
     float max_iou = get_iou(predicted.bounding_box, ground_truth.cue.bounding_box);
     label_id max_iou_id = label_id::cue;
+
+    // Check which is the ground truth bounding with greatest iou with the predicted bounding box
 
     current_iou = get_iou(predicted.bounding_box, ground_truth.black.bounding_box);
     if (current_iou > max_iou)
@@ -116,6 +126,7 @@ match get_match(const ball_localization &predicted, label_id predicted_label, co
         }
     }
 
+    // Check if TP or FP
     const float IOU_THRESHOLD = 0.5;
     match returned_match;
     returned_match.type = max_iou > IOU_THRESHOLD && predicted_label == max_iou_id ? match_type::true_positive : match_type::false_positive;
@@ -124,9 +135,7 @@ match get_match(const ball_localization &predicted, label_id predicted_label, co
     return returned_match;
 }
 
-
-
-float compute_average_precision(std::vector<match> &matches)
+float compute_average_precision(std::vector<match> &matches, int total_ground_truths)
 {
     std::sort(matches.begin(), matches.end(), [](const match &a, const match &b)
               { return a.confidence > b.confidence; });
@@ -143,7 +152,7 @@ float compute_average_precision(std::vector<match> &matches)
         else if (m.type == false_positive)
             fp++;
         float precision = static_cast<float>(tp) / (tp + fp);
-        float recall = static_cast<float>(tp) / matches.size(); // Total positives assumed to be matches.size()
+        float recall = static_cast<float>(tp) / total_ground_truths;
         precisions.push_back(precision);
         recalls.push_back(recall);
     }
@@ -173,8 +182,6 @@ float compute_average_precision(std::vector<match> &matches)
 
     return average_precision;
 }
-
-
 
 float evaluate_balls_localization_dataset(const std::vector<balls_localization> &predicted_localizations, const std::vector<balls_localization> &ground_truth_localizations)
 {
@@ -206,10 +213,8 @@ float evaluate_balls_localization_dataset(const std::vector<balls_localization> 
         }
     }
 
-    float ap_cue = compute_average_precision(cue_matches);
-    float ap_black = compute_average_precision(black_matches);
-    float ap_solid = compute_average_precision(solids_matches);
-    float ap_stripe = compute_average_precision(stripes_matches);
+    float ap_cue = compute_average_precision(cue_matches, ground_truth_localizations.size());   // 1 cue ball in each sample
+    float ap_black = compute_average_precision(black_matches, ground_truth_localizations.size());   // 1 black ball in each sample
 
     int predicted_number_of_stripes = 0;
     int predicted_number_of_solids = 0;
@@ -218,7 +223,7 @@ float evaluate_balls_localization_dataset(const std::vector<balls_localization> 
         predicted_number_of_solids += loc.solids.size();
         predicted_number_of_stripes += loc.stripes.size();
     }
-    
+
     int ground_truth_number_of_solids = 0;
     int ground_truth_number_of_stripes = 0;
     for (balls_localization loc : predicted_localizations)
@@ -228,37 +233,42 @@ float evaluate_balls_localization_dataset(const std::vector<balls_localization> 
     }
 
     // Handle cases in which it does not detect any item of a class and there are indeed no items of the class
-    float solids_ap = 0;
+    float ap_solid = 0;
     if (predicted_number_of_solids == 0 && ground_truth_number_of_solids == 0)
-        solids_ap = 1;
+        ap_solid = 1;
     else
-        solids_ap = compute_average_precision(solids_matches);
+        ap_solid = compute_average_precision(solids_matches, ground_truth_number_of_solids);
 
-    float stripes_ap = 0;
+    float ap_stripe = 0;
     if (predicted_number_of_stripes == 0 && ground_truth_number_of_stripes == 0)
-        stripes_ap = 1;
+        ap_stripe = 1;
     else
-        stripes_ap = compute_average_precision(stripes_matches);
+        ap_stripe = compute_average_precision(stripes_matches, ground_truth_number_of_stripes);
 
     return (ap_cue + ap_black + ap_solid + ap_stripe) / 4;
 }
 
-
-
 float evaluate_balls_and_playing_field_segmentation_dataset(const std::vector<Mat> &predicted_masks, const std::vector<Mat> &ground_truth_masks)
 {
-    return 0;
+    float iou_background = get_class_iou(predicted_masks, ground_truth_masks, label_id::background);
+    float iou_cue = get_class_iou(predicted_masks, ground_truth_masks, label_id::cue);
+    float iou_black = get_class_iou(predicted_masks, ground_truth_masks, label_id::black);
+    float iou_solids = get_class_iou(predicted_masks, ground_truth_masks, label_id::solids);
+    float iou_stripes = get_class_iou(predicted_masks, ground_truth_masks, label_id::stripes);
+    float iou_playing_field = get_class_iou(predicted_masks, ground_truth_masks, label_id::playing_field);
+    float mean_iou = (iou_background + iou_cue + iou_black + iou_solids + iou_stripes + iou_playing_field) / 6;
+    return mean_iou;
 }
-
-
 
 float evaluate_balls_localization(const balls_localization &predicted, const balls_localization &ground_truth)
 {
     match cue_match = get_match(predicted.cue, label_id::cue, ground_truth);
+    vector<match> cue_matches = {cue_match};
     // Compute precision and recall as follows since we are gauranteed to have one prediction and one ground truth for the cue
     float cue_tps = cue_match.type == match_type::true_positive ? 1 : 0;
 
     match black_match = get_match(predicted.black, label_id::black, ground_truth);
+    vector<match> black_matches = {black_match};
     // As above for cue ball
     float black_tps = cue_match.type == match_type::true_positive ? 1 : 0;
 
@@ -280,33 +290,26 @@ float evaluate_balls_localization(const balls_localization &predicted, const bal
         stripes_tps += cue_match.type == match_type::true_positive ? 1 : 0;
     }
 
-    /*cout << "cue tps: " << cue_tps << endl;
-    cout << "black tps: " << black_tps << endl;
-    cout << "solid tps: " << solids_tps << endl;
-    cout << "stripe tps: " << stripes_tps << endl;
-    cout << "--------------------------" << endl;
-    */
-    float cue_ap = cue_tps;
-    float black_ap = black_tps;
-
+    float cue_ap = compute_average_precision(cue_matches, 1);
+    float black_ap = compute_average_precision(black_matches, 1);
+        
     // Handle cases in which it does not detect any item of a class and there are indeed no items of the class
     float solids_ap = 0;
     if (predicted.solids.size() == 0 && ground_truth.solids.size() == 0)
         solids_ap = 1;
     else
-        solids_ap = compute_average_precision(solids_matches);
+        solids_ap = compute_average_precision(solids_matches, ground_truth.solids.size());
 
     float stripes_ap = 0;
     if (predicted.stripes.size() == 0 && ground_truth.stripes.size() == 0)
         stripes_ap = 1;
     else
-        stripes_ap = compute_average_precision(stripes_matches);
+        stripes_ap = compute_average_precision(stripes_matches, ground_truth.stripes.size());
 
     float map = (cue_ap + black_ap + solids_ap + stripes_ap) / 4;
 
     return map;
 }
-
 
 float evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask)
 {
@@ -318,17 +321,8 @@ float evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, c
     float iou_playing_field = get_class_iou(found_mask, ground_truth_mask, label_id::playing_field);
     float mean_iou = (iou_background + iou_cue + iou_black + iou_solids + iou_stripes + iou_playing_field) / 6;
 
-    /*cout << "background iou: " << iou_background << endl;
-    cout << "cue iou: " << iou_cue << endl;
-    cout << "black iou: " << iou_black << endl;
-    cout << "solids iou: " << iou_solids << endl;
-    cout << "stripes iou: " << iou_stripes << endl;
-    cout << "playing iou: " << iou_playing_field << endl;
-    cout << "mean iou: " << (iou_background + iou_cue + iou_black + iou_solids + iou_stripes + iou_playing_field) / 6 << endl;*/
     return mean_iou;
 }
-
-
 
 void get_balls_localization(const Mat &src, balls_localization &localization)
 {
@@ -341,14 +335,12 @@ void get_balls_localization(const Mat &src, balls_localization &localization)
     localization = blls_localizer.get_localization();
 }
 
-
-
 void load_ground_truth_localization(const string &filename, balls_localization &ground_truth_localization)
 {
     ifstream file(filename);
     if (!file.is_open())
     {
-        cerr << "Could not open the file!" << endl;
+        cerr << "Could not open the file." << endl;
         return;
     }
 
