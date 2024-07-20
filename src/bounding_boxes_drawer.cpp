@@ -1,4 +1,4 @@
-// Author: Eddie Carraro
+// Author: Eddie Carraro 2121248
 
 #include "bounding_boxes_drawer.h"
 

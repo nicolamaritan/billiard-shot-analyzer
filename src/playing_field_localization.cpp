@@ -1,3 +1,5 @@
+// Author: Francesco Boscolo Meneguolo 2119969
+
 #include "playing_field_localization.h"
 #include "geometry.h"
 #include "segmentation.h"

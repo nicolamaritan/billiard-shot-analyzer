@@ -1,3 +1,5 @@
+// Author: Nicola Maritan 2121717
+
 #include "balls_localization.h"
 #include "frame_segmentation.h"
 #include "frame_detection.h"

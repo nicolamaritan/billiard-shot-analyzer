@@ -1,4 +1,5 @@
 // Author: Francesco Boscolo Meneguolo 2119969
+
 #include "minimap.h"
 #include <filesystem>
 #include <iostream>

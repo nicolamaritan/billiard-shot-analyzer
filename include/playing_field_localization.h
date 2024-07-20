@@ -1,4 +1,4 @@
-// Author: Nicola Maritan 2121717
+// Author: Francesco Boscolo Meneguolo 2119969
 
 #ifndef PLAYING_FIELD_LOCALIZATION_H
 #define PLAYING_FIELD_LOCALIZATION_H

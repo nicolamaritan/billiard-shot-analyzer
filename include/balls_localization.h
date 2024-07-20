@@ -1,3 +1,5 @@
+// Author: Nicola Maritan 2121717
+
 #ifndef BALLS_LOCALIZATION_H
 #define BALLS_LOCALIZATION_H
 
@@ -45,7 +47,7 @@ struct balls_localization
 typedef struct balls_localization balls_localization;
 
 /**
- * @brief Class for localizing balls on a playing field using OpenCV.
+ * @brief Class for localizing balls on a playing field.
  */
 class balls_localizer
 {

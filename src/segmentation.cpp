@@ -1,3 +1,5 @@
+// Author: Nicola Maritan 2121717
+
 #include "segmentation.h"
 
 #include <queue>

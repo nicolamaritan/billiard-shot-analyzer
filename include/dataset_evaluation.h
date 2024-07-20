@@ -1,6 +1,7 @@
-// Author: Eddie Carraro
-#ifndef EVALUATE_DATASET_H
-#define EVALUATE_DATASET_H
+// Author: Eddie Carraro 2121248
+
+#ifndef DATASET_EVALUATION_H
+#define DATASET_EVALUATION_H
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
