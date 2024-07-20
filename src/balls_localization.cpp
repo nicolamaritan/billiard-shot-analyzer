@@ -534,7 +534,7 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
         /*
             Tie break for very bright balls. In general, the white ball contains shadows pixels similar
             to the board color due to light reflection. For this reason, in general, the hue of the cue
-            ball in the shadowed parts will be near the table color hue. So we pick the ball with hue nearer
+            ball in the shadowed parts will be near the table color hue. So we pick the ball with mean hue nearer
             to the middle hue, that is 128.
         */
         double difference_0 = distance_from_middle_hue(src, segmentation_mask, circles_white_ratios.at(0).first);
