@@ -18,7 +18,6 @@ using namespace cv;
 using namespace std;
 namespace fs = std::filesystem;
 
-
 void video_builder::build_videos(const string &dataset_path)
 {
     vector<String> filenames;
@@ -46,8 +45,6 @@ void video_builder::build_videos(const string &dataset_path)
     }
 }
 
-
-
 void video_builder::build_video(const string &filename)
 {
     vector<String> filenames;
@@ -67,8 +64,6 @@ void video_builder::build_video(const string &filename)
     cout << "Creating " << output_path.string() << "." << endl;
     build_video_from_output_frames(output_frames, output_path.string());
 }
-
-
 
 void video_builder::build_output_frames(const string &filename, vector<Mat> &output_frames)
 {
@@ -107,7 +102,7 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
         const int MAX_BOUNDING_BOX_SIZE = 30;
         multi_tracker->add(legacy::TrackerCSRT::create(), first_frame, rescale_bounding_box(bbox, BOUNDING_BOX_RESCALE, MAX_BOUNDING_BOX_SIZE));
     }
-    
+
     minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization(), multi_tracker->getObjects());
     Mat pool_table_map;
 
@@ -126,14 +121,22 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
         build_output_frame(frame, pool_table_map, output_frame);
         output_frames.push_back(output_frame);
     }
+
+    // Write last minimap frame to disk
+    string filename_no_path = fs::path(filename).filename();
+    fs::path output_directory("output");
+    fs::path videos_directory("videos");
+    const string PNG_EXTENSION = ".png";
+    fs::path filename_png("last_frame_minimap_" + filename_no_path.substr(0, filename_no_path.find_first_of(".")) + PNG_EXTENSION);
+    fs::path last_frame_path = output_directory / videos_directory / filename_png;
+    imwrite(last_frame_path.string(), pool_table_map);
 }
-
-
 
 void video_builder::build_output_frame(const Mat &frame, const Mat &minimap, Mat &dst)
 {
     dst = frame.clone();
 
+    // Resize to draw on bottom left part of the frame
     const float RESIZE_SCALE = 0.333;
     Mat resized_minimap;
     resize(minimap, resized_minimap, Size(), RESIZE_SCALE, RESIZE_SCALE);
@@ -152,8 +155,6 @@ void video_builder::build_output_frame(const Mat &frame, const Mat &minimap, Mat
     resized_minimap.copyTo(dst(Rect(x_offset, y_offset, resized_minimap.cols, resized_minimap.rows)));
 }
 
-
-
 void video_builder::build_video_from_output_frames(const vector<Mat> &output_frames, const string &output_filename)
 {
     VideoWriter output_video;
@@ -169,16 +170,12 @@ void video_builder::build_video_from_output_frames(const vector<Mat> &output_fra
     }
 }
 
-
-
 void video_builder::clear_input_video_info()
 {
     output_frames.clear();
     input_video_fps = -1;
     input_video_size = Size(-1, -1);
 }
-
-
 
 Rect video_builder::rescale_bounding_box(const Rect &bbox, float scale, int max_size)
 {

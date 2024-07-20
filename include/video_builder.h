@@ -64,17 +64,10 @@ private:
      */
     cv::Rect rescale_bounding_box(const cv::Rect &bbox, float scale, int max_size);
 
-    // Vector to store output frames
-    std::vector<cv::Mat> output_frames;
-
-    // Frame rate of the input video
-    double input_video_fps;
-
-    // Size of the input video frames
-    cv::Size input_video_size;
-
-    // Codec used for the input video
-    int input_video_codec;
+    std::vector<cv::Mat> output_frames; // Vector to store output frames
+    double input_video_fps;             // Frame rate of the input video
+    cv::Size input_video_size;          // Size of the input video frames
+    int input_video_codec;              // Codec used for the input video
 };
 
 #endif
