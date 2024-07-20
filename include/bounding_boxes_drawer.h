@@ -1,3 +1,5 @@
+// Author: Eddie Carraro
+
 #ifndef BOUNDING_BOXES_DRAWER
 #define BOUNDING_BOXES_DRAWER
 
