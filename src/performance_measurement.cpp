@@ -52,7 +52,7 @@ float get_iou(const Rect &rect_1, const Rect &rect_2);
  * @param matches A vector of match results.
  * @return The average precision value.
  */
-float compute_average_precision(std::vector<match> &matches);
+float compute_average_precision(std::vector<match> &matches, int total_ground_truths);
 
 float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask, label_id class_id)
 {
@@ -66,6 +66,7 @@ float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask,
     bitwise_or(found_class_mask, ground_truth_class_mask, union_class_mask);
     bitwise_and(found_class_mask, ground_truth_class_mask, intersection_class_mask);
 
+    // If there is no mask in the ground truth and we correctly detect no mask, iou is 1
     float union_area = static_cast<float>(countNonZero(union_class_mask));
     if (union_area == 0)
         return 1;
@@ -75,6 +76,7 @@ float get_class_iou(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask,
 
 float get_class_iou(const std::vector<Mat> &predicted_masks, const std::vector<Mat> &ground_truth_masks, label_id class_id)
 {
+    // Compute IoU on the dataset for a given class
     float sum_of_class_ious = 0;
     for (int i = 0; i < predicted_masks.size(); i++)
         sum_of_class_ious += get_class_iou(predicted_masks.at(i), ground_truth_masks.at(i), class_id);
@@ -92,9 +94,10 @@ float get_iou(const Rect &rect_1, const Rect &rect_2)
 match get_match(const ball_localization &predicted, label_id predicted_label, const balls_localization ground_truth)
 {
     float current_iou = 0;
-
     float max_iou = get_iou(predicted.bounding_box, ground_truth.cue.bounding_box);
     label_id max_iou_id = label_id::cue;
+
+    // Check which is the ground truth bounding with greatest iou with the predicted bounding box
 
     current_iou = get_iou(predicted.bounding_box, ground_truth.black.bounding_box);
     if (current_iou > max_iou)
@@ -123,6 +126,7 @@ match get_match(const ball_localization &predicted, label_id predicted_label, co
         }
     }
 
+    // Check if TP or FP
     const float IOU_THRESHOLD = 0.5;
     match returned_match;
     returned_match.type = max_iou > IOU_THRESHOLD && predicted_label == max_iou_id ? match_type::true_positive : match_type::false_positive;
@@ -131,7 +135,7 @@ match get_match(const ball_localization &predicted, label_id predicted_label, co
     return returned_match;
 }
 
-float compute_average_precision(std::vector<match> &matches)
+float compute_average_precision(std::vector<match> &matches, int total_ground_truths)
 {
     std::sort(matches.begin(), matches.end(), [](const match &a, const match &b)
               { return a.confidence > b.confidence; });
@@ -148,7 +152,7 @@ float compute_average_precision(std::vector<match> &matches)
         else if (m.type == false_positive)
             fp++;
         float precision = static_cast<float>(tp) / (tp + fp);
-        float recall = static_cast<float>(tp) / matches.size(); // Total positives assumed to be matches.size()
+        float recall = static_cast<float>(tp) / total_ground_truths;
         precisions.push_back(precision);
         recalls.push_back(recall);
     }
@@ -209,10 +213,8 @@ float evaluate_balls_localization_dataset(const std::vector<balls_localization> 
         }
     }
 
-    float ap_cue = compute_average_precision(cue_matches);
-    float ap_black = compute_average_precision(black_matches);
-    float ap_solid = compute_average_precision(solids_matches);
-    float ap_stripe = compute_average_precision(stripes_matches);
+    float ap_cue = compute_average_precision(cue_matches, ground_truth_localizations.size());   // 1 cue ball in each sample
+    float ap_black = compute_average_precision(black_matches, ground_truth_localizations.size());   // 1 black ball in each sample
 
     int predicted_number_of_stripes = 0;
     int predicted_number_of_solids = 0;
@@ -231,17 +233,17 @@ float evaluate_balls_localization_dataset(const std::vector<balls_localization> 
     }
 
     // Handle cases in which it does not detect any item of a class and there are indeed no items of the class
-    float solids_ap = 0;
+    float ap_solid = 0;
     if (predicted_number_of_solids == 0 && ground_truth_number_of_solids == 0)
-        solids_ap = 1;
+        ap_solid = 1;
     else
-        solids_ap = compute_average_precision(solids_matches);
+        ap_solid = compute_average_precision(solids_matches, ground_truth_number_of_solids);
 
-    float stripes_ap = 0;
+    float ap_stripe = 0;
     if (predicted_number_of_stripes == 0 && ground_truth_number_of_stripes == 0)
-        stripes_ap = 1;
+        ap_stripe = 1;
     else
-        stripes_ap = compute_average_precision(stripes_matches);
+        ap_stripe = compute_average_precision(stripes_matches, ground_truth_number_of_stripes);
 
     return (ap_cue + ap_black + ap_solid + ap_stripe) / 4;
 }
@@ -261,10 +263,12 @@ float evaluate_balls_and_playing_field_segmentation_dataset(const std::vector<Ma
 float evaluate_balls_localization(const balls_localization &predicted, const balls_localization &ground_truth)
 {
     match cue_match = get_match(predicted.cue, label_id::cue, ground_truth);
+    vector<match> cue_matches = {cue_match};
     // Compute precision and recall as follows since we are gauranteed to have one prediction and one ground truth for the cue
     float cue_tps = cue_match.type == match_type::true_positive ? 1 : 0;
 
     match black_match = get_match(predicted.black, label_id::black, ground_truth);
+    vector<match> black_matches = {black_match};
     // As above for cue ball
     float black_tps = cue_match.type == match_type::true_positive ? 1 : 0;
 
@@ -286,21 +290,21 @@ float evaluate_balls_localization(const balls_localization &predicted, const bal
         stripes_tps += cue_match.type == match_type::true_positive ? 1 : 0;
     }
 
-    float cue_ap = cue_tps;
-    float black_ap = black_tps;
-
+    float cue_ap = compute_average_precision(cue_matches, 1);
+    float black_ap = compute_average_precision(black_matches, 1);
+        
     // Handle cases in which it does not detect any item of a class and there are indeed no items of the class
     float solids_ap = 0;
     if (predicted.solids.size() == 0 && ground_truth.solids.size() == 0)
         solids_ap = 1;
     else
-        solids_ap = compute_average_precision(solids_matches);
+        solids_ap = compute_average_precision(solids_matches, ground_truth.solids.size());
 
     float stripes_ap = 0;
     if (predicted.stripes.size() == 0 && ground_truth.stripes.size() == 0)
         stripes_ap = 1;
     else
-        stripes_ap = compute_average_precision(stripes_matches);
+        stripes_ap = compute_average_precision(stripes_matches, ground_truth.stripes.size());
 
     float map = (cue_ap + black_ap + solids_ap + stripes_ap) / 4;
 
