@@ -1,6 +1,7 @@
 // Author: Francesco Boscolo Meneguolo 2119969
 #include "minimap.h"
 #include <filesystem>
+#include <iostream>
 
 using namespace cv;
 using namespace std;
@@ -103,7 +104,7 @@ void minimap::draw_minimap(Mat &dst)
 		solids_balls_pos_minimap.push_back(ball_pos_dst.at(0)); // Solid balls positions in the minimap.
 
 		// Drawing trajectories for balls that moved more than DELTA_MOVEMENT.
-		if (current_balls_pos_2f.at(index) != INVALID_POSITION && norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT && is_inside_playing_field(solids_balls_pos_minimap.at(i)))
+		if(current_balls_pos_2f.at(index) != INVALID_POSITION && norm(ball_pos_dst.at(0) - old_ball_pos_dst.at(0)) > DELTA_MOVEMENT && is_inside_playing_field(solids_balls_pos_minimap.at(i)))
 			draw_dotted_line(trajectories, old_ball_pos_dst.at(0), ball_pos_dst.at(0), CONTOUR_COLOR, THICKNESS, GAP);
 	}
 
@@ -332,10 +333,8 @@ void minimap::sort_corners_for_minimap(const vector<Point> &original_corners, ve
 	}
 
 	// Sorted corners with criterions specified above.
-	for (int i = 0; i < sorted_corners.size(); i++)
-	{
+	for (int i = 0; i < original_corners.size(); i++)
 		sorted_corners.push_back(original_corners.at((first_pos_index + i) % original_corners.size()));
-	}
 }
 
 void minimap::draw_dotted_line(Mat &img, Point pt1, Point pt2, Scalar color, int thickness, int gap)

@@ -107,7 +107,7 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
         const int MAX_BOUNDING_BOX_SIZE = 30;
         multi_tracker->add(legacy::TrackerCSRT::create(), first_frame, rescale_bounding_box(bbox, BOUNDING_BOX_RESCALE, MAX_BOUNDING_BOX_SIZE));
     }
-
+    
     minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization(), multi_tracker->getObjects());
     Mat pool_table_map;
 
