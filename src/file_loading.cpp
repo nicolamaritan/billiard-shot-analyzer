@@ -1,3 +1,5 @@
+// Author: Nicola Maritan 2121717
+
 #include "file_loading.h"
 
 #include <opencv2/imgproc.hpp>

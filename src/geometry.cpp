@@ -1,3 +1,5 @@
+// Author: Francesco Boscolo Meneguolo 2119969
+
 #include "geometry.h"
 
 #include <limits>
@@ -44,7 +46,7 @@ void get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Po
     }
 }
 
-bool intersection(pair<Point, Point> pts_line_1, pair<Point, Point> pts_line_2, Point &intersection_pt, int rows, int cols)
+bool intersection(const pair<Point, Point> &pts_line_1, const pair<Point, Point> &pts_line_2, Point &intersection_pt, int rows, int cols)
 {
     // pts_line_1 -> {(x1,y1), (x2,y2)}
     // pts_line_2 -> {(x3,y3), (x4,y4)}
@@ -60,10 +62,16 @@ bool intersection(pair<Point, Point> pts_line_1, pair<Point, Point> pts_line_2, 
 
     // t is a real number in the formula computed as follows
     double t = (difference_13.x * difference_34.y - difference_13.y * difference_34.x) / cross_product;
-    
+
     intersection_pt = pts_line_1.first - difference_12 * t;
 
     return is_within_image(intersection_pt, rows, cols);
+}
+
+void intersection(const pair<Point, Point> &pts_line_1, const pair<Point, Point> &pts_line_2, Point &intersection_pt)
+{
+    // In this case we do not care if the intersection is inside some range, so we place mock values and compute the intersection
+    intersection(pts_line_1, pts_line_2, intersection_pt, -1, -1);
 }
 
 bool is_within_image(const Point &p, int rows, int cols)
@@ -71,7 +79,7 @@ bool is_within_image(const Point &p, int rows, int cols)
     return p.x >= 0 && p.x < cols && p.y >= 0 && p.y < rows;
 }
 
-double angular_coefficient(const pair<Point, Point> line)
+double angular_coefficient(const pair<Point, Point> &line)
 {
     Point pt1 = line.first;
     Point pt2 = line.second;
@@ -82,7 +90,7 @@ double angular_coefficient(const pair<Point, Point> line)
     return (pt2.y - pt1.y) / (pt2.x - pt1.x);
 }
 
-double angle_between_lines(const pair<Point, Point> line_1, const pair<Point, Point> line_2)
+double angle_between_lines(const pair<Point, Point> &line_1, const pair<Point, Point> &line_2)
 {
     double m1 = angular_coefficient(line_1);
     double m2 = angular_coefficient(line_2);
@@ -98,13 +106,13 @@ bool is_vertical_line(const std::pair<cv::Point, cv::Point> line)
     return line.first.x == line.second.x;
 }
 
-bool are_parallel_lines(const std::pair<cv::Point, cv::Point> line_1, const std::pair<cv::Point, cv::Point> line_2)
+bool are_parallel_lines(const std::pair<cv::Point, cv::Point> &line_1, const std::pair<cv::Point, cv::Point> &line_2)
 {
     const float EPSILON = 0.001;
     return abs(angular_coefficient(line_1) - angular_coefficient(line_2)) <= EPSILON;
 }
 
-double intercept(const std::pair<cv::Point, cv::Point> line)
+double intercept(const std::pair<cv::Point, cv::Point> &line)
 {
     Point pt_1 = line.first;
     Point pt_2 = line.second;

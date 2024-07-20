@@ -1,3 +1,5 @@
+// Author: Nicola Maritan 2121717
+
 #ifndef FILE_LOADING_H
 #define FILE_LOADING_H
 

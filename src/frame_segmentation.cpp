@@ -28,7 +28,6 @@ void get_colored_frame_segmentation(const Mat &src, Mat &dst, bool preserve_back
 
     Mat frame_segmentation;
     get_frame_segmentation(src, frame_segmentation);
-
     color_segmentation(src, dst, frame_segmentation, preserve_background);
 
     // Draw yellow lines
@@ -80,14 +79,21 @@ void color_segmentation(const cv::Mat &src, cv::Mat &dst, const cv::Mat &frame_s
 {
     dst = src.clone();
 
+    const Vec3b GRAY = Vec3b(128, 128, 128);
+    const Vec3b WHITE = Vec3b(255, 255, 255);
+    const Vec3b BLACK = Vec3b(0, 0, 0);
+    const Vec3b BLUE = Vec3b(255, 0, 0);
+    const Vec3b RED = Vec3b(0, 0, 255);
+    const Vec3b GREEN = Vec3b(0, 255, 0);
+
     // BGR color mapping
     vector<cv::Vec3b> color_map(6);
-    color_map.at(0) = cv::Vec3b(128, 128, 128); // Gray
-    color_map.at(1) = cv::Vec3b(255, 255, 255); // White
-    color_map.at(2) = cv::Vec3b(0, 0, 0);       // Black
-    color_map.at(3) = cv::Vec3b(0, 0, 255);     // Red
-    color_map.at(4) = cv::Vec3b(255, 0, 0);     // Blue
-    color_map.at(5) = cv::Vec3b(0, 255, 0);     // Green
+    color_map.at(background) = GRAY;
+    color_map.at(cue) = WHITE;
+    color_map.at(black) = BLACK;
+    color_map.at(solids) = BLUE;
+    color_map.at(stripes) = RED;
+    color_map.at(playing_field) = GREEN;
 
     // background id is excluded when preserve_color is true
     const int MIN_COLOR = preserve_background ? 1 : 0;

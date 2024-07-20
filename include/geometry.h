@@ -1,3 +1,5 @@
+// Author: Francesco Boscolo Meneguolo 2119969
+
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
@@ -39,7 +41,21 @@ void get_pairs_points_per_line(const std::vector<cv::Vec3f> &lines, std::vector<
  * 
  * @return `true` if the lines intersect within the image dimensions; `false` otherwise.
  */
-bool intersection(std::pair<cv::Point, cv::Point> pts_line_1, std::pair<cv::Point, cv::Point> pts_line_2, cv::Point &intersection_pt, int rows, int cols);
+bool intersection(const std::pair<cv::Point, cv::Point>& pts_line_1, const std::pair<cv::Point, cv::Point>& pts_line_2, cv::Point &intersection_pt, int rows, int cols);
+
+/**
+ * @brief Computes the intersection point of two lines if they intersect within specified dimensions.
+ *
+ * This function determines if two lines, represented by pairs of points, intersect within a given image
+ * dimension. If the lines intersect, the intersection point is stored in the output parameter.
+ *
+ * @param pts_line_1 A pair of `Point` objects representing the first line.
+ * @param pts_line_2 A pair of `Point` objects representing the second line.
+ * @param intersection_pt A reference to a `Point` object where the intersection point will be stored if the lines intersect.
+ * @param rows The number of rows in the image (height).
+ * @param cols The number of columns in the image (width).
+ */
+void intersection(const std::pair<cv::Point, cv::Point>& pts_line_1, const std::pair<cv::Point, cv::Point>& pts_line_2, cv::Point &intersection_pt);
 
 /**
  * @brief Checks if a point lies within the bounds of an image.
@@ -61,7 +77,7 @@ bool is_within_image(const cv::Point &p, int rows, int cols);
  * @param line A pair of `Point` objects representing the line.
  * @return The angular coefficient (slope) of the line. If the line is vertical, returns `numeric_limits<double>::max()`.
  */
-double angular_coefficient(const std::pair<cv::Point, cv::Point> line);
+double angular_coefficient(const std::pair<cv::Point, cv::Point>& line);
 
 /**
  * @brief Computes the angle between two lines represented by pairs of points.
@@ -84,7 +100,7 @@ double angle_between_lines(const std::pair<cv::Point, cv::Point> line_1, const s
  * @param line A constant reference to a pair of `Point` objects representing the line.
  * @return `true` if the line is vertical (both endpoints have the same x-coordinate); `false` otherwise.
  */
-bool is_vertical_line(const std::pair<cv::Point, cv::Point> line);
+bool is_vertical_line(const std::pair<cv::Point, cv::Point>& line);
 
 /**
  * @brief Checks if two lines are parallel based on their angular coefficients.
@@ -95,7 +111,7 @@ bool is_vertical_line(const std::pair<cv::Point, cv::Point> line);
  * @param line_2 A constant reference to a pair of `Point` objects representing the second line.
  * @return `true` if the lines are parallel (within a small epsilon difference in angular coefficients); `false` otherwise.
  */
-bool are_parallel_lines(const std::pair<cv::Point, cv::Point> line_1, const std::pair<cv::Point, cv::Point> line_2);
+bool are_parallel_lines(const std::pair<cv::Point, cv::Point>& line_1, const std::pair<cv::Point, cv::Point>& line_2);
 
 /**
  * @brief Computes the y-intercept of a line.
@@ -107,6 +123,6 @@ bool are_parallel_lines(const std::pair<cv::Point, cv::Point> line_1, const std:
  * @param line A constant reference to a pair of `Point` objects representing the line.
  * @return The y-intercept of the line.
  */
-double intercept(const std::pair<cv::Point, cv::Point> line);
+double intercept(const std::pair<cv::Point, cv::Point>& line);
 
 #endif

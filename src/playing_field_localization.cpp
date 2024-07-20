@@ -83,10 +83,6 @@ void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
     HoughLines(edges, lines, RHO_RESOLUTION, THETA_RESOLUTION * CV_PI / 180, THRESHOLD, 0, 0);
 }
 
-/**
- * Compute a vector of refined line by eliminating similar lines. Similar lines are condensed
- * to a single line by computing their mean values.
- */
 void playing_field_localizer::refine_lines(const vector<Vec3f> &lines, vector<Vec3f> &refined_lines)
 {
     const float RHO_THRESHOLD = 40;
