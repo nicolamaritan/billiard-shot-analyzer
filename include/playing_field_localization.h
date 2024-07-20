@@ -1,3 +1,5 @@
+// Author: Nicola Maritan 2121717
+
 #ifndef PLAYING_FIELD_LOCALIZATION_H
 #define PLAYING_FIELD_LOCALIZATION_H
 
@@ -8,7 +10,7 @@
  * @brief Structure to store localization information of the playing field.
  *
  * This structure holds the corners of the playing field, a mask representing the playing field area,
- * and the positions of the holes (pockets) on the playing field.
+ * and the positions of the holes on the playing field.
  */
 struct playing_field_localization
 {
@@ -20,16 +22,13 @@ struct playing_field_localization
 typedef struct playing_field_localization playing_field_localization;
 
 /**
- * @brief Class for localizing the playing field.
- *
- * This class provides methods to localize the playing field, including segmentation, line detection,
- * line refinement, and hole position estimation.
+ * @brief Class for localizing the playing field on an input image.
  */
 class playing_field_localizer
 {
 public:
     /**
-     * Localize the pool table.
+     * Localize the playing field.
      *
      * @param src The input image.
      */

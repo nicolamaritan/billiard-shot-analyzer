@@ -188,19 +188,6 @@ private:
     float distance_from_middle_hue(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
 
     /**
-     * @brief Computes the mean squared difference from white for each pixel within a given circle.
-     *
-     * This function calculates the mean squared BGR intra-pixel difference for each pixel within a specified circle in the source image.
-     * It measures how far each pixel's color is from being white, normalized by the number of non-zero pixels in the mask.
-     *
-     * @param src The source image.
-     * @param segmentation_mask The segmentation mask used to exclude certain areas.
-     * @param circle A 3-element vector representing a circle (x, y, radius) where the calculation is performed.
-     * @return float The mean squared difference from white, normalized by the number of relevant pixels.
-     */
-    float mean_squared_bgr_intra_pixel_difference(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
-
-    /**
      * @brief Removes connected components from the mask that have a diameter smaller than a specified minimum.
      *
      * This function iterates through connected components in the mask, computes the minimum enclosing circle for each component,

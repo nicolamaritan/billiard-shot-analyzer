@@ -1,3 +1,5 @@
+// Author: Nicola Maritan 2121717
+
 #ifndef PERFORMANCE_MEASUREMENT_H
 #define PERFORMANCE_MEASUREMENT_H
 

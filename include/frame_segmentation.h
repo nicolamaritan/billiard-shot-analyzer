@@ -1,4 +1,5 @@
 // Author: Nicola Maritan 2121717
+
 #ifndef FRAME_SEGMENTATION_H
 #define FRAME_SEGMENTATION_H
 

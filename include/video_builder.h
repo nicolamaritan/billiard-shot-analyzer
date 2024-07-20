@@ -1,4 +1,5 @@
 // Author: Nicola Maritan 2121717
+
 #ifndef VIDEO_BUILDER_H
 #define VIDEO_BUILDER_H
 
@@ -65,6 +66,7 @@ private:
     cv::Size input_video_size;                 // Size of the input video frames
     int input_video_codec;                     // Codec used for the input video
 
+    // Output directories paths
     std::filesystem::path output_directory = std::filesystem::path("output");
     std::filesystem::path videos_directory = std::filesystem::path("videos");
     std::filesystem::path last_frames_minimap_directory = std::filesystem::path("last_frame_minimaps");

@@ -1,3 +1,5 @@
+// Author: Nicola Maritan 2121717
+
 #include "balls_localization.h"
 #include "geometry.h"
 #include "segmentation.h"
@@ -42,11 +44,13 @@ void balls_localizer::localize(const Mat &src)
     Mat src_masked_hsv;
     cvtColor(src_masked, src_masked_hsv, COLOR_BGR2HSV);
 
+    // Computation of board, shadows and color masks
     Mat board_mask;
     Mat shadows_mask;
     Mat color_mask;
     Mat final_segmentation_mask;
 
+    // Playing field color estimation
     int RADIUS = 100;
     const Vec3b board_color_hsv = get_playing_field_color(blurred_masked_hsv, RADIUS);
     const Vec3b SHADOW_OFFSET = Vec3b(0, 0, 90);
@@ -75,9 +79,13 @@ void balls_localizer::localize(const Mat &src)
     bitwise_or(board_mask, shadows_mask, final_segmentation_mask);
     bitwise_or(final_segmentation_mask, color_mask, final_segmentation_mask);
 
+    // Region growing to fine tune the mask
+    const int HUE_THRESHOLD = 3;
+    const int SATURATION_THRESHOLD = 6;
+    const int VALUE_THRESHOLD = 4;
     vector<Point> seed_points;
     extract_seed_points(final_segmentation_mask, seed_points);
-    region_growing(blurred_masked_hsv, final_segmentation_mask, seed_points, 3, 6, 4);
+    region_growing(blurred_masked_hsv, final_segmentation_mask, seed_points, HUE_THRESHOLD, SATURATION_THRESHOLD, VALUE_THRESHOLD);
 
     const Size CLOSURE_SIZE = Size(3, 3);
     morphologyEx(final_segmentation_mask.clone(), final_segmentation_mask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, CLOSURE_SIZE));
@@ -88,7 +96,6 @@ void balls_localizer::localize(const Mat &src)
     Mat out_of_field_mask;
     mask_region_growing(final_segmentation_mask, out_of_field_mask, {Point(0, 0)});
     bitwise_or(final_segmentation_mask.clone(), out_of_field_mask, final_segmentation_mask);
-    imshow("segmentation - balls_localizer::localize", final_segmentation_mask);
 
     const int HOUGH_MIN_RADIUS = 8;
     const int HOUGH_MAX_RADIUS = 16;
@@ -113,21 +120,14 @@ void balls_localizer::localize(const Mat &src)
     filter_near_holes_circles(circles, playing_field.hole_points, MIN_DISTANCE_FROM_HOLE);
     filter_close_dissimilar_circles(circles, MIN_DISSIMILAR_NEIGHBORDHOOD_DISTANCE, MIN_DISSIMILAR_VERTICAL_DISTANCE, MIN_DISSIMILAR_RADIUS_DIFFERENCE);
 
-    // draw_circles(src, display, circles);
-
     find_cue_ball(blurred_masked, final_segmentation_mask, circles);
     find_black_ball(blurred_masked, final_segmentation_mask, circles);
     find_stripe_balls(src_masked, final_segmentation_mask, circles);
     find_solid_balls(blurred_masked, final_segmentation_mask, circles);
 
     get_bounding_boxes(circles, bounding_boxes);
-
-    // Increase bbox sizes for tracking. Infact, tracking works better if bounding boxes are larger
-    // rescale_bounding_boxes(BOUNDING_BOX_RESCALE, MAX_SIZE_BOUNDING_BOX_RESCALE);
-
     show_detection(src);
 }
-
 
 void balls_localizer::circles_masks(const vector<Vec3f> &circles, vector<Mat> &masks, Size mask_size)
 {
@@ -141,16 +141,16 @@ void balls_localizer::circles_masks(const vector<Vec3f> &circles, vector<Mat> &m
     }
 }
 
-
-
 void balls_localizer::filter_empty_circles(vector<Vec3f> &circles, const vector<Mat> &masks, const Mat &segmentation_mask, float intersection_threshold)
 {
     vector<Vec3f> filtered_circles;
     for (size_t i = 0; i < circles.size(); i++)
     {
-        // Compute the ratio of the circle which is empty, i.e. that contains a large portion
-        // of segmentation mask. In fact, if a circle contains such large portion, it is probably been
-        // wrongly detected by Hough transform.
+        /*
+            Compute the ratio of the circle which is empty, i.e. that contains a large portion
+            of segmentation mask. In fact, if a circle contains such large portion, it is probably been
+            wrongly detected by Hough transform.
+        */
         float circle_area = static_cast<float>(countNonZero(masks[i]));
         Mat masks_intersection;
         bitwise_and(masks[i], segmentation_mask, masks_intersection);
@@ -161,8 +161,6 @@ void balls_localizer::filter_empty_circles(vector<Vec3f> &circles, const vector<
     }
     circles = filtered_circles;
 }
-
-
 
 void balls_localizer::filter_out_of_bound_circles(vector<Vec3f> &circles, const Mat &table_mask, int distance_threshold)
 {
@@ -177,9 +175,7 @@ void balls_localizer::filter_out_of_bound_circles(vector<Vec3f> &circles, const 
         Point center = Point(circle[0], circle[1]);
         // Keep the center only if it is inside the mask, i.e. not out of bounds
         if (shrinked_table_mask.at<uchar>(center) == 255)
-        {
             filtered_circles.push_back(circle);
-        }
     }
     circles = filtered_circles;
 }
@@ -205,8 +201,6 @@ void balls_localizer::filter_near_holes_circles(vector<Vec3f> &circles, const ve
     circles = filtered_circles;
 }
 
-
-
 void balls_localizer::get_bounding_boxes(const vector<Vec3f> &circles, vector<Rect> &bounding_boxes) // TODO move to dedicated lib
 {
     for (const Vec3f circle : circles)
@@ -228,8 +222,6 @@ void balls_localizer::get_bounding_boxes(const vector<Vec3f> &circles, vector<Re
     }
 }
 
-
-
 cv::Rect balls_localizer::get_bounding_box(cv::Vec3f circle) // TODO move to dedicated lib
 {
     int center_x = static_cast<int>(circle[0]);
@@ -246,8 +238,6 @@ cv::Rect balls_localizer::get_bounding_box(cv::Vec3f circle) // TODO move to ded
 
     return Rect(x, y, width, height);
 }
-
-
 
 void balls_localizer::fill_small_holes(Mat &binary_mask, double area_threshold)
 {
@@ -266,8 +256,6 @@ void balls_localizer::fill_small_holes(Mat &binary_mask, double area_threshold)
     }
 }
 
-
-
 void balls_localizer::extract_seed_points(const Mat &inrange_segmentation_mask, vector<Point> &seed_points)
 {
     seed_points.clear();
@@ -284,8 +272,6 @@ void balls_localizer::extract_seed_points(const Mat &inrange_segmentation_mask, 
         }
     }
 }
-
-
 
 float balls_localizer::get_white_ratio_in_circle_cue(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
@@ -318,8 +304,6 @@ float balls_localizer::get_white_ratio_in_circle_cue(const Mat &src, const Mat &
     return white_ratio;
 }
 
-
-
 float balls_localizer::get_black_ratio_in_circle(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
     int x = cvRound(circle[0]);
@@ -348,8 +332,6 @@ float balls_localizer::get_black_ratio_in_circle(const Mat &src, const Mat &segm
 
     return percentage_black;
 }
-
-
 
 void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, float neighborhood_distance_threshold, float distance_threshold, float radius_threshold)
 {
@@ -384,8 +366,6 @@ void balls_localizer::filter_close_dissimilar_circles(vector<Vec3f> &circles, fl
     circles = filtered_circles;
 }
 
-
-
 void balls_localizer::draw_circles(const cv::Mat &src, cv::Mat &dst, std::vector<cv::Vec3f> &circles)
 {
     dst = src.clone();
@@ -397,38 +377,6 @@ void balls_localizer::draw_circles(const cv::Mat &src, cv::Mat &dst, std::vector
         cv::circle(dst, center, radius, Scalar(255, 0, 255), 1, LINE_AA);
     }
 }
-
-
-
-float balls_localizer::mean_squared_bgr_intra_pixel_difference(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
-{
-    Mat mask = Mat::zeros(src.size(), CV_8U);
-    cv::circle(mask, Point(cvRound(circle[0]), cvRound(circle[1])), cvRound(circle[2]), Scalar(255), FILLED);
-    Mat balls_segmentation_mask;
-    bitwise_not(segmentation_mask, balls_segmentation_mask);
-    bitwise_and(mask, balls_segmentation_mask, mask);
-
-    double count = 0;
-    for (int y = 0; y < src.rows; y++)
-    {
-        for (int x = 0; x < src.cols; x++)
-        {
-            if (mask.at<uchar>(y, x) == 255)
-            {
-                double b = static_cast<double>(src.at<Vec3b>(y, x)[0]);
-                double g = static_cast<double>(src.at<Vec3b>(y, x)[1]);
-                double r = static_cast<double>(src.at<Vec3b>(y, x)[2]);
-
-                // Way to measure how much a pixel is "far from being white"
-                count += pow(255 - b, 2) + pow(255 - g, 2) + pow(255 - r, 2);
-            }
-        }
-    }
-    count /= pow(255, 2) * 3; // Channels value normalization
-    return count / countNonZero(mask);
-}
-
-
 
 void balls_localizer::remove_connected_components_by_diameter(Mat &mask, double min_diameter)
 {
@@ -455,8 +403,6 @@ void balls_localizer::remove_connected_components_by_diameter(Mat &mask, double 
     }
 }
 
-
-
 float balls_localizer::get_white_ratio_in_circle_stripes(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
     int x = cvRound(circle[0]);
@@ -477,8 +423,10 @@ float balls_localizer::get_white_ratio_in_circle_stripes(const Mat &src, const M
     const Vec3b WHITE_HSV_LOWERBOUND = Vec3b(0, 0, 135);
     const Vec3b WHITE_HSV_UPPERBOUND = Vec3b(120, 100, 255);
 
+    // Remove components with small diameter
+    const double MIN_DIAMETER = 8;
     inRange(masked_hsv, WHITE_HSV_LOWERBOUND, WHITE_HSV_UPPERBOUND, white_mask);
-    remove_connected_components_by_diameter(white_mask, 8);
+    remove_connected_components_by_diameter(white_mask, MIN_DIAMETER);
 
     int white_pixels = countNonZero(white_mask);
     int total_circle_pixels = countNonZero(mask);
@@ -486,8 +434,6 @@ float balls_localizer::get_white_ratio_in_circle_stripes(const Mat &src, const M
 
     return percentage_white;
 }
-
-
 
 float balls_localizer::distance_from_middle_hue(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
@@ -500,6 +446,7 @@ float balls_localizer::distance_from_middle_hue(const Mat &src, const Mat &segme
     vector<Mat> channels;
     split(src, channels);
 
+    // Compute distance of the mean hue value from 128
     const float MIDDLE_HUE = 128;
     return abs(mean(channels[0], mask)[0] - MIDDLE_HUE);
 }
@@ -557,8 +504,6 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
     localization.cue.confidence = cue_ball_circle_confidence;
 }
 
-
-
 void balls_localizer::find_black_ball(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
 {
     Mat src_hsv;
@@ -579,8 +524,6 @@ void balls_localizer::find_black_ball(const Mat &src, const Mat &segmentation_ma
     localization.black.bounding_box = get_bounding_box(circles_black_ratios.at(0).first);
     localization.black.confidence = circles_black_ratios.at(0).second;
 }
-
-
 
 void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
 {
@@ -616,8 +559,6 @@ void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_
         localization.stripes.push_back(stripe_localization);
     }
 }
-
-
 
 void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
 {
@@ -661,8 +602,6 @@ void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_m
     }
 }
 
-
-
 void balls_localizer::show_detection(const Mat &src)
 {
     Mat display = src.clone();
@@ -704,8 +643,6 @@ void balls_localizer::show_detection(const Mat &src)
     }
 }
 
-
-
 void balls_localizer::rescale_bounding_boxes(float scale, float max_size)
 {
     Rect cue_bbox = localization.cue.bounding_box;
@@ -726,8 +663,6 @@ void balls_localizer::rescale_bounding_boxes(float scale, float max_size)
         solid_loc.bounding_box = rescale_bounding_box(solid_bbox, scale, max_size);
     }
 }
-
-
 
 cv::Rect balls_localizer::rescale_bounding_box(const cv::Rect &bbox, float scale, float max_size)
 {

@@ -1,3 +1,5 @@
+// Author: Nicola Maritan 2121717
+
 #ifndef SEGMENTATION_H
 #define SEGMENTATION_H
 
