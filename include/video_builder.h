@@ -8,6 +8,9 @@
 #include <string>
 #include <filesystem>
 
+/**
+ * @brief Class that handles the creation of output videos of a dataset.
+ */
 class video_builder
 {
 public:

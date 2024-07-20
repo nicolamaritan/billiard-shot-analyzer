@@ -236,13 +236,14 @@ void playing_field_localizer::estimate_holes_location(vector<Point> &hole_points
     pair<Point, Point> negative_diagonal = {corners.at(1), corners.at(3)};
     Point playing_field_center;
     bool is_perspective_view = false;
-    intersection(positive_diagonal, negative_diagonal, playing_field_center, 9999, 9999);
+    intersection(positive_diagonal, negative_diagonal, playing_field_center);
 
     // Computation of long and short edges.
     pair<Point, Point> short_edge, long_edge_1, long_edge_2;
 
     // If the two angular coefficients have similar absolute value and opposite sign, then we have a perspective view
-    if (abs(angular_coefficient(positive_diagonal) + angular_coefficient(negative_diagonal)) < 0.01)
+    const float ANGULAR_COEFFICIENT_EPS = 0.01;
+    if (abs(angular_coefficient(positive_diagonal) + angular_coefficient(negative_diagonal)) < ANGULAR_COEFFICIENT_EPS)
     {
         is_perspective_view = true;
         long_edge_1 = {corners.at(0), corners.at(1)};
@@ -271,8 +272,8 @@ void playing_field_localizer::estimate_holes_location(vector<Point> &hole_points
     */
     Point short_edge_offset = short_edge.first - short_edge.second;
     Point lateral_hole_1, lateral_hole_2;
-    intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_1, lateral_hole_1, 9999, 9999);
-    intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_2, lateral_hole_2, 9999, 9999);
+    intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_1, lateral_hole_1);
+    intersection({playing_field_center, playing_field_center + short_edge_offset}, long_edge_2, lateral_hole_2);
 
     /*
         We now employ float representation of points for precise computation of the refined
