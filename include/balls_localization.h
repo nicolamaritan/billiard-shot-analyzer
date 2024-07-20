@@ -261,46 +261,12 @@ private:
      */
     void find_solid_balls(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
 
-    /**
-     * @brief Displays the detected balls on the source image.
-     *
-     * This function visualizes the detected cue ball, black ball, striped balls, and solid balls on a copy of the source image.
-     * Each type of ball is drawn with a specific color for easier identification.
-     *
-     * @param src The source image on which the detection results will be displayed.
-     */
-    void show_detection(const cv::Mat &src);
-
-    /**
-     * @brief Rescales the bounding boxes of all detected balls.
-     *
-     * This function rescales the bounding boxes of the cue ball, black ball, striped balls, and solid balls
-     * by a specified scale factor. It ensures that the dimensions of each bounding box do not exceed a given maximum size.
-     *
-     * @param scale The factor by which to scale the bounding boxes.
-     * @param max_size The maximum allowable size for the width and height of the bounding boxes.
-     */
-    void rescale_bounding_boxes(float scale, float max_size);
-
-    /**
-     * @brief Rescales a bounding box by a given scale factor.
-     *
-     * This function rescales the dimensions of a bounding box by a specified scale factor while maintaining its center.
-     * It also ensures the new dimensions do not exceed the maximum size.
-     *
-     * @param bbox The original bounding box.
-     * @param scale The scale factor to resize the bounding box.
-     * @param max_size The maximum allowable size for the new bounding box dimensions.
-     * @return cv::Rect The rescaled bounding box.
-     */
-    cv::Rect rescale_bounding_box(const cv::Rect &bbox, float scale, float max_size);
-
-    const float BOUNDING_BOX_RESCALE = 1.2;     // A scaling factor to rescale bounding boxes for better tracking.
+    const float BOUNDING_BOX_RESCALE = 1.2;         // A scaling factor to rescale bounding boxes for better tracking.
     const float MAX_SIZE_BOUNDING_BOX_RESCALE = 14; // The maximum size limit for bounding box rescaling.
 
     const playing_field_localization playing_field; //  An instance of playing_field_localization, which represents the playing field's localization data.
-    std::vector<cv::Rect> bounding_boxes;       // A vector of cv::Rect objects storing the bounding boxes of detected balls.
-    balls_localization localization;        // An instance of balls_localization, which contains the localization data of detected balls.
+    std::vector<cv::Rect> bounding_boxes;           // A vector of cv::Rect objects storing the bounding boxes of detected balls.
+    balls_localization localization;                // An instance of balls_localization, which contains the localization data of detected balls.
 };
 
 #endif

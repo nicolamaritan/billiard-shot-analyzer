@@ -126,7 +126,6 @@ void balls_localizer::localize(const Mat &src)
     find_solid_balls(blurred_masked, final_segmentation_mask, circles);
 
     get_bounding_boxes(circles, bounding_boxes);
-    show_detection(src);
 }
 
 void balls_localizer::circles_masks(const vector<Vec3f> &circles, vector<Mat> &masks, Size mask_size)
@@ -600,83 +599,4 @@ void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_m
         solid_localization.confidence = solid_confidence;
         localization.solids.push_back(solid_localization);
     }
-}
-
-void balls_localizer::show_detection(const Mat &src)
-{
-    Mat display = src.clone();
-
-    // Display cue
-    Vec3f white_ball_circle = localization.cue.circle;
-    int white_ball_radius = white_ball_circle[2];
-    Point white_ball_center = Point(white_ball_circle[0], white_ball_circle[1]);
-    circle(display, white_ball_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
-    circle(display, white_ball_center, white_ball_radius, Scalar(255, 255, 255), 2, LINE_AA);
-
-    // Display black
-    Vec3f black_ball_circle = localization.black.circle;
-    int black_ball_radius = black_ball_circle[2];
-    Point black_ball_center = Point(black_ball_circle[0], black_ball_circle[1]);
-    circle(display, black_ball_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
-    circle(display, black_ball_center, black_ball_radius, Scalar(0, 0, 0), 2, LINE_AA);
-
-    // Display stripes
-    for (ball_localization stripe_localization : localization.stripes)
-    {
-        Vec3f circle = stripe_localization.circle;
-        int circle_radius = circle[2];
-        Point circle_center = Point(circle[0], circle[1]);
-
-        cv::circle(display, circle_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
-        cv::circle(display, circle_center, circle_radius, Scalar(0, 0, 255), 2, LINE_AA);
-    }
-
-    // Display solids
-    for (ball_localization solid_localization : localization.solids)
-    {
-        Vec3f circle = solid_localization.circle;
-        int circle_radius = circle[2];
-        Point circle_center = Point(circle[0], circle[1]);
-
-        cv::circle(display, circle_center, 1, Scalar(0, 100, 100), 1, LINE_AA);
-        cv::circle(display, circle_center, circle_radius, Scalar(255, 0, 0), 2, LINE_AA);
-    }
-}
-
-void balls_localizer::rescale_bounding_boxes(float scale, float max_size)
-{
-    Rect cue_bbox = localization.cue.bounding_box;
-    localization.cue.bounding_box = rescale_bounding_box(cue_bbox, scale, max_size);
-
-    Rect black_bbox = localization.black.bounding_box;
-    localization.black.bounding_box = rescale_bounding_box(black_bbox, scale, max_size);
-
-    for (ball_localization stripe_loc : localization.stripes)
-    {
-        Rect stripe_bbox = stripe_loc.bounding_box;
-        stripe_loc.bounding_box = rescale_bounding_box(stripe_bbox, scale, max_size);
-    }
-
-    for (ball_localization solid_loc : localization.solids)
-    {
-        Rect solid_bbox = solid_loc.bounding_box;
-        solid_loc.bounding_box = rescale_bounding_box(solid_bbox, scale, max_size);
-    }
-}
-
-cv::Rect balls_localizer::rescale_bounding_box(const cv::Rect &bbox, float scale, float max_size)
-{
-    int new_width = static_cast<int>(bbox.width * scale);
-    int new_height = static_cast<int>(bbox.height * scale);
-
-    if (new_width > max_size)
-        new_width = max_size;
-    if (new_height > max_size)
-        new_height = max_size;
-
-    // Calculate the new top-left corner to maintain the center of the bounding box
-    int new_x = bbox.x + (bbox.width - new_width) / 2;
-    int new_y = bbox.y + (bbox.height - new_height) / 2;
-
-    return cv::Rect(new_x, new_y, new_width, new_height);
 }
