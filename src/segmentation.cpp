@@ -7,23 +7,23 @@ using namespace cv;
 
 void kmeans(const Mat &src, Mat &dst, int centroids)
 {
-    // data contains dst data (init with src data) used for kmeans clustering (therefore employs 32-bit float values)
+    // data contains dst data (init with src data) used for kmeans clustering (therefore employs 32-bit float values).
     Mat data;
     dst.convertTo(data, CV_32F);
     data = data.reshape(1, data.total());
 
-    // Image segmentation is performed via kmeans on the hsv img
+    // Image segmentation is performed via kmeans on the hsv img.
     Mat labels, centers;
     const int KMEANS_MAX_COUNT = 10;
     const int KMEANS_EPSILON = 1.0;
     const int KMEANS_ATTEMPTS = 8;
     kmeans(data, centroids, labels, TermCriteria(TermCriteria::MAX_ITER, KMEANS_MAX_COUNT, KMEANS_EPSILON), KMEANS_ATTEMPTS, KMEANS_PP_CENTERS, centers);
 
-    // Reshape both to a single row of Vec3f pixels
+    // Reshape both to a single row of Vec3f pixels.
     centers = centers.reshape(3, centers.rows);
     data = data.reshape(3, data.rows);
 
-    // Replace pixel values with their centroids value
+    // Replace pixel values with their centroids value.
     for (int i = 0; i < data.rows; i++)
     {
         int center_id = labels.at<int>(i);
@@ -36,20 +36,25 @@ void kmeans(const Mat &src, Mat &dst, int centroids)
 
 void region_growing(const Mat &src, Mat &dst, const vector<Point> &seeds, int threshold_0, int threshold_1, int threshold_2)
 {
-    dst = Mat::zeros(src.size(), CV_8UC1); // Initialize the destination image
-    queue<Point> to_grow;                  // Queue for points to be processed
+    dst = Mat::zeros(src.size(), CV_8UC1); // Initialize the destination image.
+    queue<Point> to_grow; // Queue for points to be processed.
 
     for (const Point &seed : seeds)
     {
         if (seed.x >= 0 && seed.x < src.cols && seed.y >= 0 && seed.y < src.rows)
         {
             to_grow.push(seed);
-            dst.at<uchar>(seed) = 255; // Mark the seed point in the destination image
+            dst.at<uchar>(seed) = 255; // Mark the seed point in the destination image.
         }
     }
+    const pair<int, int> LEFT = {-1, 0}; // Left direction.
+    const pair<int, int> RIGHT = {1, 0}; // Right direction.
+    const pair<int, int> DOWN = {0, -1}; // Down direction.
+    const pair<int, int> UP = {0, 1}; // Up direction.
 
-    vector<pair<int, int>> directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    const vector<pair<int, int>> directions = {LEFT, RIGHT, DOWN, UP}; // directions of expantions of growing process.
 
+    // Growing process.
     while (!to_grow.empty())
     {
         Point p = to_grow.front();
@@ -86,7 +91,7 @@ Vec3b get_playing_field_color(const Mat &src, float radius)
     int center_rows = src.rows / 2;
     vector<Vec3b> pixel_values;
 
-    // Collect all pixel values in a radius 'radius' around the image center.
+    // Collect all pixel values in a radius of value $radius around the image center.
     for (int row = -radius; row <= radius; ++row)
     {
         for (int col = -radius; col <= radius; ++col)
@@ -104,11 +109,9 @@ Vec3b get_playing_field_color(const Mat &src, float radius)
         }
     }
 
-    // Return black if no pixel_values are collected
+    // Return black if no pixel_values are collected.
     if (pixel_values.empty())
-    {
         return Vec3b(0, 0, 0);
-    }
 
     /*
         Sort by norm. In a grayscale context, we would have just considered the pixel intensity.

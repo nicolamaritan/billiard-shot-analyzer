@@ -97,8 +97,7 @@ private:
      * @param pt The point to check.
      * @param rows The number of rows in the image.
      * @param cols The number of columns in the image.
-     * @return true If the point is within the image bounds.
-     * @return false If the point is outside the image bounds.
+     * @return true if the point is within the image bounds, false otherwise.
      */
     bool is_within_image(const cv::Point &pt, int rows, int cols);
 

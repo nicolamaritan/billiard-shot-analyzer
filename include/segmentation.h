@@ -28,9 +28,9 @@ void kmeans(const cv::Mat &src, cv::Mat &dst, int centroids);
  * @param src The source image to be segmented.
  * @param dst The destination image where the segmented output is stored.
  * @param seeds A vector of points to be used as seed points for region growing.
- * @param threshold_0 The threshold for the first channel (e.g., red in RGB) to control region growth.
- * @param threshold_1 The threshold for the second channel (e.g., green in RGB) to control region growth.
- * @param threshold_2 The threshold for the third channel (e.g., blue in RGB) to control region growth.
+ * @param threshold_0 The threshold for the first channel to control region growth.
+ * @param threshold_1 The threshold for the second channel to control region growth.
+ * @param threshold_2 The threshold for the third channel to control region growth.
  */
 void region_growing(const cv::Mat &src, cv::Mat &dst, const std::vector<cv::Point> &seeds, int threshold_0, int threshold_1, int threshold_2);
 

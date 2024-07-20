@@ -1,7 +1,7 @@
 # Author: Nicola Maritan
 
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-
+set(CMAKE_CXX_STANDARD 17)
 project(sport_video_analysis_for_biliard_matches
     VERSION
         1.0
