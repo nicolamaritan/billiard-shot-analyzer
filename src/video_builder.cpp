@@ -50,12 +50,14 @@ void video_builder::build_videos(const string &dataset_path)
     }
 }
 
-void video_builder::build_output_frames(const string &filename, vector<Mat> &output_frames, vector<Mat> &bboxes_output_frames)
+void video_builder::build_output_frames(const string &filename, vector<Mat> &frame_and_minimap_output_frames, vector<Mat> &bboxes_output_frames)
 {
     VideoCapture input_video(filename);
     if (!input_video.isOpened())
-        return;
-
+    {
+        const string COULD_NOT_OPEN = "Could not open the output video for read.";
+        throw ios_base::failure(COULD_NOT_OPEN); 
+    }
     // Get the input video parameters, to be later used when producing the output video
     input_video_codec = static_cast<int>(input_video.get(CAP_PROP_FOURCC));
     input_video_fps = input_video.get(CAP_PROP_FPS);
@@ -101,7 +103,7 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
     Mat output_frame;
     mini.draw_initial_minimap(pool_table_map);
     build_output_frame(first_frame, pool_table_map, output_frame);
-    output_frames.push_back(output_frame);
+    frame_and_minimap_output_frames.push_back(output_frame);
 
     // Output frames computation
     Mat frame;
@@ -113,7 +115,7 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
         bboxes_drawer.draw(frame, bboxes_output_frame, multi_tracker->getObjects());
 
         build_output_frame(frame, pool_table_map, output_frame);
-        output_frames.push_back(output_frame);
+        frame_and_minimap_output_frames.push_back(output_frame);
         bboxes_output_frames.push_back(bboxes_output_frame);
     }
 
@@ -138,13 +140,6 @@ void video_builder::build_output_frame(const Mat &frame, const Mat &minimap, Mat
     int x_offset = MINIMAP_DISPLAY_OFFSET;
     int y_offset = dst.rows - resized_minimap.rows - MINIMAP_DISPLAY_OFFSET;
 
-    // Ensure the minimap fits within the destination frame
-    if (y_offset < 0 || resized_minimap.cols > dst.cols || resized_minimap.rows > dst.rows)
-    {
-        std::cerr << "Error: Minimap is too large to fit in the destination frame with the given offset." << std::endl;
-        return;
-    }
-
     resized_minimap.copyTo(dst(Rect(x_offset, y_offset, resized_minimap.cols, resized_minimap.rows)));
 }
 
@@ -154,8 +149,8 @@ void video_builder::build_video_from_output_frames(const vector<Mat> &output_fra
     output_video.open(output_filename, input_video_codec, input_video_fps, input_video_size, true);
     if (!output_video.isOpened())
     {
-        cerr << "Could not open the output video for write." << endl;
-        return;
+        const string COULD_NOT_OPEN = "Could not open the output video for write.";
+        throw ios_base::failure(COULD_NOT_OPEN); 
     }
     for (Mat output_frame : output_frames)
     {

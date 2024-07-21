@@ -11,7 +11,8 @@ namespace fs = std::filesystem;
 minimap::minimap(const playing_field_localization &plf_localization, const balls_localization &blls_localization, const std::vector<cv::Rect2d> &tracker_bboxes)
 	: playing_field{plf_localization}, balls{blls_localization}
 {
-	if (tracker_bboxes.size() != (blls_localization.solids.size() + blls_localization.stripes.size()))
+	const int BLACK_AND_CUE_BALLS_NUMBER = 2;
+	if (tracker_bboxes.size() != (blls_localization.solids.size() + blls_localization.stripes.size() + BLACK_AND_CUE_BALLS_NUMBER))
 	{
 		const string INVALID_BBOXES_SIZE = "Tracker bounding boxes and localization bounding boxes do not match in size.";
 		throw invalid_argument(INVALID_BBOXES_SIZE);
