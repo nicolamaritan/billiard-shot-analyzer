@@ -87,12 +87,14 @@ void balls_localizer::localize(const Mat &src)
     extract_seed_points(final_segmentation_mask, seed_points);
     region_growing(blurred_masked_hsv, final_segmentation_mask, seed_points, HUE_THRESHOLD, SATURATION_THRESHOLD, VALUE_THRESHOLD);
 
+    // Closening operation to fine-tune the mask
     const Size CLOSURE_SIZE = Size(3, 3);
     morphologyEx(final_segmentation_mask.clone(), final_segmentation_mask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, CLOSURE_SIZE));
 
     const int AREA_THRESHOLD = 90;
     fill_small_holes(final_segmentation_mask, AREA_THRESHOLD);
 
+    // Remove black component outside the current masking. This is able to remove hands and some holes from the masking.
     Mat out_of_field_mask;
     mask_region_growing(final_segmentation_mask, out_of_field_mask, {Point(0, 0)});
     bitwise_or(final_segmentation_mask.clone(), out_of_field_mask, final_segmentation_mask);
@@ -109,6 +111,7 @@ void balls_localizer::localize(const Mat &src)
     vector<Mat> hough_circle_masks;
     circles_masks(circles, hough_circle_masks, src.size());
 
+    // Circle filtering to remove wrongly detected circles by the transform.
     const float MAX_INTERSECTION = 0.60;
     const float MAX_DISTANCE_OUT_OF_BOUNDS = 20;
     const float MIN_DISTANCE_FROM_HOLE = 27;
@@ -120,6 +123,7 @@ void balls_localizer::localize(const Mat &src)
     filter_near_holes_circles(circles, playing_field.hole_points, MIN_DISTANCE_FROM_HOLE);
     filter_close_dissimilar_circles(circles, MIN_DISSIMILAR_NEIGHBORDHOOD_DISTANCE, MIN_DISSIMILAR_VERTICAL_DISTANCE, MIN_DISSIMILAR_RADIUS_DIFFERENCE);
 
+    // Ball classification among detected circles
     find_cue_ball(blurred_masked, final_segmentation_mask, circles);
     find_black_ball(blurred_masked, final_segmentation_mask, circles);
     find_stripe_balls(src_masked, final_segmentation_mask, circles);
@@ -135,13 +139,16 @@ void balls_localizer::circles_masks(const vector<Vec3f> &circles, vector<Mat> &m
     {
         Mat mask(mask_size, CV_8U);
         mask.setTo(Scalar(0));
-        circle(mask, Point(circles[i][0], circles[i][1]), circles[i][2], Scalar(255), FILLED);
+        const Scalar WHITE = Scalar(255);
+        circle(mask, Point(circles.at(i)[0], circles.at(i)[1]), circles.at(i)[2], WHITE, FILLED);
         masks.push_back(mask);
     }
 }
 
 void balls_localizer::filter_empty_circles(vector<Vec3f> &circles, const vector<Mat> &masks, const Mat &segmentation_mask, float intersection_threshold)
 {
+    CV_Assert(segmentation_mask.type() == CV_8UC1);
+
     vector<Vec3f> filtered_circles;
     for (size_t i = 0; i < circles.size(); i++)
     {
@@ -156,15 +163,18 @@ void balls_localizer::filter_empty_circles(vector<Vec3f> &circles, const vector<
         float intersection_area = static_cast<float>(countNonZero(masks_intersection));
 
         if (intersection_area / circle_area < intersection_threshold)
-            filtered_circles.push_back(circles[i]);
+            filtered_circles.push_back(circles.at(i));
     }
     circles = filtered_circles;
 }
 
 void balls_localizer::filter_out_of_bound_circles(vector<Vec3f> &circles, const Mat &table_mask, int distance_threshold)
 {
+    CV_Assert(table_mask.type() == CV_8UC1);
+
     vector<Vec3f> filtered_circles;
     Mat shrinked_table_mask;
+    const int WHITE = 255;
 
     // Erode the table to exclude false positives in the table border
     erode(table_mask, shrinked_table_mask, getStructuringElement(MORPH_CROSS, Size(distance_threshold, distance_threshold)));
@@ -173,7 +183,7 @@ void balls_localizer::filter_out_of_bound_circles(vector<Vec3f> &circles, const 
     {
         Point center = Point(circle[0], circle[1]);
         // Keep the center only if it is inside the mask, i.e. not out of bounds
-        if (shrinked_table_mask.at<uchar>(center) == 255)
+        if (shrinked_table_mask.at<uchar>(center) == WHITE)
             filtered_circles.push_back(circle);
     }
     circles = filtered_circles;
@@ -200,8 +210,10 @@ void balls_localizer::filter_near_holes_circles(vector<Vec3f> &circles, const ve
     circles = filtered_circles;
 }
 
-void balls_localizer::get_bounding_boxes(const vector<Vec3f> &circles, vector<Rect> &bounding_boxes) // TODO move to dedicated lib
+void balls_localizer::get_bounding_boxes(const vector<Vec3f> &circles, vector<Rect> &bounding_boxes)
 {
+    bounding_boxes.clear();
+
     for (const Vec3f circle : circles)
     {
         int center_x = static_cast<int>(circle[0]);
@@ -221,7 +233,7 @@ void balls_localizer::get_bounding_boxes(const vector<Vec3f> &circles, vector<Re
     }
 }
 
-cv::Rect balls_localizer::get_bounding_box(cv::Vec3f circle) // TODO move to dedicated lib
+cv::Rect balls_localizer::get_bounding_box(cv::Vec3f circle)
 {
     int center_x = static_cast<int>(circle[0]);
     int center_y = static_cast<int>(circle[1]);
@@ -257,6 +269,7 @@ void balls_localizer::fill_small_holes(Mat &binary_mask, double area_threshold)
 
 void balls_localizer::extract_seed_points(const Mat &inrange_segmentation_mask, vector<Point> &seed_points)
 {
+    CV_Assert(inrange_segmentation_mask.type() == CV_8UC1);
     seed_points.clear();
 
     // Take as seed point every white pixel in the mask
