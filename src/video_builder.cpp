@@ -33,19 +33,19 @@ void video_builder::build_videos(const string &dataset_path)
 
     for (String filename : filenames)
     {
-        fs::path output_path = output_directory / minimap_directory / fs::path(filename).filename();
+        fs::path output_path_frame_and_minimap = output_directory / minimap_directory / fs::path(filename).filename();
         fs::path output_path_bboxes = output_directory / bboxes_directory / fs::path(filename).filename();
-        cout << "Generating " << output_path.string() << "..." << endl;
+        cout << "Generating " << output_path_frame_and_minimap.string() << "..." << endl;
         cout << "Generating " << output_path_bboxes.string() << "..." << endl;
 
         clear_input_video_info();
 
-        build_output_frames(filename, output_frames, bboxes_output_frames);
+        build_output_frames(filename, frame_and_minimap_output_frames, bboxes_output_frames);
 
-        build_video_from_output_frames(output_frames, output_path.string());
+        build_video_from_output_frames(frame_and_minimap_output_frames, output_path_frame_and_minimap.string());
         build_video_from_output_frames(bboxes_output_frames, output_path_bboxes.string());
 
-        cout << "Generated " << output_path.string() << "." << endl;
+        cout << "Generated " << output_path_frame_and_minimap.string() << "." << endl;
         cout << "Generated " << output_path_bboxes.string() << "." << endl;
     }
 }
@@ -56,6 +56,7 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
     if (!input_video.isOpened())
         return;
 
+    // Get the input video parameters, to be later used when producing the output video
     input_video_codec = static_cast<int>(input_video.get(CAP_PROP_FOURCC));
     input_video_fps = input_video.get(CAP_PROP_FPS);
     input_video_size = Size(static_cast<int>(input_video.get(CAP_PROP_FRAME_WIDTH)),
@@ -88,11 +89,13 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
         multi_tracker->add(legacy::TrackerCSRT::create(), first_frame, rescale_bounding_box(bbox, BOUNDING_BOX_RESCALE, MAX_BOUNDING_BOX_SIZE));
     }
 
+    // Set up bounding boxes drawer and first frame
     bounding_boxes_drawer bboxes_drawer(pl_field_loc.get_localization(), balls_loc.get_localization(), multi_tracker->getObjects());
     Mat bboxes_output_frame;
     bboxes_drawer.draw(first_frame, bboxes_output_frame, multi_tracker->getObjects());
     bboxes_output_frames.push_back(bboxes_output_frame);
 
+    // Set up minimap and first frame
     minimap mini(pl_field_loc.get_localization(), balls_loc.get_localization(), multi_tracker->getObjects());
     Mat pool_table_map;
     Mat output_frame;
@@ -100,6 +103,7 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
     build_output_frame(first_frame, pool_table_map, output_frame);
     output_frames.push_back(output_frame);
 
+    // Output frames computation
     Mat frame;
     while (input_video.read(frame))
     {
@@ -161,7 +165,7 @@ void video_builder::build_video_from_output_frames(const vector<Mat> &output_fra
 
 void video_builder::clear_input_video_info()
 {
-    output_frames.clear();
+    frame_and_minimap_output_frames.clear();
     bboxes_output_frames.clear();
     input_video_fps = -1;
     input_video_size = Size(-1, -1);

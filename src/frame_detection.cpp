@@ -42,14 +42,10 @@ void get_frame_detection(const Mat &src, Mat &dst)
     draw_transparent_rect(dst, blls_localization.black.bounding_box, BLACK, ALPHA);
 
     for (ball_localization localization : blls_localization.solids)
-    {
         draw_transparent_rect(dst, localization.bounding_box, BLUE, ALPHA);
-    }
 
     for (ball_localization localization : blls_localization.stripes)
-    {
         draw_transparent_rect(dst, localization.bounding_box, RED, ALPHA);
-    }
 
     // Draw yellow lines
     vector<Point> corners = plf_localizer.get_localization().corners;

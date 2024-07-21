@@ -39,9 +39,7 @@ void get_frame_files(std::string dataset_path, std::vector<std::string> &frame_f
     for (auto filename : filenames)
     {
         if (is_frame_file(filename))
-        {
             frame_filenames.push_back(filename);
-        }
     }
 }
 
@@ -54,9 +52,7 @@ void get_mask_files(std::string dataset_path, std::vector<std::string> &mask_fil
     for (auto filename : filenames)
     {
         if (is_mask_frame_file(filename))
-        {
             mask_filenames.push_back(filename);
-        }
     }
 }
 
@@ -69,8 +65,6 @@ void get_bounding_boxes_files(std::string dataset_path, std::vector<std::string>
     for (auto filename : filenames)
     {
         if (is_bounding_box_file(filename))
-        {
             bboxes_filenames.push_back(filename);
-        }
     }
 }

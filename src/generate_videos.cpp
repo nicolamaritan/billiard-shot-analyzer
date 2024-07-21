@@ -5,6 +5,7 @@
 #include <iostream>
 
 using namespace std;
+namespace fs = std::filesystem;
 
 int main(int argc, char **argv)
 {
@@ -15,6 +16,10 @@ int main(int argc, char **argv)
     }
 
     string dataset_path = static_cast<string>(argv[1]);
+
+    // Add OS separator if not inserted
+    if (dataset_path.back() != fs::path::preferred_separator)
+        dataset_path = dataset_path + fs::path::preferred_separator;
 
     video_builder builder;
     builder.build_videos(dataset_path);

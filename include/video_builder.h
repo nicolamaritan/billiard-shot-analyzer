@@ -63,11 +63,11 @@ private:
      */
     cv::Rect rescale_bounding_box(const cv::Rect &bbox, float scale, int max_size);
 
-    std::vector<cv::Mat> output_frames;        // Vector to store output frames
-    std::vector<cv::Mat> bboxes_output_frames; // Vector to store output frames for bboxes video
-    double input_video_fps;                    // Frame rate of the input video
-    cv::Size input_video_size;                 // Size of the input video frames
-    int input_video_codec;                     // Codec used for the input video
+    std::vector<cv::Mat> frame_and_minimap_output_frames;        // Vector to store frames and minimap output frames
+    std::vector<cv::Mat> bboxes_output_frames;                   // Vector to store output frames for bboxes video
+    double input_video_fps;                                      // Frame rate of the input video
+    cv::Size input_video_size;                                   // Size of the input video frames
+    int input_video_codec;                                       // Codec used for the input video
 
     // Output directories paths
     std::filesystem::path output_directory = std::filesystem::path("output");

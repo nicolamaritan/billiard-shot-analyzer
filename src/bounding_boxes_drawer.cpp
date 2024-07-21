@@ -51,17 +51,6 @@ bounding_boxes_drawer::bounding_boxes_drawer(const playing_field_localization &p
     cue_index = distance(balls_pos.begin(), it_cue);
 }
 
-/**
- * @brief Draws bounding boxes and lines on the given frame.
- *
- * This function draws bounding boxes around specified objects (cue ball, black ball,
- * solids, and stripes) with different colors and a specified transparency on the 
- * provided frame. It also draws yellow lines along the corners of the playing field.
- *
- * @param frame The input image on which to draw the bounding boxes.
- * @param dst The output image with the drawn bounding boxes and lines.
- * @param updated_balls_bboxes A vector containing the bounding boxes for the objects.
- */
 void bounding_boxes_drawer::draw(const cv::Mat &frame, cv::Mat &dst, const std::vector<cv::Rect2d> &updated_balls_bboxes)
 {
     dst = frame.clone();
@@ -95,18 +84,6 @@ void bounding_boxes_drawer::draw(const cv::Mat &frame, cv::Mat &dst, const std::
     }
 }
 
-/**
- * @brief Draws a transparent rectangle on an image.
- *
- * This function draws a rectangle with the specified color and transparency on the 
- * provided image. It first draws a filled rectangle with transparency, then draws 
- * the border of the rectangle with the same color.
- *
- * @param image The image on which to draw the rectangle.
- * @param rect The rectangle to be drawn.
- * @param color The color of the rectangle.
- * @param alpha The transparency factor of the rectangle.
- */
 void bounding_boxes_drawer::draw_transparent_rect(Mat &image, Rect rect, Scalar color, double alpha)
 {
     Mat overlay;

@@ -43,14 +43,15 @@ void get_colored_frame_segmentation(const Mat &src, Mat &dst, bool preserve_back
 
 void get_frame_segmentation(const Mat &src, Mat &dst)
 {
+    // Perform localizations
     playing_field_localizer plf_localizer;
     plf_localizer.localize(src);
     playing_field_localization plf_localization = plf_localizer.get_localization();
-
     balls_localizer blls_localizer(plf_localization);
     blls_localizer.localize(src);
     balls_localization blls_localization = blls_localizer.get_localization();
 
+    // Set masks for segmentation evaluation
     Mat segmentation(src.size(), CV_8UC1);
     segmentation.setTo(Scalar(label_id::background));
     segmentation.setTo(Scalar(label_id::playing_field), plf_localization.mask);
