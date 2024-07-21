@@ -9,8 +9,8 @@
 /**
  * @brief Performs k-means clustering on an image for image segmentation.
  *
- * This function applies the k-means clustering algorithm to the input image (`src`) and stores the resulting segmented image in `dst`.
- * The number of clusters (centroids) is specified by the `centroids` parameter. The output image (`dst`) will have pixel values
+ * This function applies the k-means clustering algorithm to the input image src and stores the resulting segmented image in dst.
+ * The output image will have pixel values
  * replaced by their corresponding cluster centroid values, effectively segmenting the image based on color similarity.
  *
  * @param src The source image to be segmented.
@@ -22,10 +22,8 @@ void kmeans(const cv::Mat &src, cv::Mat &dst, int centroids);
 /**
  * @brief Performs region growing segmentation on an image.
  *
- * This function applies region growing segmentation to the input image (`src`) using the provided seed points (`seeds`).
- * The resulting segmented image is stored in `dst`. The growth of the region is controlled by the threshold parameters
- * (`threshold_0`, `threshold_1`, `threshold_2`) which define the maximum allowed difference in pixel values for the
- * region to grow. The output image (`dst`) will have regions marked based on the similarity to the seed points.
+ * This function applies region growing segmentation to the input image src using the provided seed points seeds.
+ * The resulting segmented image is stored in `dst`. The growth of the region is controlled by the threshold parameters.
  *
  * @param src The source image to be segmented.
  * @param dst The destination image where the segmented output is stored.
