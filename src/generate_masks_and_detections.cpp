@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         imwrite(clip_game_directory.string() + SEGMENTATION_FILENAME, frame_segmentation);
         imwrite(clip_game_directory.string() + SEGMENTATION_BACKGROUND_PRESERVED_FILENAME, frame_segmentation_background_preserved);
         imwrite(clip_game_directory.string() + DETECTION_FILENAME, frame_detection);
-        cout << "Generated masks and detections in " << clip_game_directory.string() << endl;
+        cout << "Generated masks and detections in " << clip_game_directory.string() << "." << endl;
     }
 
     return 0;
