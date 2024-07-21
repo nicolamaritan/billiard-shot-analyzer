@@ -13,9 +13,9 @@
  */
 struct ball_localization
 {
-    cv::Vec3f circle;      ///< Circle representation as (x, y, radius).
-    cv::Rect bounding_box; ///< Bounding box for the ball.
-    float confidence;      ///< Confidence score of the localization.
+    cv::Vec3f circle;      // Circle representation as (x, y, radius).
+    cv::Rect bounding_box; // Bounding box for the ball.
+    float confidence;      // Confidence score of the localization.
 };
 typedef struct ball_localization ball_localization;
 
@@ -30,7 +30,7 @@ bool operator==(const ball_localization &lhs, const ball_localization &rhs);
 bool operator!=(const ball_localization &lhs, const ball_localization &rhs);
 
 /**
- * @brief 
+ * @brief
  */
 const ball_localization NO_LOCALIZATION = {cv::Vec3f(-1, -1, -1), cv::Rect(-1, -1, -1, -1), 0.0};
 
@@ -39,10 +39,10 @@ const ball_localization NO_LOCALIZATION = {cv::Vec3f(-1, -1, -1), cv::Rect(-1, -
  */
 struct balls_localization
 {
-    std::vector<ball_localization> solids;  ///< Localizations of solid balls.
-    std::vector<ball_localization> stripes; ///< Localizations of striped balls.
-    ball_localization black;                ///< Localization of the black ball.
-    ball_localization cue;                  ///< Localization of the cue ball.
+    std::vector<ball_localization> solids;  // Localizations of solid balls.
+    std::vector<ball_localization> stripes; // Localizations of striped balls.
+    ball_localization black;                // Localization of the black ball.
+    ball_localization cue;                  // Localization of the cue ball.
 };
 typedef struct balls_localization balls_localization;
 
@@ -66,7 +66,18 @@ public:
      */
     void localize(const cv::Mat &src);
 
+    /**
+     * Returns the bounding boxes of all detected balls.
+     *
+     * @return the bounding boxes of all detected balls.
+     */
     std::vector<cv::Rect> get_bounding_boxes() { return bounding_boxes; };
+
+    /**
+     * Returns the obtained localization.
+     *
+     * @return the obtained localization.
+     */
     balls_localization get_localization() { return localization; }
 
 private:
@@ -118,10 +129,10 @@ private:
     /**
      * @brief Computes the bounding box for a given circle.
      *
-     * This function calculates the bounding box for a circle represented by a 3-element vector (x, y, radius).
+     * This function calculates the bounding box for a circle represented by a Vec3f (x, y, radius).
      * The bounding box is a rectangle that fully contains the circle.
      *
-     * @param circle A 3-element vector representing a circle (x, y, radius).
+     * @param circle A Vec3f representing a circle (x, y, radius).
      * @return cv::Rect The bounding box that fully contains the specified circle.
      */
     cv::Rect get_bounding_box(cv::Vec3f circle);
@@ -150,7 +161,7 @@ private:
      *
      * @param src The source image in HSV color space.
      * @param segmentation_mask The segmentation mask used to exclude certain areas.
-     * @param circle A 3-element vector representing a circle (x, y, radius) where the calculation is performed.
+     * @param circle A Vec3f representing a circle (x, y, radius) where the calculation is performed.
      * @return float The ratio of white pixels within the specified circle.
      */
     float get_white_ratio_in_circle_cue(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
@@ -163,7 +174,7 @@ private:
      *
      * @param src The source image in HSV color space.
      * @param segmentation_mask The segmentation mask used to exclude certain areas.
-     * @param circle A 3-element vector representing a circle (x, y, radius) where the calculation is performed.
+     * @param circle A Vec3f representing a circle (x, y, radius) where the calculation is performed.
      * @return float The ratio of black pixels within the specified circle.
      */
     float get_black_ratio_in_circle(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
@@ -187,6 +198,18 @@ private:
      */
     void draw_circles(const cv::Mat &src, cv::Mat &dst, std::vector<cv::Vec3f> &circles);
 
+    /**
+     * @brief Computes the distance of the mean hue value within a circular region from the middle hue value (128).
+     *
+     * It calculates the absolute difference between the mean hue
+     * and the middle hue value (128).
+     *
+     * @param src Input source image in BGR format.
+     * @param segmentation_mask Binary mask where ball regions are masked out.
+     * @param circle A Vec3f representing the circle (x, y, radius).
+     * @return The absolute distance of the mean hue value from 128.
+     *
+     */
     float distance_from_middle_hue(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
 
     /**
@@ -195,7 +218,7 @@ private:
      * This function iterates through connected components in the mask, computes the minimum enclosing circle for each component,
      * and removes components whose diameter is less than the specified minimum diameter.
      *
-     * @param mask The binary mask from which small connected components will be removed. It should be of type CV_8UC1.
+     * @param mask The binary mask from which small connected components will be removed.
      * @param min_diameter The minimum diameter threshold. Components with a diameter smaller than this value will be removed.
      */
     void remove_connected_components_by_diameter(cv::Mat &mask, double min_diameter);
@@ -208,7 +231,7 @@ private:
      *
      * @param src The source image in HSV color space.
      * @param segmentation_mask The segmentation mask used to exclude certain areas.
-     * @param circle A 3-element vector representing a circle (x, y, radius) where the calculation is performed.
+     * @param circle A Vec3f representing a circle (x, y, radius) where the calculation is performed.
      * @return float The ratio of white pixels within the specified circle.
      */
     float get_white_ratio_in_circle_stripes(const cv::Mat &src, const cv::Mat &segmentation_mask, cv::Vec3f circle);
@@ -221,7 +244,7 @@ private:
      *
      * @param src The source image.
      * @param segmentation_mask The segmentation mask used to filter relevant areas.
-     * @param circles A vector containing circles detected, where each circle is represented by a 3-element vector (x, y, radius).
+     * @param circles A vector containing circles detected, where each circle is represented by a Vec3f (x, y, radius).
      */
     void find_cue_ball(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
 
@@ -233,7 +256,7 @@ private:
      *
      * @param src The source image.
      * @param segmentation_mask The segmentation mask used to filter relevant areas.
-     * @param circles A vector containing circles detected, where each circle is represented by a 3-element vector (x, y, radius).
+     * @param circles A vector containing circles detected, where each circle is represented by a Vec3f (x, y, radius).
      */
     void find_black_ball(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
 
@@ -245,7 +268,7 @@ private:
      *
      * @param src The source image.
      * @param segmentation_mask The segmentation mask used to filter relevant areas.
-     * @param circles A vector containing circles detected, where each circle is represented by a 3-element vector (x, y, radius).
+     * @param circles A vector containing circles detected, where each circle is represented by a Vec3f (x, y, radius).
      */
     void find_stripe_balls(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
 
@@ -257,9 +280,18 @@ private:
      *
      * @param src The source image.
      * @param segmentation_mask The segmentation mask used to filter relevant areas.
-     * @param circles A vector containing circles detected, where each circle is represented by a 3-element vector (x, y, radius).
+     * @param circles A vector containing circles detected, where each circle is represented by a Vec3f (x, y, radius).
      */
     void find_solid_balls(const cv::Mat &src, const cv::Mat &segmentation_mask, const std::vector<cv::Vec3f> &circles);
+
+    /**
+     * @brief Generates a mask of the intersection between a circular region and the negated ball segmentation mask.
+     *
+     * @param segmentation_mask Binary mask where ball regions are masked out.
+     * @param circle A Vec3f representing a circle (x, y, radius).
+     * @param mask Output binary mask representing the intersection area.
+     */
+    void get_circle_and_field_mask(const cv::Mat &segmentation_mask, cv::Vec3f circle, cv::Mat &mask);
 
     const float BOUNDING_BOX_RESCALE = 1.2;         // A scaling factor to rescale bounding boxes for better tracking.
     const float MAX_SIZE_BOUNDING_BOX_RESCALE = 14; // The maximum size limit for bounding box rescaling.
