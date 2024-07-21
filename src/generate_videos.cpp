@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     catch (const exception &e)
     {
         cerr << e.what() << endl;
-        cerr << "Terminating the program" << endl;
+        cerr << "Terminating the program." << endl;
         return 1;
     }
 

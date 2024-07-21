@@ -30,8 +30,6 @@ int main(int argc, char **argv)
     // Add OS separator if not inserted
     if (dataset_path.back() != fs::path::preferred_separator)
         dataset_path = dataset_path + fs::path::preferred_separator;
-
-    cout << "Generating performance..." << endl;
     
     try
     {
@@ -40,11 +38,9 @@ int main(int argc, char **argv)
     catch (const exception &e)
     {
         cerr << e.what() << endl;
-        cerr << "Terminating the program" << endl;
+        cerr << "Terminating the program." << endl;
         return 1;
     }
-
-    cout << "Performance generated." << endl;
 
     return 0;
 }

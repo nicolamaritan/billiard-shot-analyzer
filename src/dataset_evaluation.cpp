@@ -31,6 +31,8 @@ void evaluate(const string &dataset_path)
     vector<balls_localization> predicted_balls_localizations;
     vector<balls_localization> ground_truth_balls_localizations;
 
+    cout << "Generating " << output_directory.string() << "..."  << endl;
+
     // Get filenames and obtain segmentation and localization
     get_frame_files(dataset_path, filenames);
     for (const string &filename : filenames)
@@ -78,4 +80,7 @@ void evaluate(const string &dataset_path)
     performance_file << "Dataset mIoU: " << evaluate_balls_and_playing_field_segmentation_dataset(predicted_table_masks, ground_truth_table_masks) << endl;
     performance_file << "Dataset mAP: " << evaluate_balls_localization_dataset(predicted_balls_localizations, ground_truth_balls_localizations) << endl;
     performance_file.close();
+
+    cout << "Generated " << output_directory.string() << "."  << endl;
+
 }
