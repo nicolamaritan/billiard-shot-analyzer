@@ -111,7 +111,7 @@ target_link_libraries(generate_videos
     bounding_boxes_drawer
 )
 
-target_link_libraries(generate_masks_and_detection
+target_link_libraries(generate_masks_and_detections
     ${OpenCV_LIBS}
     dataset_evaluation
     performance_measurement
