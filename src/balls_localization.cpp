@@ -345,9 +345,9 @@ float balls_localizer::get_black_ratio_in_circle(const Mat &src, const Mat &segm
     inRange(masked_hsv, BLACK_HSV_LOWERBOUND, BLACK_HSV_UPPERBOUND, black_mask);
 
     // Computing ratio
-    int white_pixels = countNonZero(black_mask);
+    int black_pixels = countNonZero(black_mask);
     int total_circle_pixels = countNonZero(mask);
-    double percentage_black = static_cast<double>(white_pixels) / total_circle_pixels;
+    double percentage_black = static_cast<double>(black_pixels) / total_circle_pixels;
 
     return percentage_black;
 }

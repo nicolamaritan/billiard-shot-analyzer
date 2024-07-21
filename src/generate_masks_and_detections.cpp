@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         dataset_path = dataset_path + fs::path::preferred_separator;
 
     fs::path output_directory("output");
-    fs::path masks_and_detection_directory("masks_and_detection");
+    fs::path masks_and_detection_directory("masks_and_detections");
     output_directory /= masks_and_detection_directory;
     fs::create_directories(output_directory); // .{dataset}/output/masks_and_detection
 

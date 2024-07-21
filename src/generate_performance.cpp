@@ -31,7 +31,9 @@ int main(int argc, char** argv)
     if (dataset_path.back() != fs::path::preferred_separator)
         dataset_path = dataset_path + fs::path::preferred_separator;
     
+    cout << "Generating performance...";
     evaluate(dataset_path);
+    cout << "Performance generated.";
 
     return 0;
 }

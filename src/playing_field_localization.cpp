@@ -71,7 +71,8 @@ void playing_field_localizer::segmentation(const Mat &src, Mat &dst)
     hsv_channels[2].setTo(VALUE_UNIFORM);
     merge(hsv_channels, dst);
 
-    kmeans(dst.clone(), dst, 3);
+    const int CENTERS = 3;
+    kmeans(dst.clone(), dst, CENTERS);
 }
 
 void playing_field_localizer::find_lines(const Mat &edges, vector<Vec3f> &lines)
