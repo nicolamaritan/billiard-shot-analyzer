@@ -79,7 +79,7 @@ add_executable(generate_performance
 )
 
 add_executable(generate_masks_and_detections
-	src/generate_masks_and_detection.cpp
+	src/generate_masks_and_detections.cpp
 )
 
 add_executable(generate_videos
