@@ -164,6 +164,12 @@ void playing_field_localizer::dump_similar_lines(const Vec3f &reference_line, ve
 
 void playing_field_localizer::non_maxima_connected_component_suppression(const Mat &src, Mat &dst)
 {
+    if (src.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
+
     src.copyTo(dst);
     Mat connected_components_labels, stats, centroids;
     connectedComponentsWithStats(src, connected_components_labels, stats, centroids);

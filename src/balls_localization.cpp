@@ -153,7 +153,11 @@ void balls_localizer::circles_masks(const vector<Vec3f> &circles, vector<Mat> &m
 
 void balls_localizer::filter_empty_circles(vector<Vec3f> &circles, const vector<Mat> &masks, const Mat &segmentation_mask, float intersection_threshold)
 {
-    CV_Assert(segmentation_mask.type() == CV_8UC1);
+    if (segmentation_mask.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
 
     vector<Vec3f> filtered_circles;
     for (size_t i = 0; i < circles.size(); i++)
@@ -176,8 +180,11 @@ void balls_localizer::filter_empty_circles(vector<Vec3f> &circles, const vector<
 
 void balls_localizer::filter_out_of_bound_circles(vector<Vec3f> &circles, const Mat &table_mask, int distance_threshold)
 {
-    CV_Assert(table_mask.type() == CV_8UC1);
-
+    if (table_mask.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
     vector<Vec3f> filtered_circles;
     Mat shrinked_table_mask;
     const int WHITE = 255;
@@ -258,7 +265,11 @@ cv::Rect balls_localizer::get_bounding_box(cv::Vec3f circle)
 
 void balls_localizer::fill_small_holes(Mat &binary_mask, double area_threshold)
 {
-    CV_Assert(binary_mask.type() == CV_8UC1);
+    if (binary_mask.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
 
     vector<vector<Point>> contours;
     vector<Vec4i> hierarchy;
@@ -275,7 +286,12 @@ void balls_localizer::fill_small_holes(Mat &binary_mask, double area_threshold)
 
 void balls_localizer::extract_seed_points(const Mat &inrange_segmentation_mask, vector<Point> &seed_points)
 {
-    CV_Assert(inrange_segmentation_mask.type() == CV_8UC1);
+    if (inrange_segmentation_mask.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
+
     seed_points.clear();
 
     // Take as seed point every white pixel in the mask
@@ -291,8 +307,11 @@ void balls_localizer::extract_seed_points(const Mat &inrange_segmentation_mask, 
 
 void balls_localizer::get_circle_and_field_mask(const cv::Mat &segmentation_mask, cv::Vec3f circle, cv::Mat &mask)
 {
-    CV_Assert(segmentation_mask.type() == CV_8UC1);
-    CV_Assert(mask.type() == CV_8UC1);
+    if (segmentation_mask.type() != CV_8UC1 || mask.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
 
     int x = cvRound(circle[0]);
     int y = cvRound(circle[1]);
@@ -308,7 +327,11 @@ void balls_localizer::get_circle_and_field_mask(const cv::Mat &segmentation_mask
 
 float balls_localizer::get_white_ratio_in_circle_cue(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
-    CV_Assert(segmentation_mask.type() == CV_8UC1);
+    if (segmentation_mask.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
 
     Mat src_hsv;
     cvtColor(src, src_hsv, COLOR_BGR2HSV);
@@ -334,7 +357,11 @@ float balls_localizer::get_white_ratio_in_circle_cue(const Mat &src, const Mat &
 
 float balls_localizer::get_black_ratio_in_circle(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
-    CV_Assert(segmentation_mask.type() == CV_8UC1);
+    if (segmentation_mask.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
 
     Mat src_hsv;
     cvtColor(src, src_hsv, COLOR_BGR2HSV);
@@ -405,7 +432,11 @@ void balls_localizer::draw_circles(const cv::Mat &src, cv::Mat &dst, vector<cv::
 
 void balls_localizer::remove_connected_components_by_diameter(Mat &mask, double min_diameter)
 {
-    CV_Assert(mask.type() == CV_8UC1);
+    if (mask.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
 
     Mat labels, stats, centroids;
     int number_labels = cv::connectedComponentsWithStats(mask, labels, stats, centroids, 8, CV_32S);
@@ -430,7 +461,11 @@ void balls_localizer::remove_connected_components_by_diameter(Mat &mask, double 
 
 float balls_localizer::get_white_ratio_in_circle_stripes(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
-    CV_Assert(segmentation_mask.type() == CV_8UC1);
+    if (segmentation_mask.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
 
     Mat src_hsv;
     cvtColor(src, src_hsv, COLOR_BGR2HSV);
@@ -459,8 +494,12 @@ float balls_localizer::get_white_ratio_in_circle_stripes(const Mat &src, const M
 
 float balls_localizer::distance_from_middle_hue(const Mat &src, const Mat &segmentation_mask, Vec3f circle)
 {
-    CV_Assert(segmentation_mask.type() == CV_8UC1);
-
+    if (segmentation_mask.type() != CV_8UC1)
+    {
+        const string INVALID_MASK = "Argument does not represent a mask.";
+        throw invalid_argument(INVALID_MASK);
+    }
+    
     Mat src_hsv;
     cvtColor(src, src_hsv, COLOR_BGR2HSV);
 
