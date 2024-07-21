@@ -22,5 +22,17 @@ int main(int argc, char **argv)
         dataset_path = dataset_path + fs::path::preferred_separator;
 
     video_builder builder;
-    builder.build_videos(dataset_path);
+
+    try
+    {
+        builder.build_videos(dataset_path);
+    }
+    catch (const exception &e)
+    {
+        cerr << e.what() << endl;
+        cerr << "Terminating the program" << endl;
+        return 1;
+    }
+
+    return 0;
 }

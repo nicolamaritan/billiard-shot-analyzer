@@ -23,6 +23,12 @@ void draw_transparent_rect(Mat &src, Rect rect, Scalar color, double alpha);
 
 void get_frame_detection(const Mat &src, Mat &dst)
 {
+    if (src.empty())
+    {
+        const string EMPTY_MAT_MESSAGE = "Invalid empty image for frame detection.";
+        throw invalid_argument(EMPTY_MAT_MESSAGE);
+    }
+    
     dst = src.clone();
 
     playing_field_localizer plf_localizer;

@@ -14,6 +14,12 @@ using namespace std;
 
 void playing_field_localizer::localize(const Mat &src)
 {
+    if (src.empty())
+    {
+        const string EMPTY_MAT_MESSAGE = "Invalid empty image for playing field localizer.";
+        throw invalid_argument(EMPTY_MAT_MESSAGE);
+    }
+
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 20;
     Mat blurred;

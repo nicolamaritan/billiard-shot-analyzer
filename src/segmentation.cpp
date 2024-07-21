@@ -9,6 +9,12 @@ using namespace cv;
 
 void kmeans(const Mat &src, Mat &dst, int centroids)
 {
+    if (src.empty())
+    {
+        const string INVALID_EMPTY_MAT = "Invalid empty mat for kmeans.";
+        throw invalid_argument(INVALID_EMPTY_MAT);
+    }
+
     // data contains dst data (init with src data) used for kmeans clustering (therefore employs 32-bit float values).
     Mat data;
     dst.convertTo(data, CV_32F);
@@ -38,6 +44,12 @@ void kmeans(const Mat &src, Mat &dst, int centroids)
 
 void region_growing(const Mat &src, Mat &dst, const vector<Point> &seeds, int threshold_0, int threshold_1, int threshold_2)
 {
+    if (src.empty())
+    {
+        const string INVALID_EMPTY_MAT = "Invalid empty mat for region growing.";
+        throw invalid_argument(INVALID_EMPTY_MAT);
+    }
+
     dst = Mat::zeros(src.size(), CV_8UC1); // Initialize the destination image.
     queue<Point> to_grow; // Queue for points to be processed.
 
@@ -89,6 +101,12 @@ void mask_region_growing(const Mat &src, Mat &dst, const vector<Point> &seeds)
 
 Vec3b get_playing_field_color(const Mat &src, float radius)
 {
+    if (src.empty())
+    {
+        const string INVALID_EMPTY_MAT = "Invalid empty mat for getting playing field color.";
+        throw invalid_argument(INVALID_EMPTY_MAT);
+    }
+
     int center_cols = src.cols / 2;
     int center_rows = src.rows / 2;
     vector<Vec3b> pixel_values;

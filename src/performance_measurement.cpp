@@ -187,7 +187,11 @@ float compute_average_precision(std::vector<match> &matches, int total_ground_tr
 
 float evaluate_balls_localization_dataset(const std::vector<balls_localization> &predicted_localizations, const std::vector<balls_localization> &ground_truth_localizations)
 {
-    CV_Assert(predicted_localizations.size() == ground_truth_localizations.size());
+    if (predicted_localizations.size() != ground_truth_localizations.size())
+    {
+        const string INVALID_ARGUMENT_SIZES = "Predicted and ground truth localizations sizes must match";
+        throw invalid_argument(INVALID_ARGUMENT_SIZES);
+    }
 
     vector<match> cue_matches;
     vector<match> black_matches;
@@ -252,6 +256,12 @@ float evaluate_balls_localization_dataset(const std::vector<balls_localization> 
 
 float evaluate_balls_and_playing_field_segmentation_dataset(const std::vector<Mat> &predicted_masks, const std::vector<Mat> &ground_truth_masks)
 {
+    if (predicted_masks.size() != ground_truth_masks.size())
+    {
+        const string INVALID_ARGUMENT_SIZES = "Predicted and ground truth masks sizes must match";
+        throw invalid_argument(INVALID_ARGUMENT_SIZES);
+    }
+
     float iou_background = get_class_iou(predicted_masks, ground_truth_masks, label_id::background);
     float iou_cue = get_class_iou(predicted_masks, ground_truth_masks, label_id::cue);
     float iou_black = get_class_iou(predicted_masks, ground_truth_masks, label_id::black);
@@ -315,6 +325,12 @@ float evaluate_balls_localization(const balls_localization &predicted, const bal
 
 float evaluate_balls_and_playing_field_segmentation(const cv::Mat &found_mask, const cv::Mat &ground_truth_mask)
 {
+    if (found_mask.empty() || ground_truth_mask.empty())
+    {
+        const string INVALID_EMPTY_MAT = "Masks cannot be empty.";
+        throw invalid_argument(INVALID_EMPTY_MAT);
+    }
+
     float iou_background = get_class_iou(found_mask, ground_truth_mask, label_id::background);
     float iou_cue = get_class_iou(found_mask, ground_truth_mask, label_id::cue);
     float iou_black = get_class_iou(found_mask, ground_truth_mask, label_id::black);
@@ -342,8 +358,8 @@ void load_ground_truth_localization(const string &filename, balls_localization &
     ifstream file(filename);
     if (!file.is_open())
     {
-        cerr << "Could not open the file." << endl;
-        return;
+        const string INVALID_FILENAME = "Could not open the file " + filename;
+        throw invalid_argument(INVALID_FILENAME);
     }
 
     int x, y, width, height, label_id;

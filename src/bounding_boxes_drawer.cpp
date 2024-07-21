@@ -53,6 +53,12 @@ bounding_boxes_drawer::bounding_boxes_drawer(const playing_field_localization &p
 
 void bounding_boxes_drawer::draw(const cv::Mat &frame, cv::Mat &dst, const std::vector<cv::Rect2d> &updated_balls_bboxes)
 {
+    if (frame.empty())
+    {
+        const string EMPTY_MAT_MESSAGE = "Invalid empty image for bounding boxes drawer.";
+        throw invalid_argument(EMPTY_MAT_MESSAGE);
+    }
+
     dst = frame.clone();
 
     const float ALPHA = 0.4;

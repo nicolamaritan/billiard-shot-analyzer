@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     vector<String> filenames;
     get_frame_files(dataset_path, filenames);
 
-    for (const string& filename : filenames)
+    for (const string &filename : filenames)
     {
         Mat frame = imread(filename);
         Mat frame_segmentation;
@@ -62,10 +62,19 @@ int main(int argc, char **argv)
 
         cout << "Generating masks and detections in " << clip_game_directory.string() << "..." << endl;
 
-        // Compute output images
-        get_colored_frame_segmentation(frame, frame_segmentation, false);
-        get_colored_frame_segmentation(frame, frame_segmentation_background_preserved, true);
-        get_frame_detection(frame, frame_detection);
+        try
+        {
+            // Compute output images
+            get_colored_frame_segmentation(frame, frame_segmentation, false);
+            get_colored_frame_segmentation(frame, frame_segmentation_background_preserved, true);
+            get_frame_detection(frame, frame_detection);
+        }
+        catch (const exception &e)
+        {
+            cerr << e.what() << endl;
+            cerr << "Terminating the program" << endl;
+            return 1;
+        }
 
         // Save files
         imwrite(clip_game_directory.string() + SEGMENTATION_FILENAME, frame_segmentation);

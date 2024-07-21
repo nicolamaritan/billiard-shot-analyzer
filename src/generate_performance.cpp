@@ -12,7 +12,7 @@ using namespace std;
 using namespace cv;
 namespace fs = std::filesystem;
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     if (argc < 2)
     {
@@ -30,10 +30,21 @@ int main(int argc, char** argv)
     // Add OS separator if not inserted
     if (dataset_path.back() != fs::path::preferred_separator)
         dataset_path = dataset_path + fs::path::preferred_separator;
+
+    cout << "Generating performance..." << endl;
     
-    cout << "Generating performance...";
-    evaluate(dataset_path);
-    cout << "Performance generated.";
+    try
+    {
+        evaluate(dataset_path);
+    }
+    catch (const exception &e)
+    {
+        cerr << e.what() << endl;
+        cerr << "Terminating the program" << endl;
+        return 1;
+    }
+
+    cout << "Performance generated." << endl;
 
     return 0;
 }

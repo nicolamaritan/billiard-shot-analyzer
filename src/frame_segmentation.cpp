@@ -22,6 +22,12 @@ void color_segmentation(const cv::Mat &src, cv::Mat &dst, const cv::Mat &frame_s
 
 void get_colored_frame_segmentation(const Mat &src, Mat &dst, bool preserve_background)
 {
+    if (src.empty())
+    {
+        const string EMPTY_MAT_MESSAGE = "Invalid empty image for colored frame segmentation.";
+        throw invalid_argument(EMPTY_MAT_MESSAGE);
+    }
+
     playing_field_localizer plf_loc;
     plf_loc.localize(src);
     balls_localizer blls_loc(plf_loc.get_localization());
@@ -43,6 +49,12 @@ void get_colored_frame_segmentation(const Mat &src, Mat &dst, bool preserve_back
 
 void get_frame_segmentation(const Mat &src, Mat &dst)
 {
+    if (src.empty())
+    {
+        const string EMPTY_MAT_MESSAGE = "Invalid empty image for frame segmentation.";
+        throw invalid_argument(EMPTY_MAT_MESSAGE);
+    }
+
     // Perform localizations
     playing_field_localizer plf_localizer;
     plf_localizer.localize(src);

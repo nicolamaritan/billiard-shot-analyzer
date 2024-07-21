@@ -11,6 +11,12 @@ namespace fs = std::filesystem;
 minimap::minimap(const playing_field_localization &plf_localization, const balls_localization &blls_localization, const std::vector<cv::Rect2d> &tracker_bboxes)
 	: playing_field{plf_localization}, balls{blls_localization}
 {
+	if (tracker_bboxes.size() != (blls_localization.solids.size() + blls_localization.stripes.size()))
+	{
+		const string INVALID_BBOXES_SIZE = "Tracker bounding boxes and localization bounding boxes do not match in size.";
+		throw invalid_argument(INVALID_BBOXES_SIZE);
+	}
+
 	get_balls_pos(tracker_bboxes, current_balls_pos);
 	load_balls_indeces(current_balls_pos);
 
@@ -191,6 +197,12 @@ void minimap::draw_minimap(Mat &dst)
 
 void minimap::update(const std::vector<cv::Rect2d> &updated_balls_bboxes)
 {
+	if (updated_balls_bboxes.size() != current_balls_pos.size())
+	{
+		const string INVALID_BALLS_BBOXES = "Updated bounding boxes number does not match current bounding boxes number.";
+		throw invalid_argument(INVALID_BALLS_BBOXES);
+	}
+
 	old_balls_pos.clear();
 	copy(current_balls_pos.begin(), current_balls_pos.end(), back_inserter(old_balls_pos));
 	get_balls_pos(updated_balls_bboxes, current_balls_pos);

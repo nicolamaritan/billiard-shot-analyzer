@@ -27,6 +27,12 @@ bool operator!=(const ball_localization &lhs, const ball_localization &rhs)
 
 void balls_localizer::localize(const Mat &src)
 {
+    if (src.empty())
+    {
+        const string EMPTY_MAT_MESSAGE = "Invalid empty image balls localizer.";
+        throw invalid_argument(EMPTY_MAT_MESSAGE);
+    }
+
     const int FILTER_SIZE = 3;
     const int FILTER_SIGMA = 3;
     Mat blurred;
