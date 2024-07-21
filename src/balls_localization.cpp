@@ -278,9 +278,7 @@ void balls_localizer::extract_seed_points(const Mat &inrange_segmentation_mask, 
         for (int x = 0; x < inrange_segmentation_mask.cols; ++x)
         {
             if (inrange_segmentation_mask.at<uchar>(y, x) > 0)
-            {
                 seed_points.push_back(Point(x, y));
-            }
         }
     }
 }
@@ -332,11 +330,14 @@ float balls_localizer::get_black_ratio_in_circle(const Mat &src, const Mat &segm
 {
     CV_Assert(segmentation_mask.type() == CV_8UC1);
 
+    Mat src_hsv;
+    cvtColor(src, src_hsv, COLOR_BGR2HSV);
+
     Mat mask = Mat::zeros(src.size(), CV_8U);
     get_circle_and_field_mask(segmentation_mask, circle, mask);
 
     Mat masked_hsv;
-    src.copyTo(masked_hsv, mask);
+    src_hsv.copyTo(masked_hsv, mask);
 
     Mat black_mask;
     const Vec3b BLACK_HSV_LOWERBOUND = Vec3b(35, 1, 0);
@@ -425,11 +426,14 @@ float balls_localizer::get_white_ratio_in_circle_stripes(const Mat &src, const M
 {
     CV_Assert(segmentation_mask.type() == CV_8UC1);
 
+    Mat src_hsv;
+    cvtColor(src, src_hsv, COLOR_BGR2HSV);
+
     Mat mask = Mat::zeros(src.size(), CV_8U);
     get_circle_and_field_mask(segmentation_mask, circle, mask);
 
     Mat masked_hsv;
-    src.copyTo(masked_hsv, mask);
+    src_hsv.copyTo(masked_hsv, mask);
 
     Mat white_mask;
     const Vec3b WHITE_HSV_LOWERBOUND = Vec3b(0, 0, 135);
@@ -517,15 +521,10 @@ void balls_localizer::find_cue_ball(const Mat &src, const Mat &segmentation_mask
 
 void balls_localizer::find_black_ball(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
 {
-    Mat src_hsv;
-    cvtColor(src, src_hsv, COLOR_BGR2HSV);
-
     // We compute, for each circle, the percentage of "white" pixels. The one with highest percentage is picked as white ball.
     vector<pair<Vec3f, float>> circles_black_ratios;
     for (Vec3f circle : circles)
-    {
-        circles_black_ratios.push_back({circle, get_black_ratio_in_circle(src_hsv, segmentation_mask, circle)});
-    }
+        circles_black_ratios.push_back({circle, get_black_ratio_in_circle(src, segmentation_mask, circle)});
 
     // Sort by descending order of percentage
     sort(circles_black_ratios.begin(), circles_black_ratios.end(), [](const pair<Vec3f, float> &a, const pair<Vec3f, float> &b)
@@ -538,15 +537,10 @@ void balls_localizer::find_black_ball(const Mat &src, const Mat &segmentation_ma
 
 void balls_localizer::find_stripe_balls(const Mat &src, const Mat &segmentation_mask, const vector<Vec3f> &circles)
 {
-    Mat src_hsv;
-    cvtColor(src, src_hsv, COLOR_BGR2HSV);
-
     // We compute, for each circle, the percentage of "white" pixels.
     vector<pair<Vec3f, float>> circles_white_ratios;
     for (Vec3f circle : circles)
-    {
-        circles_white_ratios.push_back({circle, get_white_ratio_in_circle_stripes(src_hsv, segmentation_mask, circle)});
-    }
+        circles_white_ratios.push_back({circle, get_white_ratio_in_circle_stripes(src, segmentation_mask, circle)});
 
     vector<pair<Vec3f, float>> circles_white_ratios_filtered;
     copy_if(circles_white_ratios.begin(), circles_white_ratios.end(), back_inserter(circles_white_ratios_filtered), [](pair<Vec3f, float> p)
@@ -597,9 +591,8 @@ void balls_localizer::find_solid_balls(const Mat &src, const Mat &segmentation_m
     solid_confidence += localization.cue.confidence;
     solid_confidence += localization.black.confidence;
     for (const ball_localization &stripe_localization : localization.stripes)
-    {
         solid_confidence += stripe_localization.confidence;
-    }
+
     solid_confidence /= (localization.stripes.size() + 2); // +2 represents cue and black
 
     // All the other must be solids
