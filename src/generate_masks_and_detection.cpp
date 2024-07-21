@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     vector<String> filenames;
     get_frame_files(dataset_path, filenames);
 
-    for (auto filename : filenames)
+    for (const string& filename : filenames)
     {
         Mat frame = imread(filename);
         Mat frame_segmentation;
@@ -55,6 +55,7 @@ int main(int argc, char **argv)
 
         clip_game_directory /= fs::path(filename).filename(); // {dataset}/output/masks_and_detection/game{a}_clip{b}
 
+        // Filenames strings
         const string SEGMENTATION_FILENAME = "_segmentation";
         const string SEGMENTATION_BACKGROUND_PRESERVED_FILENAME = "_segmentation_background_preserved";
         const string DETECTION_FILENAME = "_detection";

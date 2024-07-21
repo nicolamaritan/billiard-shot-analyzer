@@ -30,7 +30,7 @@ void get_pairs_points_per_line(const vector<Vec3f> &lines, vector<pair<Point, Po
     // Arbitrary x coordinate to compute the 2 points in each line.
     const float POINT_X = 1000;
 
-    for (auto line : lines)
+    for (Vec3f line : lines)
     {
         float rho = line[0];
         float theta = line[1];

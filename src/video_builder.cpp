@@ -73,7 +73,7 @@ void video_builder::build_output_frames(const string &filename, vector<Mat> &out
     Ptr<legacy::MultiTracker> multi_tracker = legacy::MultiTracker::create();
 
     // Initialize the trackers for each detected bounding box
-    for (const auto &bbox : balls_loc.get_bounding_boxes())
+    for (const Rect2d &bbox : balls_loc.get_bounding_boxes())
     {
         /*
             The bounding boxes provided to the trackers are scaled by a factor

@@ -102,7 +102,7 @@ void playing_field_localizer::refine_lines(const vector<Vec3f> &lines, vector<Ve
         // Compute a new mean line with the dumped ones
         Vec3f mean_line;
         int total_votes = 0;
-        for (auto similar_line : similar_lines)
+        for (Vec3f similar_line : similar_lines)
         {
             total_votes += similar_line[2];
             mean_line += similar_line * similar_line[2];
@@ -197,7 +197,7 @@ bool playing_field_localizer::is_within_image(const Point &p, int rows, int cols
 void playing_field_localizer::sort_points_clockwise(vector<Point> &points)
 {
     Point center;
-    for (auto point : points)
+    for (Point point : points)
         center += point;
 
     center.x /= points.size();

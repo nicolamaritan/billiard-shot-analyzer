@@ -147,7 +147,7 @@ float compute_average_precision(std::vector<match> &matches, int total_ground_tr
     std::vector<float> precisions;
     std::vector<float> recalls;
 
-    for (const auto &m : matches)
+    for (match m : matches)
     {
         if (m.type == true_positive)
             tp++;

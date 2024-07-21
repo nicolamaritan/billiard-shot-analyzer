@@ -15,7 +15,7 @@ using namespace std;
 using namespace cv;
 namespace fs = std::filesystem;
 
-void evaluate(const string& dataset_path)
+void evaluate(const string &dataset_path)
 {
     const string OUTPUT_DIRECTORY = "output";
     const string PERFORMANCE_FILE = "performance.txt";
@@ -33,7 +33,7 @@ void evaluate(const string& dataset_path)
 
     // Get filenames and obtain segmentation and localization
     get_frame_files(dataset_path, filenames);
-    for (auto filename : filenames)
+    for (const string &filename : filenames)
     {
         Mat frame = imread(filename);
         Mat frame_segmentation;
@@ -48,7 +48,7 @@ void evaluate(const string& dataset_path)
 
     // Load ground truth masks
     get_mask_files(dataset_path, filenames);
-    for (auto filename : filenames)
+    for (const string &filename : filenames)
     {
         Mat mask = imread(filename, CV_8UC1);
         ground_truth_table_masks.push_back(mask);
@@ -56,7 +56,7 @@ void evaluate(const string& dataset_path)
 
     // Load ground truth bounding boxes
     get_bounding_boxes_files(dataset_path, filenames);
-    for (auto filename : filenames)
+    for (const string &filename : filenames)
     {
         balls_localization ground_truth;
         load_ground_truth_localization(filename, ground_truth);
@@ -75,7 +75,7 @@ void evaluate(const string& dataset_path)
         performance_file << endl;
     }
 
-    performance_file << "Dataset mAP: " << evaluate_balls_localization_dataset(predicted_balls_localizations, ground_truth_balls_localizations) << endl;
     performance_file << "Dataset mIoU: " << evaluate_balls_and_playing_field_segmentation_dataset(predicted_table_masks, ground_truth_table_masks) << endl;
+    performance_file << "Dataset mAP: " << evaluate_balls_localization_dataset(predicted_balls_localizations, ground_truth_balls_localizations) << endl;
     performance_file.close();
 }
